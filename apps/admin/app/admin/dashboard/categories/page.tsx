@@ -3,17 +3,27 @@ import { StatCard } from "@/components/stat-card";
 import { requireAdminOrRedirect } from "@/lib/auth";
 import { prisma } from "@repo/database";
 import { FolderTreeIcon, LayersIcon, PackageIcon } from "lucide-react";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import CategoriesManager from "./categories-manager";
 
 const CategoriesPage = async () => {
   await requireAdminOrRedirect();
-  const t = await getTranslations("Categories");
+  const [t, locale] = await Promise.all([getTranslations("Categories"), getLocale()]);
 
-  const categories = await prisma.category.findMany({
+  const rawCategories = await prisma.category.findMany({
     orderBy: [{ parentId: "asc" }, { order: "asc" }],
-    include: { _count: { select: { products: true, subProducts: true } } },
+    include: {
+      _count: { select: { products: true, subProducts: true } },
+      translations: { where: { language: locale }, select: { name: true } },
+    },
   });
+
+  // `name` stays the canonical value the storefront and slugs use and the
+  // one the edit form writes; the translated name is shown as the label.
+  const categories = rawCategories.map(({ translations, ...category }) => ({
+    ...category,
+    localizedName: translations[0]?.name ?? null,
+  }));
 
   const sections = categories.filter((category) => category.parentId === null);
   const productCount = sections.reduce((sum, section) => sum + section._count.products, 0);

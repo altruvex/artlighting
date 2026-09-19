@@ -38,6 +38,8 @@ import { toast } from "sonner";
 type CategoryWithCount = {
   id: string;
   name: string;
+  /** Name in the current UI language, when a translation row exists. */
+  localizedName: string | null;
   slug: string;
   parentId: string | null;
   order: number;
@@ -150,7 +152,14 @@ export default function CategoriesManager({
                   <span className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
                     {t("section")}
                   </span>
-                  <span className="min-w-0 truncate text-sm font-medium">{section.name}</span>
+                  <span className="min-w-0 truncate text-sm font-medium">
+                    {section.localizedName ?? section.name}
+                  </span>
+                  {section.localizedName && section.localizedName !== section.name && (
+                    <span className="truncate text-xs text-muted-foreground" dir="ltr">
+                      {section.name}
+                    </span>
+                  )}
                   <span className="truncate text-xs text-muted-foreground" dir="ltr">
                     /{section.slug}
                   </span>
@@ -179,7 +188,9 @@ export default function CategoriesManager({
                             aria-hidden
                             className="size-3.5 shrink-0 text-muted-foreground rtl:-scale-x-100"
                           />
-                          <span className="min-w-0 truncate text-sm">{child.name}</span>
+                          <span className="min-w-0 truncate text-sm">
+                            {child.localizedName ?? child.name}
+                          </span>
                           <span className="truncate text-xs text-muted-foreground" dir="ltr">
                             /{child.slug}
                           </span>

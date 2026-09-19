@@ -320,7 +320,7 @@ export interface Configuration {
   updatedAt: Date
 }
 
-export interface ConfigurationData extends Configuration { }
+export type ConfigurationData = Configuration
 
 export interface Order {
   id: number

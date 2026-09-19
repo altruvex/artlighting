@@ -33,10 +33,20 @@
   },
   "pnpm": {
     "overrides": {
-      "minimatch": ">=10.2.1",
+      "minimatch@^3": "^3.1.5",
+      "minimatch@^5": "^5.1.9",
+      "minimatch@^9": "^9.0.9",
+      "minimatch@^10": "^10.2.6",
       "shelljs": ">=0.8.5",
       "lodash.template": ">=4.5.0",
       "ajv": ">=6.12.3"
+    },
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "eslint-plugin-react>eslint": "10",
+        "eslint-plugin-import>eslint": "10",
+        "eslint-plugin-jsx-a11y>eslint": "10"
+      }
     }
   }
 }

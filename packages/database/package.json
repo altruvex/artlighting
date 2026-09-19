@@ -1,35 +1,38 @@
 {
-    "name": "@repo/database",
-    "version": "0.1.0",
-    "private": true,
-    "type": "module",
-    "types": "./index.ts",
-    "scripts": {
-        "db:generate": "prisma generate",
-        "db:push": "prisma db push",
-        "db:migrate": "prisma migrate dev",
-        "db:studio": "prisma studio",
-        "db:seed": "tsx seed.ts",
-        "seed:admin": "tsx scripts/seed-admin.ts",
-        "migrate:variants-images": "tsx scripts/migrate-product-variants-images.ts",
-        "db:reset": "prisma migrate reset --force",
-        "import:products": "tsx ./scripts/import-products.ts",
-        "import:products:debug": "DEBUG=1 tsx ./scripts/import-products.ts",
-        "validate:json": "tsx ./scripts/validate-json-consistency.ts",
-        "fix:json": "tsx ./scripts/fix-json-files.ts",
-        "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
-        "postinstall": "prisma generate"
-    },
-    "dependencies": {
-        "better-auth": "^1.2.7",
-        "@prisma/client": "^6.14.0",
-        "dotenv": "^17.2.1",
-        "dotenv-flow": "^4.1.0"
-    },
-    "devDependencies": {
-        "@types/node": "^20.19.9",
-        "prisma": "^6.14.0",
-        "tsx": "^4.19.2",
-        "typescript": "^5.8.3"
-    }
+  "name": "@repo/database",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "types": "./index.ts",
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx seed.ts",
+    "seed:admin": "tsx scripts/seed-admin.ts",
+    "migrate:variants-images": "tsx scripts/migrate-product-variants-images.ts",
+    "db:reset": "prisma migrate reset --force",
+    "import:products": "tsx ./scripts/import-products.ts",
+    "import:products:debug": "DEBUG=1 tsx ./scripts/import-products.ts",
+    "validate:json": "tsx ./scripts/validate-json-consistency.ts",
+    "fix:json": "tsx ./scripts/fix-json-files.ts",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
+    "postinstall": "prisma generate",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "better-auth": "^1.2.7",
+    "@prisma/client": "^6.14.0",
+    "dotenv": "^17.2.1",
+    "dotenv-flow": "^4.1.0"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@types/node": "^20.19.9",
+    "eslint": "catalog:",
+    "prisma": "^6.14.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.3"
+  }
 }

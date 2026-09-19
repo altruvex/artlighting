@@ -35,6 +35,7 @@ export default function Project({ children, locale }: { children?: React.ReactNo
     locale === "ar" ? (projectsDetailsAr as ProjectsData) : (projectsDetailsEn as ProjectsData)
 
   const t = useTranslations("project")
+  const tCompany = useTranslations("company")
 
   if (!projectId) {
     return <div>{t("project-not-found")}</div>
@@ -54,7 +55,7 @@ export default function Project({ children, locale }: { children?: React.ReactNo
       transition: { duration: 1, delay: 0.3 },
     },
   }
-  const tCompany = useTranslations("company")
+
   return (
     <motion.div initial="hidden" animate="visible" variants={variants}>
       {children}

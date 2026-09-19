@@ -83,7 +83,7 @@ export async function POST(req: Request) {
   // behind a gateway that returns an HTML error page — never assume its
   // response body is JSON just because a request completed.
   const rawBody = await workerRes.text();
-  let workerBody: { jobId?: string; error?: string } = {};
+  let workerBody: { jobId?: string; error?: string };
   try {
     workerBody = rawBody ? JSON.parse(rawBody) : {};
   } catch {

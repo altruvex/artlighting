@@ -31,7 +31,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ jobId: 
   }
 
   const rawBody = await workerRes.text();
-  let body: unknown = {};
+  let body: unknown;
   try {
     body = rawBody ? JSON.parse(rawBody) : {};
   } catch {

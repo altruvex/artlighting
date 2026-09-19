@@ -161,7 +161,9 @@ export default function ProductMainInfo({
   useEffect(() => {
     try {
       localStorage.setItem(`${QUANTITY_STORAGE_KEY_PREFIX}${productId}`, currentQuantity.toString())
-    } catch { }
+    } catch {
+      // localStorage can be unavailable (private mode, quota); persisting quantity is best-effort.
+    }
   }, [currentQuantity, productId])
 
   const handleIncreaseQuantity = useCallback(() => {

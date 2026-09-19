@@ -2,6 +2,16 @@ packages:
   - apps/*
   - packages/*
 
+# Single source of versions for shared tooling. Workspaces reference these
+# with "catalog:" so apps and packages can't drift apart again.
+catalog:
+  eslint: 10.11.0
+  "@eslint/js": 10.0.1
+  eslint-config-next: 16.3.5
+  eslint-config-prettier: 10.1.8
+  eslint-plugin-turbo: 2.11.2
+  typescript-eslint: 8.70.0
+
 onlyBuiltDependencies:
   - '@clerk/shared'
   - '@parcel/watcher'

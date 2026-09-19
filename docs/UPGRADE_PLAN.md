@@ -1,6 +1,6 @@
 # ArtLighting: Admin → ERP-level e-commerce upgrade plan
 
-Status: **APPROVED 2026-09-19** (scope update: English-only generated output, D11). Hotfix, Phase 0 and the ERP redesign done; Phase 1 next (Neon `dev` branch is ready).
+Status: **APPROVED 2026-09-19** (scope update: English-only generated output, D11). Hotfix, Phase 0, the ERP redesign and Phase 1 done (all on the Neon `dev` branch). Phase 2 next.
 Written 2026-09-19 after reading the monorepo and the Altruvex admin (`/Users/ali/altruvex`, read-only).
 
 ---
@@ -79,6 +79,23 @@ Scope change requested after Phase 0: rebuild the admin as an ERP UI. Done in 12
 Fixed during QA: no feedback on order status change; deleted images kept serving from the Cloudinary CDN; nested `<main>` landmarks; category names untranslated in the categories manager.
 
 Nothing has been pushed. Production is untouched: `.env.local` points at `dev`, and write scripts refuse a production host (`assertNotProduction`).
+
+### Phase 1 outcome (2026-09-20)
+All on the Neon `dev` branch; production untouched.
+
+Two migrations, SQL reviewed before applying:
+- `20260920090000_phase1_roles_and_auth_indexes`: AdminRole `owner→ADMIN`, `staff→STAFF` as an in-place `RENAME VALUE` (Prisma's generated recreate-and-cast would have failed on every existing row), `users.role` (UserRole CUSTOMER), dropped the unused `users.configurationId` / `users.productId`, and the six indexes Better Auth 1.7 expects.
+- `20260920100000_configuration_owner`: `configurations.userId` (nullable, indexed, SET NULL).
+
+Authorization: a permission table (`apps/admin/lib/permissions.ts`) replaces scattered role checks — STAFF works the catalog, orders and datasheets; ADMIN adds price, discount, staff and settings. `proxy.ts` denies by default with an explicit allow-list, and `scripts/check-action-guards.mjs` (in `check-types`) fails when an action or route handler has no guard.
+
+Storefront security, tested for real on dev with the two seeded customers signed in: reading, completing, updating or pricing another customer's record answers **404 — identical to a record that doesn't exist**; invalid cart quantities answer 400; anonymous configuration writes answer 401.
+- `POST /api/configurations/[configId]` needed **no session at all** before.
+- `/api/pricing/validate` checked ownership via `Configuration.users`, fed by `User.configurationId`, which was never written for any user — so it rejected **everyone**; the endpoint was dead.
+- Configuration lookups returned the newest row for a product regardless of owner, so two customers shared one configuration.
+- `GET /api/orders/[orderId]` leaked internals in a 500; now 404.
+
+Server actions return errors instead of throwing (a production build strips thrown messages), verified in a production build in both locales. Storefront API routes moved out of `[locale]/api` with redirects. Email verification and password reset are wired to one delivery seam that Phase 5 points at Resend.
 
 ## 1. Findings
 

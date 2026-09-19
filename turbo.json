@@ -1,5 +1,5 @@
 {
-  "$schema": "https://v2-10-9.turborepo.dev/schema.json",
+  "$schema": "https://turborepo.com/schema.json",
   "ui": "tui",
   "tasks": {
     "build": {
@@ -16,16 +16,20 @@
         "dist/**"
       ],
       "env": [
-        "NEXT_PUBLIC_SERVER_URL",
         "DATABASE_URL",
+        "DIRECT_URL",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_URL",
         "NEXT_PUBLIC_APP_URL",
-        "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-        "CLERK_SECRET_KEY",
-        "NEXT_PUBLIC_CLERK_SIGN_IN_URL",
-        "NEXT_PUBLIC_CLERK_SIGN_UP_URL",
-        "ADMIN_EMAIL",
-        "ADMIN_NAME",
-        "ADMIN_PASSWORD"
+        "NEXT_PUBLIC_ADMIN_URL",
+        "UPSTASH_REDIS_REST_URL",
+        "UPSTASH_REDIS_REST_TOKEN",
+        "CLOUD_NAME",
+        "CLOUD_API_KEY",
+        "CLOUD_API_SECRET",
+        "DATASHEET_WORKER_URL",
+        "DATASHEET_WORKER_SECRET",
+        "STOREFRONT_BASE_URL"
       ]
     },
     "lint": {
@@ -40,7 +44,23 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": [
+        "DATABASE_URL",
+        "DIRECT_URL",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_URL",
+        "NEXT_PUBLIC_APP_URL",
+        "NEXT_PUBLIC_ADMIN_URL",
+        "UPSTASH_REDIS_REST_URL",
+        "UPSTASH_REDIS_REST_TOKEN",
+        "CLOUD_NAME",
+        "CLOUD_API_KEY",
+        "CLOUD_API_SECRET",
+        "DATASHEET_WORKER_URL",
+        "DATASHEET_WORKER_SECRET",
+        "STOREFRONT_BASE_URL"
+      ]
     },
     "db:generate": {
       "cache": false

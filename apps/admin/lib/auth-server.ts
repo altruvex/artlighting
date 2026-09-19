@@ -12,7 +12,10 @@ import { getAuthSecret } from "./auth-secret";
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   secret: getAuthSecret(),
-  baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL,
+  // BETTER_AUTH_URL only: NEXT_PUBLIC_APP_URL is the storefront's URL, so
+  // falling back to it would send admin auth callbacks to the wrong app.
+  // Unset, Better Auth derives the origin from the request (same-origin).
+  baseURL: process.env.BETTER_AUTH_URL,
   emailAndPassword: {
     enabled: true,
   },

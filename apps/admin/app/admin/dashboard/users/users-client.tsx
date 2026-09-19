@@ -56,7 +56,7 @@ export function UsersClient({
             <span className="grid min-w-0 leading-tight">
               <Link
                 href={`/admin/dashboard/users/${row.original.id}`}
-                className="truncate font-medium hover:underline"
+                className="font-medium whitespace-nowrap hover:underline"
               >
                 {row.original.name ?? t("unnamed")}
               </Link>

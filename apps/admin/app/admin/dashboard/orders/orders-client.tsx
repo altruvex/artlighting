@@ -68,12 +68,12 @@ export default function OrdersClient({
             {row.original.customer ? (
               <Link
                 href={`/admin/dashboard/users/${row.original.userId}`}
-                className="truncate font-medium hover:underline"
+                className="font-medium whitespace-nowrap hover:underline"
               >
                 {row.original.customer}
               </Link>
             ) : (
-              <span className="truncate text-muted-foreground">{t("unknownCustomer")}</span>
+              <span className="whitespace-nowrap text-muted-foreground">{t("unknownCustomer")}</span>
             )}
             {row.original.phone && (
               <span className="truncate text-xs text-muted-foreground tabular-nums" dir="ltr">

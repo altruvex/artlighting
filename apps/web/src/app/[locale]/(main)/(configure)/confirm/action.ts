@@ -9,8 +9,10 @@ export const getUserStatus = async ({ orderId }: { orderId: number }) => {
       console.log("User Not authenticated");
       throw new Error("You need to be logged in");
     }
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
+    // Scoped by userId: another customer's order and a non-existent one
+    // fail identically, so order ids can't be probed by the error text.
+    const order = await prisma.order.findFirst({
+      where: { id: orderId, userId },
       include: {
         user: true,
         shippingAddress: true,
@@ -19,9 +21,6 @@ export const getUserStatus = async ({ orderId }: { orderId: number }) => {
     });
     if (!order) {
       throw new Error("Order not found");
-    }
-    if (order.userId !== userId) {
-      throw new Error("You do not have permission to view this order");
     }
     return order;
   } catch (error) {

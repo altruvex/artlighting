@@ -15,7 +15,7 @@ export default function UnauthorizedPage() {
                     {t("description")}
                 </p>
                 <Link
-                    href="/auth/sign-in"
+                    href="/sign-in"
                     className="inline-block px-6 py-3 text-sm font-medium text-white bg-black rounded-full hover:bg-neutral-800 transition duration-200"
                 >
                     {t("backToSignIn")}

@@ -89,6 +89,15 @@ export default function BulkGenerateSheet({ topCategories }: { topCategories: Ca
   async function pollStatus(id: string) {
     try {
       const res = await fetch(`/api/products/datasheet/bulk/${id}`, { cache: "no-store" });
+      // A non-2xx answer is { error } (worker down, job expired), not a job:
+      // treating it as one crashed the sheet on `job.skipped.length`.
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        stopPolling();
+        setJobId(null);
+        setStartError(body?.error ?? tCommon("genericError"));
+        return;
+      }
       const body = (await res.json()) as JobStatusResponse;
       setJob(body);
       if (body.status === "done" || body.status === "error") stopPolling();

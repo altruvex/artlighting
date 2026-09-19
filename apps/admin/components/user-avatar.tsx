@@ -26,13 +26,11 @@ export default function UserAvatar({
 
   return (
     <Avatar className={`${sizeClasses[size]} ${className}`}>
-      <AvatarImage
-        src={
-          imageUrl || `https://api.dicebear.com/6.x/initials/svg?seed=${email}`
-        }
-        alt={name || email}
-      />
-      <AvatarFallback>{initials}</AvatarFallback>
+      {/* Initials are rendered locally: the previous dicebear.com URL sent
+          every customer's email address to a third party (and CSP blocked
+          the image anyway). */}
+      {imageUrl && <AvatarImage src={imageUrl} alt={name || email} />}
+      <AvatarFallback>{initials || email.slice(0, 2).toUpperCase()}</AvatarFallback>
     </Avatar>
   );
 };

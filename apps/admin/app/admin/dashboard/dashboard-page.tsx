@@ -119,7 +119,7 @@ const Dashboard = () => {
               # {order.id}
             </Link>
           </TableCell>
-          <TableCell className="px-4 py-2 ext-nowrap ">
+          <TableCell className="px-4 py-2 text-nowrap">
             {order.shippingAddress.fullName}
           </TableCell>
           <TableCell className="px-4 py-2 text-nowrap uppercase">

@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import type { Configuration, Order, Product, ShippingAddress, User } from "@repo/database";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Box, Calendar, MapPin, Truck } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
@@ -53,7 +53,7 @@ export default function OrderPage({ order }: OrderPageProps) {
                 <CardTitle className="text-2xl sm:text-3xl mb-2">
                   {t("title", { id: order.id })}
                 </CardTitle>
-                <CardDescription className="text-primary-foreground/803 mt-5">
+                <CardDescription className="text-primary-foreground/80 mt-5">
                   {t("placedOn", { date: formatDate(order.createdAt) })}
                 </CardDescription>
               </div>
@@ -133,7 +133,7 @@ export default function OrderPage({ order }: OrderPageProps) {
                   label={t("productPrice")}
                   value={formatMoney(order.configPrice)}
                 />
-                {order.discountRate && order.discountRate > 0 && (
+                {order.discountRate > 0 && (
                   <PriceDetail
                     label={t("discountWithRate", {
                       rate: format.number(order.discountRate, { style: "percent" }),
@@ -142,7 +142,7 @@ export default function OrderPage({ order }: OrderPageProps) {
                     className="text-green-600"
                   />
                 )}
-                {order.priceIncrease && order.priceIncrease > 0 && (
+                {order.priceIncrease > 0 && (
                   <PriceDetail
                     label={t("priceIncrease")}
                     value={formatMoney(order.priceIncrease)}
@@ -173,10 +173,6 @@ export default function OrderPage({ order }: OrderPageProps) {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <Avatar className="h-7 w-7 me-1.5">
-                        <AvatarImage
-                          src={`https://api.dicebear.com/6.x/initials/svg?seed=${order.user.email}`}
-                          alt={order.user.email ?? ""}
-                        />
                         <AvatarFallback>
                           {order.user.email
                             ?.split(" ")
@@ -197,7 +193,7 @@ export default function OrderPage({ order }: OrderPageProps) {
                           {order.user.email}
                         </p>
                         <Link
-                          href={`/admin/dashboard/Users/${order.user.id}`}
+                          href={`/admin/dashboard/users/${order.user.id}`}
                           className="font-semibold"
                         >
                           {order.user.id}

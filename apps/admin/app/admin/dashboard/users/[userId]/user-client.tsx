@@ -58,7 +58,7 @@ const UserPageClient = ({ user }: UserPageClientProps) => {
       filteredOrders.map((order) => (
         <TableRow key={order.id}>
           <TableCell className="hover:text-primary hover:underline font-medium">
-            <Link href={`/admin/dashboard/Orders/${order.id}`}>
+            <Link href={`/admin/dashboard/orders/${order.id}`}>
               #{order.id}
             </Link>
           </TableCell>

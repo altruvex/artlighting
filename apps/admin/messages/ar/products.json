@@ -17,6 +17,22 @@
     "chandLamp": {
       "lamp9w": "لمبة 9W",
       "lamp12w": "لمبة 12W"
+    },
+    "subtitle": "الكتالوج والأسعار والمخزون.",
+    "searchPlaceholder": "ابحث بالاسم أو رمز المنتج",
+    "stats": {
+      "total": "المنتجات",
+      "active": "نشطة",
+      "lowStock": "مخزون منخفض أو منتهٍ",
+      "lowStockHint": "‏{threshold} أو أقل في المخزون"
+    },
+    "stock": {
+      "out": "نفد المخزون",
+      "low": "بقي {count}"
+    },
+    "empty": {
+      "title": "لا توجد منتجات بعد",
+      "description": "أضف أول منتج لبدء بناء الكتالوج."
     }
   },
   "ProductEditor": {

@@ -10,7 +10,38 @@
     "brand": "آرت لايتنج",
     "admin": "لوحة التحكم",
     "openSidebar": "فتح القائمة الجانبية",
-    "closeSidebar": "إغلاق القائمة الجانبية"
+    "closeSidebar": "إغلاق القائمة الجانبية",
+    "toggleSidebar": "إظهار أو إخفاء القائمة الجانبية",
+    "navigation": "التنقل",
+    "navigationDescription": "القائمة الرئيسية للوحة التحكم.",
+    "skipToContent": "تخطٍ إلى المحتوى",
+    "groups": {
+      "overview": "نظرة عامة",
+      "sales": "المبيعات",
+      "catalog": "الكتالوج",
+      "system": "النظام"
+    },
+    "breadcrumbs": {
+      "new": "جديد",
+      "details": "التفاصيل"
+    },
+    "command": {
+      "open": "فتح البحث",
+      "title": "بحث",
+      "description": "انتقل إلى قسم أو ابدأ إجراءً.",
+      "placeholder": "ابحث في الأقسام والإجراءات…",
+      "empty": "لا توجد نتائج مطابقة.",
+      "actions": "الإجراءات",
+      "newProduct": "منتج جديد"
+    },
+    "userMenu": {
+      "language": "اللغة",
+      "theme": "المظهر",
+      "themeLight": "فاتح",
+      "themeDark": "داكن",
+      "themeSystem": "حسب النظام",
+      "signOut": "تسجيل الخروج"
+    }
   },
   "Nav": {
     "dashboard": "الرئيسية",
@@ -68,5 +99,22 @@
     "genericError": "حدث خطأ ما. يُرجى المحاولة مرة أخرى.",
     "notAuthorized": "ليست لديك صلاحية للقيام بذلك.",
     "saved": "تم الحفظ"
+  },
+  "DataTable": {
+    "search": "بحث",
+    "reset": "إعادة تعيين",
+    "columns": "الأعمدة",
+    "selectAll": "تحديد كل الصفوف في هذه الصفحة",
+    "selectRow": "تحديد الصف",
+    "selected": "{count, plural, zero {لم يتم تحديد صفوف} one {تم تحديد صف واحد} two {تم تحديد صفين} few {تم تحديد # صفوف} many {تم تحديد # صفًا} other {تم تحديد # صف}}",
+    "clearSelection": "إلغاء التحديد",
+    "empty": "لا توجد نتائج.",
+    "noOptions": "لا توجد خيارات.",
+    "clearFilter": "مسح عامل التصفية",
+    "sortBy": "ترتيب حسب {column}",
+    "showing": "عرض {from}–{to} من {total}",
+    "page": "صفحة {page} من {pages}",
+    "previous": "السابق",
+    "next": "التالي"
   }
 }

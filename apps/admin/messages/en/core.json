@@ -10,7 +10,38 @@
     "brand": "Art Lighting",
     "admin": "Admin",
     "openSidebar": "Open sidebar",
-    "closeSidebar": "Close sidebar"
+    "closeSidebar": "Close sidebar",
+    "toggleSidebar": "Toggle sidebar",
+    "navigation": "Navigation",
+    "navigationDescription": "Main admin navigation.",
+    "skipToContent": "Skip to content",
+    "groups": {
+      "overview": "Overview",
+      "sales": "Sales",
+      "catalog": "Catalog",
+      "system": "System"
+    },
+    "breadcrumbs": {
+      "new": "New",
+      "details": "Details"
+    },
+    "command": {
+      "open": "Open search",
+      "title": "Search",
+      "description": "Jump to a section or start an action.",
+      "placeholder": "Search sections and actions…",
+      "empty": "Nothing matches that.",
+      "actions": "Actions",
+      "newProduct": "New product"
+    },
+    "userMenu": {
+      "language": "Language",
+      "theme": "Theme",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "themeSystem": "System",
+      "signOut": "Sign out"
+    }
   },
   "Nav": {
     "dashboard": "Dashboard",
@@ -68,5 +99,22 @@
     "genericError": "Something went wrong. Please try again.",
     "notAuthorized": "You don't have permission to do this.",
     "saved": "Saved"
+  },
+  "DataTable": {
+    "search": "Search",
+    "reset": "Reset",
+    "columns": "Columns",
+    "selectAll": "Select all rows on this page",
+    "selectRow": "Select row",
+    "selected": "{count, plural, one {# row selected} other {# rows selected}}",
+    "clearSelection": "Clear selection",
+    "empty": "No results found.",
+    "noOptions": "No options found.",
+    "clearFilter": "Clear filter",
+    "sortBy": "Sort by {column}",
+    "showing": "Showing {from}–{to} of {total}",
+    "page": "Page {page} of {pages}",
+    "previous": "Previous",
+    "next": "Next"
   }
 }

@@ -17,6 +17,22 @@
     "chandLamp": {
       "lamp9w": "9W lamp",
       "lamp12w": "12W lamp"
+    },
+    "subtitle": "Catalog, pricing and stock.",
+    "searchPlaceholder": "Search by name or SKU",
+    "stats": {
+      "total": "Products",
+      "active": "Active",
+      "lowStock": "Low or out of stock",
+      "lowStockHint": "At or below {threshold} in stock"
+    },
+    "stock": {
+      "out": "Out of stock",
+      "low": "{count} left"
+    },
+    "empty": {
+      "title": "No products yet",
+      "description": "Add your first product to start building the catalog."
     }
   },
   "ProductEditor": {

@@ -1,45 +1,78 @@
-import { BellDot, Boxes, FolderTree, HomeIcon, PackageIcon, PercentIcon, ShieldIcon, UsersIcon } from "lucide-react";
+import {
+  BellIcon,
+  FolderTreeIcon,
+  LayoutDashboardIcon,
+  type LucideIcon,
+  PackageIcon,
+  PercentIcon,
+  ShieldIcon,
+  ShoppingCartIcon,
+  UsersIcon,
+} from "lucide-react";
 
-// `key` is the Nav.* message key (messages/{en,ar}.json).
-export const DASHBOARDS = [
-    {
-        key: "dashboard",
-        icon: <HomeIcon className="h-5 w-5" />,
-        url: "/admin/dashboard",
-    },
-    {
-        key: "orders",
-        icon: <Boxes className="h-5 w-5" />,
-        url: "/admin/dashboard/orders",
-    },
-    {
-        key: "products",
-        icon: <PackageIcon className="h-5 w-5" />,
-        url: "/admin/dashboard/products",
-    },
-    {
-        key: "categories",
-        icon: <FolderTree className="h-5 w-5" />,
-        url: "/admin/dashboard/categories",
-    },
-    {
-        key: "discounts",
-        icon: <PercentIcon className="h-5 w-5" />,
-        url: "/admin/dashboard/discounts",
-    },
-    {
-        key: "customers",
-        icon: <UsersIcon className="h-5 w-5" />,
-        url: "/admin/dashboard/users",
-    },
-    {
-        key: "team",
-        icon: <ShieldIcon className="h-5 w-5" />,
-        url: "/admin/dashboard/team",
-    },
-    {
-        key: "notifications",
-        icon: <BellDot className="h-5 w-5" />,
-        url: "/admin/dashboard/notification",
-    },
-] as const;
+export type NavKey =
+  | "dashboard"
+  | "orders"
+  | "customers"
+  | "discounts"
+  | "products"
+  | "categories"
+  | "team"
+  | "notifications";
+
+export interface NavItem {
+  /** Nav.* message key. */
+  key: NavKey;
+  url: string;
+  icon: LucideIcon;
+  /** Only shown to owners (the page itself also enforces it). */
+  ownerOnly?: boolean;
+}
+
+export interface NavGroup {
+  /** Shell.groups.* message key. */
+  key: "overview" | "sales" | "catalog" | "system";
+  items: NavItem[];
+}
+
+/**
+ * Sidebar structure, grouped by ERP module. New modules (quotations,
+ * invoices, settings…) slot into their group here.
+ */
+export const NAV_GROUPS: NavGroup[] = [
+  {
+    key: "overview",
+    items: [{ key: "dashboard", url: "/admin/dashboard", icon: LayoutDashboardIcon }],
+  },
+  {
+    key: "sales",
+    items: [
+      { key: "orders", url: "/admin/dashboard/orders", icon: ShoppingCartIcon },
+      { key: "customers", url: "/admin/dashboard/users", icon: UsersIcon },
+      { key: "discounts", url: "/admin/dashboard/discounts", icon: PercentIcon },
+    ],
+  },
+  {
+    key: "catalog",
+    items: [
+      { key: "products", url: "/admin/dashboard/products", icon: PackageIcon },
+      { key: "categories", url: "/admin/dashboard/categories", icon: FolderTreeIcon },
+    ],
+  },
+  {
+    key: "system",
+    items: [
+      { key: "team", url: "/admin/dashboard/team", icon: ShieldIcon, ownerOnly: true },
+      { key: "notifications", url: "/admin/dashboard/notification", icon: BellIcon },
+    ],
+  },
+];
+
+export const NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
+
+/** The nav item a pathname belongs to (longest matching prefix). */
+export function activeNavItem(pathname: string): NavItem | undefined {
+  return [...NAV_ITEMS]
+    .sort((a, b) => b.url.length - a.url.length)
+    .find((item) => pathname === item.url || pathname.startsWith(`${item.url}/`));
+}

@@ -7,6 +7,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Noto_Sans_Arabic, Roboto } from "next/font/google";
 import "./globals.css";
+import { SkipToContent } from "@/components/shell/skip-to-content";
 
 const roboto = Roboto({
   weight: ["400", "500", "700"],
@@ -63,6 +64,7 @@ export default async function RootLayout({
         suppressHydrationWarning
       >
         <NextIntlClientProvider>
+          <SkipToContent />
           <ThemeProvider
             attribute="class"
             defaultTheme="system"

@@ -1,126 +1,87 @@
-import DashboardHeader from "@/components/dashboard-header";
-import { requireAdmin, AdminAuthError } from "@/lib/auth";
-import { prisma } from "@repo/database";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { PageHeader, PageShell } from "@/components/page-header";
+import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
+import { requireAdminOrRedirect } from "@/lib/auth";
+import { prisma } from "@repo/database";
+import { AlertTriangleIcon, CircleCheckIcon, PackageIcon } from "lucide-react";
+import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { Container } from "@/components/container";
-import { getFormatter, getTranslations } from "next-intl/server";
 import BulkGenerateSheet from "./bulk-generate-sheet";
+import { ProductsTable, type ProductRow } from "./products-table";
 
-const ProductsPage = async () => {
-  try {
-    await requireAdmin();
-  } catch (err) {
-    if (err instanceof AdminAuthError) return notFound();
-    throw err;
-  }
+const LOW_STOCK_THRESHOLD = 5;
 
-  const [t, tCommon, format] = await Promise.all([
-    getTranslations("Products"),
-    getTranslations("Common"),
-    getFormatter(),
-  ]);
+export default async function ProductsPage() {
+  await requireAdminOrRedirect();
+
+  const [t, locale] = await Promise.all([getTranslations("Products"), getLocale()]);
 
   const [products, topCategories] = await Promise.all([
     prisma.product.findMany({
       where: { deletedAt: null },
       orderBy: { createdAt: "desc" },
       include: {
-        category: { select: { name: true } },
-        lightingtype: { select: { name: true } },
+        translations: { where: { language: locale }, select: { name: true } },
+        category: { select: { id: true, name: true, translations: { where: { language: locale }, select: { name: true } } } },
+        lightingtype: { select: { name: true, translations: { where: { language: locale }, select: { name: true } } } },
         variants: { where: { isDefault: true }, select: { stock: true } },
+        images: { where: { isPrimary: true }, select: { url: true }, take: 1 },
       },
     }),
-    prisma.category.findMany({ where: { parentId: null }, select: { id: true, name: true } }),
+    prisma.category.findMany({
+      where: { parentId: null },
+      select: { id: true, name: true, translations: { where: { language: locale }, select: { name: true } } },
+      orderBy: { order: "asc" },
+    }),
   ]);
 
-  return (
-    <div className="flex flex-col min-h-screen pb-10">
-      <DashboardHeader Route={t("title")}>
-        <div className="flex gap-2">
-          <BulkGenerateSheet topCategories={topCategories} />
-          <Button asChild size="sm">
-            <Link href="/admin/dashboard/products/new">{t("newProduct")}</Link>
-          </Button>
-        </div>
-      </DashboardHeader>
-      <div className="mt-8">
-        <Container>
-          <h1 className="font-semibold text-lg mb-4">
-            {t("heading", { count: products.length })}
-          </h1>
-          <div className="overflow-x-auto border rounded-lg shadow">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("columns.product")}</TableHead>
-                  <TableHead>{t("columns.category")}</TableHead>
-                  <TableHead>{tCommon("price")}</TableHead>
-                  <TableHead>{t("columns.stock")}</TableHead>
-                  <TableHead>{tCommon("status")}</TableHead>
-                  <TableHead className="text-end">{tCommon("actions")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {products.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="flex items-center gap-2">
-                      {product.productImages[0] ? (
-                        <Image
-                          src={product.productImages[0]}
-                          alt={product.productName}
-                          width={48}
-                          height={48}
-                          className="rounded-lg object-cover"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded-lg bg-muted" />
-                      )}
-                      <div>
-                        <p className="font-medium">{product.productName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {product.productId}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {product.category.name} / {product.lightingtype.name}
-                    </TableCell>
-                    <TableCell>{format.number(product.price, { style: "currency", currency: "EGP" })}</TableCell>
-                    <TableCell>{product.variants[0]?.stock ?? product.quantity}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Badge variant={product.isActive ? "default" : "secondary"}>
-                          {product.isActive ? tCommon("active") : tCommon("inactive")}
-                        </Badge>
-                        {product.featured && <Badge variant="outline">{t("featured")}</Badge>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-end">
-                      <Button asChild variant="ghost" size="sm">
-                        <Link href={`/admin/dashboard/products/${product.id}`}>{tCommon("edit")}</Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </Container>
-      </div>
-    </div>
-  );
-};
+  const rows: ProductRow[] = products.map((product) => ({
+    id: product.id,
+    sku: product.productId,
+    name: product.translations[0]?.name ?? product.productName,
+    categoryId: product.category.id,
+    categoryLabel: [
+      product.category.translations[0]?.name ?? product.category.name,
+      product.lightingtype.translations[0]?.name ?? product.lightingtype.name,
+    ].join(" / "),
+    price: product.price,
+    stock: product.variants[0]?.stock ?? product.quantity,
+    lowStockThreshold: LOW_STOCK_THRESHOLD,
+    isActive: product.isActive,
+    featured: product.featured,
+    imageUrl: product.images[0]?.url ?? product.productImages[0] ?? null,
+  }));
 
-export default ProductsPage;
+  const activeCount = rows.filter((row) => row.isActive).length;
+  const lowStockCount = rows.filter((row) => row.stock <= LOW_STOCK_THRESHOLD).length;
+
+  return (
+    <PageShell>
+      <PageHeader
+        title={t("title")}
+        description={t("subtitle")}
+        actions={
+          <>
+            <BulkGenerateSheet topCategories={topCategories.map((c) => ({ id: c.id, name: c.translations[0]?.name ?? c.name }))} />
+            <Button asChild size="sm">
+              <Link href="/admin/dashboard/products/new">{t("newProduct")}</Link>
+            </Button>
+          </>
+        }
+      />
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <StatCard label={t("stats.total")} value={rows.length} icon={PackageIcon} />
+        <StatCard label={t("stats.active")} value={activeCount} icon={CircleCheckIcon} />
+        <StatCard
+          label={t("stats.lowStock")}
+          value={lowStockCount}
+          hint={t("stats.lowStockHint", { threshold: LOW_STOCK_THRESHOLD })}
+          icon={AlertTriangleIcon}
+        />
+      </div>
+
+      <ProductsTable products={rows} categories={topCategories.map((c) => ({ id: c.id, label: c.translations[0]?.name ?? c.name }))} />
+    </PageShell>
+  );
+}

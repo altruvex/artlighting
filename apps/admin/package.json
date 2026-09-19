@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "check-types": "tsc --noEmit && node scripts/check-messages.mjs"
+    "check-types": "tsc --noEmit && node scripts/check-messages.mjs && node scripts/check-action-guards.mjs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.2.6",

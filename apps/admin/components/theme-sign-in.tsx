@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Mail, Lock, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { useTranslations } from "next-intl";
 export function ThemedSignIn() {
   const t = useTranslations("SignIn");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +29,7 @@ export function ThemedSignIn() {
       setError(error.status === 429 ? t("errors.tooManyAttempts") : t("errors.invalidCredentials"));
       return;
     }
-    router.push("/admin/dashboard");
+    router.push(safeNext(searchParams.get("next")));
     router.refresh();
   }
 
@@ -115,4 +116,14 @@ export function ThemedSignIn() {
       </p>
     </form>
   );
+}
+
+/**
+ * Where to land after signing in. Only same-site paths are accepted: a
+ * `next` of "https://elsewhere" or "//elsewhere" would otherwise turn the
+ * sign-in page into an open redirect.
+ */
+function safeNext(next: string | null): string {
+  if (next && next.startsWith("/") && !next.startsWith("//")) return next;
+  return "/admin/dashboard";
 }

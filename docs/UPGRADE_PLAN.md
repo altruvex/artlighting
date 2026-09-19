@@ -1,6 +1,6 @@
 # ArtLighting: Admin → ERP-level e-commerce upgrade plan
 
-Status: **APPROVED 2026-09-19** (scope update: English-only generated output, D11). Hotfix and Phase 0 done; Phase 1 next (needs the Neon `dev` branch first).
+Status: **APPROVED 2026-09-19** (scope update: English-only generated output, D11). Hotfix, Phase 0 and the ERP redesign done; Phase 1 next (Neon `dev` branch is ready).
 Written 2026-09-19 after reading the monorepo and the Altruvex admin (`/Users/ali/altruvex`, read-only).
 
 ---
@@ -67,6 +67,18 @@ Found and fixed along the way (beyond the plan):
 - **Upstash is gone:** the host in the local `.env` (`ultimate-fish-7999.upstash.io`) no longer resolves. The cache falls back to Postgres and the rate limiter fails open, so the storefront works, but **there is no rate limiting**. Needs a new Upstash database (or removal in Phase 6).
 - Better Auth 1.7 wants 6 new indexes (sessions/accounts `userId`, verifications `identifier`, and the admin equivalents). They're additive and go into the first Phase 1 migration, on the Neon `dev` branch.
 - `pnpm audit`: 101 advisories → 3. Remaining: `image-size` via pptxgenjs (no patch exists; only parses our own images) and `deepmerge-ts` via Prisma's CLI config (dev-time only).
+
+### ERP redesign + dev-branch QA (2026-09-20)
+Scope change requested after Phase 0: rebuild the admin as an ERP UI. Done in 12 commits after `phase-0-complete`, all local.
+- Shell: grouped sidebar (icon rail / mobile drawer), top bar with breadcrumbs and ⌘K palette, user menu, skip link. Shared kit: PageHeader/PageShell, StatCard, StatusBadge, EmptyState, DataTable (client mode) and **ServerDataTable** (pagination, sorting, search and facets executed in Postgres, state in the URL, allow-list validated). Orders and customers use the server mode; products stays client-side.
+- Every screen moved onto the kit, plus loading skeletons. Glassmorphism dropped for opaque surfaces. `framer-motion`, `date-fns`, `embla` and 8 dead components/primitives removed.
+- Tokens: semantic success/warning/info, a dedicated `--danger` text tone (destructive-as-text failed AA at 3.84:1), and a darker light-mode focus ring (was 1.57:1, now 3.67:1). All measured in-browser.
+
+**Verified on the Neon `dev` branch** (`ep-rough-hall`, seeded with 2 customers and 34 orders via `pnpm --filter @repo/database seed:dev`): create product, price change + price history, image upload to Cloudinary, image delete (row + asset gone), order status change, bulk datasheet job (12 products → 7.6 MB ZIP), single datasheet as **both PPTX and PDF**, soft delete + restore. Screens walked in ar/en at 375px and desktop: no horizontal overflow, one `h1` and one `main` per page, RTL correct.
+
+Fixed during QA: no feedback on order status change; deleted images kept serving from the Cloudinary CDN; nested `<main>` landmarks; category names untranslated in the categories manager.
+
+Nothing has been pushed. Production is untouched: `.env.local` points at `dev`, and write scripts refuse a production host (`assertNotProduction`).
 
 ## 1. Findings
 

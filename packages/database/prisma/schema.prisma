@@ -15,9 +15,14 @@ model Configuration {
   id                String    @id @default(cuid())
   productId         String
   /// Owner, once a signed-in customer touches it. Null while the visitor is
-  /// anonymous; the first authenticated write claims it, and after that only
-  /// that customer may change it.
+  /// anonymous; a guest row can only be claimed by the browser that created
+  /// it (guestToken below), and after that only that customer may change it.
   userId            String?
+  /// Random per-browser token from the guest_id cookie, recorded when the
+  /// configuration is created anonymously. cuid ids carry a sequential
+  /// counter and a per-process constant, so they are not a secret — this is
+  /// what actually binds an anonymous configuration to its visitor.
+  guestToken        String?
   configPrice       Float
   priceIncrease     Float     @default(0)
   shippingPrice     Float     @default(0)
@@ -37,6 +42,7 @@ model Configuration {
   @@index([productId])
   @@index([productId, updatedAt(sort: Desc)], name: "idx_configuration_product_updated")
   @@index([userId])
+  @@index([guestToken])
   @@map("configurations")
 }
 

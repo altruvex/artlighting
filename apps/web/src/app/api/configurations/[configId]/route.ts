@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth-server"
+import { ownsConfiguration, publicConfiguration, readGuestToken } from "@/lib/guest-token"
 import { prisma } from "@repo/database"
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
@@ -27,6 +28,7 @@ export async function POST(
     if (!userId) {
         return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
     }
+    const guestToken = await readGuestToken()
 
     try {
         const { configId } = await params
@@ -49,10 +51,10 @@ export async function POST(
             }
         })
 
-        // A configuration owned by someone else answers exactly like one that
-        // doesn't exist, so ids can't be probed by watching the status code.
-        const isForeign = Boolean(existingConfig?.userId) && existingConfig?.userId !== userId
-        if (!existingConfig || isForeign) {
+        // Someone else's configuration answers exactly like one that doesn't
+        // exist, so ids can't be probed by watching the status code. A guest
+        // row can only be claimed by the browser that created it.
+        if (!existingConfig || !ownsConfiguration(existingConfig, { userId, guestToken })) {
             return NextResponse.json(
                 {
                     success: false,
@@ -142,8 +144,10 @@ export async function POST(
             data: {
                 quantity,
                 productId: existingConfig.productId,
-                // First authenticated write claims an anonymous configuration.
+                // First authenticated write claims an anonymous configuration;
+                // the guest token goes with it, so a row has one owner.
                 userId,
+                guestToken: null,
                 configPrice: unitConfigPrice,
                 priceIncrease,
                 lampPriceIncrease,
@@ -158,7 +162,7 @@ export async function POST(
             success: true,
             configId: updatedConfig.id,
             data: {
-                configuration: updatedConfig,
+                configuration: publicConfiguration(updatedConfig),
                 product: {
                     id: product.id,
                     productId: product.productId,

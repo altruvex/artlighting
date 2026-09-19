@@ -2,6 +2,7 @@
 import { PricingService } from "@/lib/pricing.server";
 import { applyRateLimit } from "@/middleware/ratelimit";
 import { auth } from "@/lib/auth-server";
+import { ownsConfiguration, readGuestToken } from "@/lib/guest-token";
 import { prisma } from "@repo/database";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -48,7 +49,8 @@ export async function POST(request: NextRequest) {
     // This previously checked Configuration.users, a relation fed by
     // User.configurationId, which was never written for any user: the check
     // rejected everyone, so this endpoint always answered 403.
-    if (!configuration || (configuration.userId && configuration.userId !== userId)) {
+    const guestToken = await readGuestToken();
+    if (!configuration || !ownsConfiguration(configuration, { userId, guestToken })) {
       return NextResponse.json(
         { error: "Configuration not found" },
         { status: 404 }

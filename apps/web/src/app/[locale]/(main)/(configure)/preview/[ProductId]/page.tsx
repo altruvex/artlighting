@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth-server"
+import { readGuestToken } from "@/lib/guest-token"
 import { getLocaleFromParams, getServerI18n } from "@/lib/i18n/utils"
 import { PagePropsTypes } from "@/types"
 import { prisma } from "@repo/database"
@@ -35,8 +36,11 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
     if (ProductId) {
       console.log(`Fetching configuration for ProductId: ${ProductId}`)
       const { userId } = await auth()
+      const guestToken = await readGuestToken()
       configuration = await prisma.configuration.findFirst({
-        where: { productId: ProductId, userId: userId ?? null },
+        where: userId
+          ? { productId: ProductId, userId }
+          : { productId: ProductId, userId: null, guestToken },
         orderBy: { updatedAt: 'desc' }
       })
 
@@ -54,6 +58,7 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
             data: {
               productId: ProductId,
               userId: userId ?? null,
+              guestToken: userId ? null : guestToken,
               configPrice: productExists.price,
               priceIncrease: 0,
               shippingPrice: 69,

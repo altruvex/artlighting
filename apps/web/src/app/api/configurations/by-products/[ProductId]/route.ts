@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth-server"
+import { publicConfiguration, readGuestToken } from "@/lib/guest-token"
 import { prisma } from "@repo/database"
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
@@ -17,9 +18,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // Scoped to the caller (or to the anonymous pool when signed out), so
     // customers don't share and overwrite one configuration row.
     const { userId } = await auth()
+    const guestToken = await readGuestToken()
 
     const configuration = await prisma.configuration.findFirst({
-      where: { productId: ProductId, userId: userId ?? null },
+      where: userId
+        ? { productId: ProductId, userId }
+        : { productId: ProductId, userId: null, guestToken },
       orderBy: { updatedAt: "desc" },
     })
 
@@ -38,6 +42,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           data: {
             productId: ProductId,
             userId: userId ?? null,
+            guestToken: userId ? null : guestToken,
             configPrice: product.price,
             priceIncrease: 0,
             shippingPrice: 69,
@@ -48,14 +53,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         })
 
         console.log(`API: Created configuration: ${newConfiguration.id}`)
-        return NextResponse.json(newConfiguration)
+        return NextResponse.json(publicConfiguration(newConfiguration))
       }
 
       return NextResponse.json({ error: "Configuration not found" }, { status: 404 })
     }
 
     console.log(`API: Successfully fetched configuration: ${configuration.id}`)
-    return NextResponse.json(configuration)
+    return NextResponse.json(publicConfiguration(configuration))
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error("API: Invalid ProductId:", error.message)

@@ -22,5 +22,9 @@ export default defineConfig({
   },
   datasource: {
     url: directUrl() ?? "",
+    // Only used by `prisma migrate diff --from-migrations`, which replays the
+    // migrations folder into a scratch database. Point it at a throwaway
+    // Postgres (e.g. a local container), never at dev or production.
+    shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL,
   },
 });

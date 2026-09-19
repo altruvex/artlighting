@@ -325,9 +325,15 @@ export class ProductService {
    * the product regardless of who made it, so two customers shared one row
    * and each overwrote the other's quantity.
    */
-  static async getOrCreateConfiguration(product: LocalizedProductData, userId?: string | null) {
+  static async getOrCreateConfiguration(
+    product: LocalizedProductData,
+    userId?: string | null,
+    guestToken?: string | null,
+  ) {
     let config = await prisma.configuration.findFirst({
-      where: { productId: product.productId, userId: userId ?? null },
+      where: userId
+        ? { productId: product.productId, userId }
+        : { productId: product.productId, userId: null, guestToken: guestToken ?? null },
       orderBy: { updatedAt: "desc" },
     });
 
@@ -336,6 +342,7 @@ export class ProductService {
         data: {
           productId: product.productId,
           userId: userId ?? null,
+          guestToken: userId ? null : (guestToken ?? null),
           configPrice: product.price,
           priceIncrease: product.priceIncrease,
           shippingPrice: 69,

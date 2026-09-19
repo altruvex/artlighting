@@ -41,7 +41,9 @@ const nextConfig: NextConfig = {
         // calling the old path keeps working.
         source: "/:locale(en|ar)/api/:path*",
         destination: "/api/:path*",
-        permanent: false,
+        // 308, not 307: the move is permanent, and both preserve the method
+        // and body so a POST stays a POST.
+        permanent: true,
       },
     ];
   },

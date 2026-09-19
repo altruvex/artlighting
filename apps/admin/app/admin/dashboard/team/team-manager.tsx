@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createStaffAccount, revokeAdminAccess, updateAdminRole } from "@/lib/actions/staff";
+import type { ActionResult } from "@/lib/actions/result";
 import type { AdminRole } from "@repo/database";
 import { CheckIcon, CopyIcon, UsersIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
@@ -67,14 +68,25 @@ export default function TeamManager({ admins }: { admins: TeamRow[] }) {
   const [pendingRole, setPendingRole] = useState<TeamRow | null>(null);
   const [pendingRevoke, setPendingRevoke] = useState<TeamRow | null>(null);
 
-  function run(fn: () => Promise<unknown>, msg: string) {
+  /**
+   * Runs an action, then toasts and refreshes. Actions report failure in
+   * their return value — a thrown error loses its message to an opaque digest
+   * in a production build — so the error toast reads `result.error`.
+   */
+  function run(fn: () => Promise<ActionResult<unknown>>, msg: string) {
     startTransition(async () => {
       try {
-        await fn();
+        const result = await fn();
+        if (!result.ok) {
+          toast.error(result.error);
+          return;
+        }
         toast.success(msg);
         router.refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : tCommon("genericError"));
+        // Only transport-level failures reach here now.
+        console.error("Team action failed", err);
+        toast.error(tCommon("genericError"));
       }
     });
   }
@@ -86,7 +98,13 @@ export default function TeamManager({ admins }: { admins: TeamRow[] }) {
     }
     startTransition(async () => {
       try {
-        await createStaffAccount({ email, name, password, role });
+        const result = await createStaffAccount({ email, name, password, role });
+        // The real reason — password too short, email already taken — only
+        // survives a production build as a returned value, not as a throw.
+        if (!result.ok) {
+          toast.error(result.error);
+          return;
+        }
         setLastCreated({ email, password });
         setName("");
         setEmail("");
@@ -95,7 +113,9 @@ export default function TeamManager({ admins }: { admins: TeamRow[] }) {
         toast.success(t("toasts.accountCreated"));
         router.refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : t("toasts.createFailed"));
+        // Only transport-level failures reach here now.
+        console.error("createStaffAccount failed", err);
+        toast.error(t("toasts.createFailed"));
       }
     });
   }

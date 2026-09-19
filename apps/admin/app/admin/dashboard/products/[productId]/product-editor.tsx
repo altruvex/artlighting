@@ -61,6 +61,7 @@ import {
   type ProductSpecificationInput,
 } from "@/lib/actions/products";
 import { createDiscount, deactivateDiscount } from "@/lib/actions/discounts";
+import type { ActionResult } from "@/lib/actions/result";
 
 type Category = { id: string; name: string; parentId: string | null };
 type ProductImage = {
@@ -100,7 +101,7 @@ type Translation = { language: string; name: string; description: string | null 
 type Specification = ProductSpecificationInput & { language: string };
 
 /** Runs a server action, then toasts and refreshes. */
-type Run = (fn: () => Promise<unknown>, successMsg: string) => void;
+type Run = (fn: () => Promise<ActionResult<unknown>>, successMsg: string) => void;
 
 const BRANDS = [
   { value: "balcom", label: "Balcom" },
@@ -306,14 +307,23 @@ export default function ProductEditor({
     setSpecSheetUrl(savedDetails.specSheetUrl);
   }
 
+  // Actions report failure in their return value: a thrown error loses its
+  // message to an opaque digest in a production build, so the real reason
+  // ("Price is owner-only", "File too large") only survives as `result.error`.
   const run: Run = (fn, successMsg) => {
     startTransition(async () => {
       try {
-        await fn();
+        const result = await fn();
+        if (!result.ok) {
+          toast.error(result.error);
+          return;
+        }
         toast.success(successMsg);
         router.refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : tCommon("genericError"));
+        // Only transport-level failures reach here now.
+        console.error("Product action failed", err);
+        toast.error(tCommon("genericError"));
       }
     });
   };
@@ -605,8 +615,15 @@ export default function ProductEditor({
                       disabled={isPending || !newImageUrl}
                       onClick={() =>
                         run(async () => {
-                          await addProductImage(product.id, newImageUrl, product.productName);
-                          setNewImageUrl("");
+                          const result = await addProductImage(
+                            product.id,
+                            newImageUrl,
+                            product.productName
+                          );
+                          // Keep the URL in the field when it failed, so the
+                          // admin can fix it rather than paste it again.
+                          if (result.ok) setNewImageUrl("");
+                          return result;
                         }, t("images.added"))
                       }
                     >
@@ -1352,11 +1369,16 @@ function ImageUploadDropzone({
 
     setIsUploading(true);
     run(async () => {
+      // Stop at the first rejected file and hand its reason back — otherwise a
+      // rejected type or oversized file uploads nothing and says nothing.
+      let last: ActionResult<unknown> = { ok: true, data: undefined };
       for (const file of list) {
         const formData = new FormData();
         formData.set("file", file);
-        await uploadProductImage(productId, productSku, formData);
+        last = await uploadProductImage(productId, productSku, formData);
+        if (!last.ok) return last;
       }
+      return last;
     }, t("uploaded", { count: list.length }));
     setIsUploading(false);
   }

@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createCategory, moveCategory, updateCategory } from "@/lib/actions/categories";
+import type { ActionResult } from "@/lib/actions/result";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -68,14 +69,25 @@ export default function CategoriesManager({
 
   const sections = categories.filter((category) => category.parentId === null);
 
-  function run(fn: () => Promise<unknown>, msg: string) {
+  /**
+   * Runs an action, then toasts and refreshes. Actions report failure in
+   * their return value — a thrown error loses its message to an opaque digest
+   * in a production build — so the error toast reads `result.error`.
+   */
+  function run(fn: () => Promise<ActionResult<unknown>>, msg: string) {
     startTransition(async () => {
       try {
-        await fn();
+        const result = await fn();
+        if (!result.ok) {
+          toast.error(result.error);
+          return;
+        }
         toast.success(msg);
         router.refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : tCommon("genericError"));
+        // Only transport-level failures reach here now.
+        console.error("Category action failed", err);
+        toast.error(tCommon("genericError"));
       }
     });
   }
@@ -261,13 +273,18 @@ export default function CategoriesManager({
             disabled={isPending || !name || !slug}
             onClick={() =>
               run(async () => {
-                await createCategory({
+                const result = await createCategory({
                   name,
                   slug,
                   parentId: parentId === "__top__" ? null : parentId,
                 });
-                setName("");
-                setSlug("");
+                // Keep the form filled when it failed, so the admin can fix
+                // the value rather than retype it.
+                if (result.ok) {
+                  setName("");
+                  setSlug("");
+                }
+                return result;
               }, t("toasts.created"))
             }
           >
@@ -324,12 +341,15 @@ export default function CategoriesManager({
                 const target = editing;
                 if (!target) return;
                 run(async () => {
-                  await updateCategory(target.id, {
+                  const result = await updateCategory(target.id, {
                     name: editName,
                     slug: editSlug,
                     isActive: editActive,
                   });
-                  setEditing(null);
+                  // Leave the dialog open on failure so the error toast points
+                  // at the form that produced it.
+                  if (result.ok) setEditing(null);
+                  return result;
                 }, t("toasts.updated"));
               }}
             >

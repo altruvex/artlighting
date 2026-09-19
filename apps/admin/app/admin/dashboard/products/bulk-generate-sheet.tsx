@@ -105,8 +105,11 @@ export default function BulkGenerateSheet({ topCategories }: { topCategories: Ca
       const body = (await res.json()) as JobStatusResponse;
       setJob(body);
       if (body.status === "done" || body.status === "error") stopPolling();
-    } catch {
-      // transient network hiccup — the next poll tick will retry
+    } catch (err) {
+      // Transient network hiccup — the next poll tick retries, so this stays
+      // silent for the admin, but it is logged rather than swallowed: a poll
+      // that fails every tick is otherwise invisible.
+      console.error("bulk datasheet: poll failed", err);
     }
   }
 

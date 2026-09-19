@@ -5,6 +5,7 @@ import { requirePermission } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import type { DiscountScope, DiscountType } from "@repo/database";
+import { ActionError, run } from "./result";
 
 export async function createDiscount(data: {
   type: DiscountType;
@@ -16,41 +17,45 @@ export async function createDiscount(data: {
   startsAt?: Date | null;
   endsAt?: Date | null;
 }) {
-  await requirePermission("discount:write");
+  return run(async () => {
+    await requirePermission("discount:write");
 
-  if (data.scope === "product" && !data.productId) {
-    const t = await getTranslations("Discounts");
-    throw new Error(t("errors.productRequired"));
-  }
-  if (data.scope === "category" && !data.categoryId) {
-    const t = await getTranslations("Discounts");
-    throw new Error(t("errors.categoryRequired"));
-  }
+    if (data.scope === "product" && !data.productId) {
+      const t = await getTranslations("Discounts");
+      throw new ActionError(t("errors.productRequired"));
+    }
+    if (data.scope === "category" && !data.categoryId) {
+      const t = await getTranslations("Discounts");
+      throw new ActionError(t("errors.categoryRequired"));
+    }
 
-  const discount = await prisma.discount.create({
-    data: {
-      type: data.type,
-      scope: data.scope,
-      value: data.value,
-      code: data.code || null,
-      productId: data.scope === "product" ? data.productId : null,
-      categoryId: data.scope === "category" ? data.categoryId : null,
-      startsAt: data.startsAt ?? null,
-      endsAt: data.endsAt ?? null,
-    },
+    const discount = await prisma.discount.create({
+      data: {
+        type: data.type,
+        scope: data.scope,
+        value: data.value,
+        code: data.code || null,
+        productId: data.scope === "product" ? data.productId : null,
+        categoryId: data.scope === "category" ? data.categoryId : null,
+        startsAt: data.startsAt ?? null,
+        endsAt: data.endsAt ?? null,
+      },
+    });
+
+    revalidatePath("/admin/dashboard/discounts");
+    if (data.productId) revalidatePath(`/admin/dashboard/products/${data.productId}`);
+    return discount;
   });
-
-  revalidatePath("/admin/dashboard/discounts");
-  if (data.productId) revalidatePath(`/admin/dashboard/products/${data.productId}`);
-  return discount;
 }
 
 export async function deactivateDiscount(discountId: string) {
-  await requirePermission("discount:write");
-  const discount = await prisma.discount.update({
-    where: { id: discountId },
-    data: { isActive: false },
+  return run(async () => {
+    await requirePermission("discount:write");
+    const discount = await prisma.discount.update({
+      where: { id: discountId },
+      data: { isActive: false },
+    });
+    revalidatePath("/admin/dashboard/discounts");
+    return discount;
   });
-  revalidatePath("/admin/dashboard/discounts");
-  return discount;
 }

@@ -5,6 +5,7 @@ import { requirePermission } from "@/lib/auth";
 import { auth as authInstance } from "@/lib/auth-server";
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
+import { ActionError, run } from "./result";
 
 /**
  * Creates a new admin/staff account. This is the only way an account gets
@@ -20,49 +21,55 @@ export async function createStaffAccount(data: {
   password: string;
   role: AdminRole;
 }) {
-  await requirePermission("staff:manage");
+  return run(async () => {
+    await requirePermission("staff:manage");
 
-  if (data.password.length < 12) {
-    const t = await getTranslations("Team");
-    throw new Error(t("errors.passwordTooShort"));
-  }
+    if (data.password.length < 12) {
+      const t = await getTranslations("Team");
+      throw new ActionError(t("errors.passwordTooShort"));
+    }
 
-  const existing = await prisma.admin.findUnique({ where: { email: data.email } });
-  if (existing) {
-    const t = await getTranslations("Team");
-    throw new Error(t("errors.emailExists"));
-  }
+    const existing = await prisma.admin.findUnique({ where: { email: data.email } });
+    if (existing) {
+      const t = await getTranslations("Team");
+      throw new ActionError(t("errors.emailExists"));
+    }
 
-  await authInstance.api.signUpEmail({
-    body: { email: data.email, password: data.password, name: data.name },
+    await authInstance.api.signUpEmail({
+      body: { email: data.email, password: data.password, name: data.name },
+    });
+
+    const admin = await prisma.admin.update({
+      where: { email: data.email },
+      data: { role: data.role },
+    });
+
+    revalidatePath("/admin/dashboard/team");
+    return admin;
   });
-
-  const admin = await prisma.admin.update({
-    where: { email: data.email },
-    data: { role: data.role },
-  });
-
-  revalidatePath("/admin/dashboard/team");
-  return admin;
 }
 
 export async function updateAdminRole(adminId: string, role: AdminRole) {
-  const owner = await requirePermission("staff:manage");
-  if (adminId === owner.id && role === "STAFF") {
-    const t = await getTranslations("Team");
-    throw new Error(t("errors.cantDemoteSelf"));
-  }
-  const admin = await prisma.admin.update({ where: { id: adminId }, data: { role } });
-  revalidatePath("/admin/dashboard/team");
-  return admin;
+  return run(async () => {
+    const owner = await requirePermission("staff:manage");
+    if (adminId === owner.id && role === "STAFF") {
+      const t = await getTranslations("Team");
+      throw new ActionError(t("errors.cantDemoteSelf"));
+    }
+    const admin = await prisma.admin.update({ where: { id: adminId }, data: { role } });
+    revalidatePath("/admin/dashboard/team");
+    return admin;
+  });
 }
 
 export async function revokeAdminAccess(adminId: string) {
-  const owner = await requirePermission("staff:manage");
-  if (adminId === owner.id) {
-    const t = await getTranslations("Team");
-    throw new Error(t("errors.cantRevokeSelf"));
-  }
-  await prisma.admin.delete({ where: { id: adminId } });
-  revalidatePath("/admin/dashboard/team");
+  return run(async () => {
+    const owner = await requirePermission("staff:manage");
+    if (adminId === owner.id) {
+      const t = await getTranslations("Team");
+      throw new ActionError(t("errors.cantRevokeSelf"));
+    }
+    await prisma.admin.delete({ where: { id: adminId } });
+    revalidatePath("/admin/dashboard/team");
+  });
 }

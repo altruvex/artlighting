@@ -93,7 +93,7 @@ export default function NewProductForm({
 
     startTransition(async () => {
       try {
-        const product = await createProduct({
+        const result = await createProduct({
           productId: productId.trim(),
           productName: productName.trim(),
           brand,
@@ -104,10 +104,18 @@ export default function NewProductForm({
           price: Number(price),
           quantity: Number(quantity),
         });
+        // Failure comes back as a value: a thrown error would reach the
+        // browser as an opaque digest in a production build.
+        if (!result.ok) {
+          toast.error(result.error);
+          return;
+        }
         toast.success(t("created"));
-        router.push(`/admin/dashboard/products/${product.id}`);
+        router.push(`/admin/dashboard/products/${result.data.id}`);
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : t("errors.createFailed"));
+        // Only transport-level failures reach here now.
+        console.error("createProduct failed", err);
+        toast.error(t("errors.createFailed"));
       }
     });
   }

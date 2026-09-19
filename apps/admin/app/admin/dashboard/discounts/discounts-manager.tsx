@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createDiscount, deactivateDiscount } from "@/lib/actions/discounts";
+import type { ActionResult } from "@/lib/actions/result";
 import type { DiscountScope, DiscountType } from "@repo/database";
 import { TicketPercentIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
@@ -88,14 +89,25 @@ export default function DiscountsManager({
   const [categoryId, setCategoryId] = useState(categories[0]?.id ?? "");
   const [pendingStop, setPendingStop] = useState<DiscountRow | null>(null);
 
-  function run(fn: () => Promise<unknown>, msg: string) {
+  /**
+   * Runs an action, then toasts and refreshes. Actions report failure in
+   * their return value — a thrown error loses its message to an opaque digest
+   * in a production build — so the error toast reads `result.error`.
+   */
+  function run(fn: () => Promise<ActionResult<unknown>>, msg: string) {
     startTransition(async () => {
       try {
-        await fn();
+        const result = await fn();
+        if (!result.ok) {
+          toast.error(result.error);
+          return;
+        }
         toast.success(msg);
         router.refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : tCommon("genericError"));
+        // Only transport-level failures reach here now.
+        console.error("Discount action failed", err);
+        toast.error(tCommon("genericError"));
       }
     });
   }
@@ -341,7 +353,7 @@ export default function DiscountsManager({
                 disabled={isPending || !value}
                 onClick={() =>
                   run(async () => {
-                    await createDiscount({
+                    const result = await createDiscount({
                       type,
                       scope,
                       value: Number(value),
@@ -350,10 +362,15 @@ export default function DiscountsManager({
                       startsAt: startsAt ? new Date(startsAt) : null,
                       endsAt: endsAt ? new Date(endsAt) : null,
                     });
-                    setValue("");
-                    setCode("");
-                    setStartsAt("");
-                    setEndsAt("");
+                    // Keep the form filled when it failed, so the admin can
+                    // correct the value rather than retype the whole rule.
+                    if (result.ok) {
+                      setValue("");
+                      setCode("");
+                      setStartsAt("");
+                      setEndsAt("");
+                    }
+                    return result;
                   }, t("toasts.created"))
                 }
               >

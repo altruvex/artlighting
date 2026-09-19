@@ -43,12 +43,21 @@ const StatusDropdown = ({
   const { mutate, isPending } = useMutation({
     mutationKey: ["change-order-status"],
     mutationFn: changeOrderStatus,
-    onSuccess: (_result, variables) => {
+    onSuccess: (result, variables) => {
+      // The action reports failure in its return value, not by throwing — a
+      // thrown error loses its message in a production build.
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
       toast.success(tOrders("statusChanged", { status: t(variables.newStatus) }));
       router.refresh();
     },
     // Without this a failed change looked exactly like a successful one.
-    onError: () => toast.error(tCommon("genericError")),
+    onError: (error) => {
+      console.error("changeOrderStatus failed", error);
+      toast.error(tCommon("genericError"));
+    },
   });
 
   return (

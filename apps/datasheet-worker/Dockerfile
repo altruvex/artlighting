@@ -7,11 +7,8 @@
 
 # ---- installer: resolves workspace deps + generates the Prisma client ----
 FROM node:22-bookworm-slim AS installer
-# node:*-bookworm-slim has libssl but not the openssl CLI Prisma's engine
-# detection probes at `prisma generate` time — without it, detection
-# silently defaults to the wrong openssl target and the engine fails to
-# load at runtime ("Prisma Client could not locate the Query Engine").
-RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
+# Prisma 7 with a driver adapter (@prisma/adapter-neon) has no native query
+# engine, so the openssl CLI that Prisma 6's engine detection needed is gone.
 RUN corepack enable
 WORKDIR /repo
 
@@ -20,6 +17,10 @@ COPY apps/datasheet-worker apps/datasheet-worker
 COPY packages/database packages/database
 COPY packages/datasheet packages/datasheet
 COPY packages/datasheet-data packages/datasheet-data
+# Dev-only workspace config packages the worker's package.json references
+# (lint/tsconfig); pnpm needs them present to resolve the workspace.
+COPY packages/eslint-config packages/eslint-config
+COPY packages/typescript-config packages/typescript-config
 
 # --filter=datasheet-worker... installs the worker + its workspace
 # dependencies only (pnpm's recursive-dependency filter), not the whole

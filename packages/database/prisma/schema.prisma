@@ -1,10 +1,13 @@
+// Prisma 7: the client is generated into ../generated/prisma (gitignored)
+// and re-exported by packages/database/index.ts. Connection URLs live in
+// prisma.config.ts (migrations) and index.ts (runtime driver adapter).
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ─── Configuration ──────────────────────────────────────────

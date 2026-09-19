@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import UserAvatar from "@/components/user-avatar";
-import { Order, Product, ShippingAddress, User } from "@prisma/client";
+import type { Order, Product, ShippingAddress, User } from "@repo/database";
 import { Edit2, FilePenIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";

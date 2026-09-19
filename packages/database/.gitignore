@@ -45,3 +45,6 @@ next-env.d.ts
 
 packages/database/scripts/import-products.ts
 !.env.example
+
+# Prisma 7 generated client (prisma generate)
+generated/

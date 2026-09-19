@@ -34,6 +34,17 @@ const nextConfig: NextConfig = {
     dangerouslyAllowSVG: false,
     contentDispositionType: "attachment",
   },
+  async redirects() {
+    return [
+      {
+        // The API used to live inside the [locale] segment. Anything still
+        // calling the old path keeps working.
+        source: "/:locale(en|ar)/api/:path*",
+        destination: "/api/:path*",
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     const corsOrigin = getCorsOriginHeader();
 

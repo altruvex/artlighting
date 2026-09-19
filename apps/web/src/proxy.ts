@@ -6,9 +6,10 @@ import { routing } from "./i18n/routing";
 const intlMiddleware = createIntlMiddleware(routing);
 
 export default function middleware(req: NextRequest) {
-  // Better Auth's route lives outside the [locale] segment (auth isn't a
-  // localized concern) — don't let the intl middleware rewrite/redirect it.
-  if (req.nextUrl.pathname.startsWith("/api/auth")) {
+  // API routes live outside the [locale] segment — they serve JSON, not
+  // localized pages. Without this the intl middleware redirects /api/cart to
+  // /en/api/cart, which costs a round trip on every call.
+  if (req.nextUrl.pathname.startsWith("/api/")) {
     return NextResponse.next();
   }
   return intlMiddleware(req);

@@ -1,6 +1,6 @@
 # ArtLighting: Admin → ERP-level e-commerce upgrade plan
 
-Status: **APPROVED 2026-09-19.** Decisions in §0; the hotfix is done and Phase 0 is next.
+Status: **APPROVED 2026-09-19** (scope update: English-only generated output, D11). Decisions in §0; the hotfix is done and Phase 0 is in progress.
 Written 2026-09-19 after reading the monorepo and the Altruvex admin (`/Users/ali/altruvex`, read-only).
 
 ---
@@ -12,13 +12,14 @@ Written 2026-09-19 after reading the monorepo and the Altruvex admin (`/Users/al
 | D1 | Uncommitted datasheet work | **Commit as-is** on the current branch (`main`) as the baseline. **No new branch.** Rollback point: tag `pre-erp-upgrade` (= `eb9a21c`, local tag). |
 | D2 | Identity model | **Keep two Better Auth pools**: `admins` (ADMIN/STAFF) and `users` (CUSTOMER). |
 | D3 | Money `Float` → `Decimal(12,2)` | **Yes.** The pre-check query and its result are shown before migrating. |
-| D4 | Order header + item snapshots | **Yes.** Legacy columns are made nullable, then dropped later in a separately confirmed migration. |
-| D5 | `OrderStatus` changes | **Rename in place.** The exact SQL is shown before applying. |
+| D4 | Order header + item snapshots | **Yes, one clean migration.** There are 0 orders in production, so legacy columns are dropped outright: no nullable legacy columns and no backfill. The SQL is shown before applying. |
+| D5 | `OrderStatus` changes | **Rename in place, one clean migration** (0 orders). The exact SQL is shown before applying. |
 | D6 | Generated-file storage | **Cloudinary raw, private + signed delivery.** At the **start of Phase 4**, verify that the Cloudinary plan allows PDF/ZIP delivery (restricted by default on free plans: *Settings → Security → "Allow delivery of PDF and ZIP files"*) and tell Ali exactly what to enable. |
 | D7 | Rendering runtime | **Separate Docker worker.** Hosting is **undecided**: it must run locally with Docker for development, as a plain host-agnostic Dockerfile configured only through env vars. **Bulk jobs must survive a restart or fail clearly and be retryable** (see Phase 4, task 2). |
-| D8 | Admin i18n (ar/en, all existing strings) | **Yes**, in **its own commit(s)**, separate from the dependency upgrades. |
+| D8 | Admin i18n (ar/en, all existing strings) | **Yes**, in **its own commit(s)**, separate from the dependency upgrades. The whole UI (storefront and admin) is ar/en. |
 | D9 | `Customer` profile with optional `userId` | **Yes.** |
 | D10 | Payments | **Cash on delivery only.** No gateway for now. |
+| D11 | Generated output language (scope change, 2026-09-19) | **English only** for every generated artifact: quotation, datasheet, catalogue and invoice PDFs and Excel files, and **all emails** (one English template each, no per-customer locale). Documents use the **English** translation of product names, descriptions and specs. This overrides the brief's requirement for Arabic documents and localized emails. The UI stays ar/en (storefront **and** admin). |
 
 ### Order of work
 1. **Hotfix (before Phase 0), done: `ac174d7`.** `completeOrder` is scoped to the order owner, and BETTER_AUTH_SECRET is enforced in production (≥ 32 chars). It is a separate commit directly on top of `pre-erp-upgrade`, so it can be deployed alone.
@@ -32,9 +33,26 @@ Run against the Neon endpoint in `packages/database/.env` (`ep-empty-fog-…-poo
 - `admins`: **1** (role `owner`, has a password)
 - The local `.backups/pre-migration-backup-*.json` also has 0 users and 0 orders (117 products).
 
-**Consequence:** as long as this is the production database, there are no customer passwords or sessions to migrate (the Phase 1 user migration is a no-op), and the D3/D4/D5 migrations touch no customer or order rows. The SQL is still shown before applying, as agreed.
+**Confirmed by Ali: ep-empty-fog is production.** **Consequence:** there are no customer passwords or sessions to migrate (the Phase 1 user migration is a no-op), and the D3/D4/D5 migrations touch no customer or order rows. The SQL is still shown before applying, as agreed.
 
-## 1. Findings
+### Development database (Neon branch), set up before any schema migration
+Today all three `.env` files point at **production**. Before the first schema migration:
+1. In the Neon console, go to project → **Branches** → **Create branch**:
+   - name: `dev`
+   - parent: the production branch (`main`/`production`)
+   - include data up to: **Current point in time**, so the real products, categories and images are copied
+   - a read-write compute is enough (autoscaling min 0.25 CU, scale-to-zero on)
+2. In the `dev` branch go to **Connect**. Copy **two** connection strings for the same role and database: one with **Connection pooling on** (host contains `-pooler`) and one with it **off** (direct).
+3. Local env, all three files (`packages/database/.env`, `apps/web/.env`, `apps/admin/.env`):
+   - `DATABASE_URL` = dev **pooled** URL
+   - `DIRECT_URL` = dev **direct** URL (new; migrations use it)
+   - Keep the production URLs **out of local files**. Production values live only on the host.
+4. Rules from then on:
+   - Every `prisma migrate dev` runs against `dev`.
+   - Production only gets `prisma migrate deploy` after Ali approves, run by Ali or by me with a production `DIRECT_URL` supplied just for that step.
+   - Before any production migration, the `dev` branch is reset from its parent and the migration replayed, so it is tested on current production data.
+
+
 
 ### 1.1 Monorepo layout (pnpm 10.28 + Turbo 2.10.9)
 
@@ -105,47 +123,24 @@ Run against the Neon endpoint in `packages/database/.env` (`ep-empty-fog-…-poo
 | Preview | LibreOffice → PDF → `pdftoppm` PNG (`lib/pptx-to-images.ts`). | Same, for the quotation editor preview. |
 | Word | `docx` for contracts. | Not needed. |
 | Excel | **None.** | **New:** `exceljs` 4.4, covered in 1.7. |
-| Arabic / RTL | **None.** Fonts are plain names (Georgia, Trebuchet MS), with no `rtlMode`. | **New work**, covered in 1.7. |
+| Arabic / RTL | **None.** Fonts are plain names (Georgia, Trebuchet MS), with no `rtlMode`. | Not needed: generated output is English only (D11). One Arabic-capable fallback font is installed (§1.7). |
 | Content model | Zod-validated `content Json` is the frozen document, and the derived totals are written once at creation. Company settings are read live, but the rendered file is stored, so it never changes. | Same snapshot idea, extended (§3.6): the snapshot also includes company/branding, and the document can be edited while it is a draft. |
 | Branding | `CompanySettings` singleton row (brand colours, contact). No logo. | `CompanySettings` with a logo (Cloudinary). |
 | Numbering | UUID only. | **New:** a sequence per document type (`Q-2026-0001`). |
 | Status | Manual transitions; ACCEPTED is locked once a contract exists. | Same idea, plus automatic expiry. |
-| Email | Resend via raw HTTP, SMTP fallback. Sends a link, not an attachment. | **Resend SDK + React Email** as you asked. Sends a link, and optionally the PDF as an attachment. |
+| Email | Resend via raw HTTP, SMTP fallback. Sends a link, not an attachment. | **Resend SDK + React Email** as you asked, **English only** (D11). Sends a link, and optionally the PDF as an attachment. |
 | Storage | R2 via S3, private presigned URLs, local fallback. | See D6. |
 
-### 1.7 Arabic in generated documents: approach
+### 1.7 Generated documents: English only (D11)
 
-Altruvex has not solved Arabic, so this is new work and it gets a **spike at the start of Phase 4, before any template is built.**
-
-- **PDF path (pptxgenjs → LibreOffice):**
-  - LibreOffice shapes Arabic with HarfBuzz and handles bidi, so the renderer doesn't need a shaping library.
-  - Arabic text runs need `rtlMode: true`, `lang: "ar-EG"` and right alignment. Tables are laid out mirrored: columns reversed, with LTR cells (SKU, numbers) kept LTR.
-  - **Fonts:** Trebuchet MS has no Arabic glyphs. I'll install an OFL font with both scripts in the worker image and reference it by name. Candidates:
-    - **Almarai**, which matches the storefront (Arabic + Latin).
-    - IBM Plex Sans Arabic.
-    - Noto Sans Arabic + Noto Sans.
-  - Fonts are copied into the image from the repo, not downloaded at build time.
-  - Latin-only documents keep the current Trebuchet look.
-- **Excel path (exceljs):**
-  - Set `worksheet.views = [{ rightToLeft: true }]` and `alignment.readingOrder = "rtl"` on Arabic sheets.
-  - Excel and LibreOffice shape the text when the file is opened. Fonts can't be embedded in xlsx, so the font is **Arial / Tahoma**, which have Arabic on every Windows/macOS machine. The brand font is reserved for the PDF.
-  - Numbers stay numeric cells with a number format, so they remain usable in formulas.
-- **Spike acceptance:**
-  - A quotation with Arabic product names, mixed Arabic/English/number lines and a 3-page line table renders correctly in PDF (checked visually and with `pdftotext`, looking for joined letter forms and correct order).
-  - The same content opens correctly in Excel, Numbers and LibreOffice.
-  - **Fallback (preferred by Ali): HTML → PDF with headless Chromium in the same worker.** Details:
-    - The worker image adds Debian's `chromium` package (pinned) and drives it with `puppeteer-core`. Fonts (Almarai / IBM Plex Sans Arabic + Noto Naskh Arabic) are installed system-wide **and** loaded with `@font-face` from local files, so layout never depends on font lookup.
-    - Templates are React components rendered to static HTML (`react-dom/server`) in `packages/documents/html`. Chromium does the shaping (HarfBuzz) and the full Unicode bidi. Styling uses `dir="rtl"`/`lang="ar"`, logical CSS properties and `@page` A4 margins.
-    - Multi-page tables use `thead { display: table-header-group }` (the header repeats on every page) and `tr { break-inside: avoid }`. Page header/footer and "page X of Y" come from Puppeteer's `headerTemplate`/`footerTemplate`.
-    - Hardening:
-      - The browser runs as a non-root user with the Chromium sandbox on (not `--no-sandbox`).
-      - Page JavaScript is disabled.
-      - Network requests are intercepted and only Cloudinary image URLs are allowed.
-      - All user content is escaped by React.
-      - One shared browser, one page per job, with a concurrency limit.
-    - Cost: about +300 MB on the image.
-  - **The spike renders the same quotation both ways.** If Chromium wins on Arabic (expected), quotations, catalogue and invoices use HTML → PDF. Datasheets stay on pptxgenjs (existing, tuned design, and the editable PPTX download is useful) unless the Arabic datasheet also fails the spike, in which case they move too. The results go to Ali before continuing.
-- **Pagination:** pptxgenjs has no automatic page flow. Long quotation and catalogue tables are split with the measuring helper `packages/datasheet/sections/_measure.ts`, and header/footer are repeated on each page.
+- **PDF:** every PDF (quotation, datasheet, catalogue, invoice) goes pptxgenjs → LibreOffice in the Docker worker, the same pipeline Altruvex uses. **No Chromium and no dual-render spike.**
+- **Excel:** exceljs, a left-to-right sheet and Latin fonts (Arial).
+- **Content:** product name, description and specs always come from the **English** translation (`language = "en"`). If a product has no English text, the document editor shows a warning and the line can still be edited for that document.
+- **One Arabic-capable fallback font** in the worker image, only so that free text typed in Arabic (a customer name or address) never renders as empty boxes. It is **Noto Naskh Arabic** (OFL; `fonts-noto-core` covers it, or the TTF is copied from the repo). LibreOffice falls back to it per glyph through fontconfig.
+  - No `rtlMode`, no mirrored layouts. A short Arabic string inside an English document will render correctly shaped, but it is not laid out right-to-left.
+  - `/health` lists the required fonts (`fc-list`), so a missing font fails loudly instead of substituting silently.
+  - In Excel, Arabic cell values display using the viewer's system fonts.
+- **Pagination:** pptxgenjs has no automatic page flow. Long quotation and catalogue tables are split with the measuring helper `packages/datasheet/sections/_measure.ts`, with header/footer repeated on each page.
 
 ---
 
@@ -159,13 +154,13 @@ Altruvex has not solved Arabic, so this is new work and it gets a **spike at the
 | ESLint 10 vs `eslint-config-next` plugin support | Lint config errors | Use ESLint 10 if `eslint-config-next@16.3` plus its plugins load cleanly, otherwise stay on 9.x. Verified in Phase 0. |
 | Turning lint back on (it has been silently off) | Hundreds of existing warnings/errors | Fix errors. Existing-code warnings stay warnings. Turn `rules-of-hooks` back on and fix any real hook bugs it finds. |
 | Money Float → Decimal (D3) | Type changes everywhere; values change if any are stored at > 2 dp | Pre-check query for values with > 2 decimals, shown to you before migrating. |
-| Order restructuring (D4) | Historical orders | Additive migration plus backfill first. Dropping the old columns is a later, separately confirmed migration. |
+| Order restructuring (D4) | None today (0 orders) | A clean single migration, SQL shown first, tested on the Neon `dev` branch. |
 | Web ↔ admin cache invalidation across two deployments | `revalidateTag` in admin can't reach web's cache | A signed `POST /api/revalidate` on web, called by a shared `notifyStorefront(tags)` helper in admin (HMAC secret, fails loudly in logs, never blocks the admin save). |
 | Removing Upstash Redis in favour of Next cache | Behaviour change | Removed only once cache tags cover every call site. Rate limiting keeps Upstash. |
 | Existing customer passwords | Customers might be locked out | See §4 Phase 1: I need to check what the Clerk migration actually moved. |
 | LibreOffice font substitution | Documents look different from design | Fonts come from the repo and are copied into the image. The worker's `/health` reports `fc-list` for the required fonts. |
 | In-memory job store in the worker | Bulk jobs are lost on restart | Acceptable for now (the jobs are short). I'd persist job state in Postgres only if you run more than one worker instance. |
-| Arabic in pptxgenjs tables (1.7) | Quotation PDF | Spike first, with the Chromium fallback. |
+| Long tables in pptxgenjs (no auto page flow) | Quotation/catalogue PDF | Measure-and-split helper plus a 3-page test fixture (§1.7). |
 
 ---
 
@@ -262,7 +257,7 @@ model Address { … replaces ShippingAddress's 1-per-user limit; type SHIPPING|B
 model Order {                           // header
   number     String @unique             // "ORD-2026-00042" from DocumentSequence
   customerId String?
-  status     OrderStatus                // pending|confirmed|processing|shipped|delivered|cancelled|refunded (⚠ D5)
+  status     OrderStatus                // pending|confirmed|processing|shipped|delivered|cancelled|refunded (D5, clean rename)
   subtotal, discountTotal, taxTotal, shippingTotal, grandTotal  Decimal
   currency   String
   shippingAddress Json                  // snapshot
@@ -271,9 +266,9 @@ model Order {                           // header
   quotationId String? @unique
   statusHistory OrderStatusEvent[]
   notes OrderNote[]
-  // legacy single-product columns → nullable, backfilled into OrderItem, dropped later ⚠
+  // legacy single-product columns (productId, productName, productImages, productPrice, …) and isCompleted are DROPPED in the same migration (0 orders; D4)
 }
-model OrderItem { sku, name Json (ar/en snapshot), imageUrl, unitPrice, compareAtPrice, discountAmount, taxAmount, lineTotal Decimal; variantId? }
+model OrderItem { sku, name String (English snapshot), imageUrl, unitPrice, compareAtPrice, discountAmount, taxAmount, lineTotal Decimal; variantId? }
 model OrderStatusEvent { orderId, from, to, byAdminId?, note?, createdAt }
 model OrderNote        { orderId, adminId, body, isInternal, createdAt }
 model StockMovement    { variantId, delta, reason (ORDER|CANCEL|REFUND|ADJUSTMENT|IMPORT), refId?, adminId?, createdAt }
@@ -287,7 +282,6 @@ model Quotation {
   number     String @unique             // "Q-2026-0001"
   customerId String
   status     QuotationStatus            // DRAFT|SENT|ACCEPTED|REJECTED|EXPIRED
-  language   String                     // document language: ar | en
   currency   String
   validUntil DateTime
   subtotal, discountTotal, taxTotal, grandTotal  Decimal   // derived from lines on save, stored
@@ -302,19 +296,19 @@ model Quotation {
 model QuotationLine {
   id, quotationId, position
   productId String?  variantId String?       // nullable: custom lines allowed; SetNull on product delete
-  snapshot  Json                              // { sku, name{ar,en}, description{ar,en}, specs[...], imageUrl }
+  snapshot  Json                              // { sku, name, description, specs[...], imageUrl }; English content (D11)
   quantity Int   unitPrice Decimal   discountType DiscountType?   discountValue Decimal?   lineTotal Decimal
   edits     DocumentEdit[]
 }
-model Datasheet { id, number, productId, language, snapshot Json, companySnapshot Json, files GeneratedFile[], createdById, createdAt }
-model Catalogue { id, number, title Json, language, selection Json (categoryIds/productIds), snapshot Json, files GeneratedFile[], … }
+model Datasheet { id, number, productId, snapshot Json, companySnapshot Json, files GeneratedFile[], createdById, createdAt }
+model Catalogue { id, number, title String, selection Json (categoryIds/productIds), snapshot Json, files GeneratedFile[], … }
 
 model GeneratedFile { id, kind (PDF|XLSX|PPTX), url, providerId, bytes, quotationId?/datasheetId?/catalogueId?/orderId? (invoice), createdAt }
 
 // Write-back audit: one row per overridden field
 model DocumentEdit {
   id, documentType, documentId, productId,
-  field      String       // "description.ar" | "specs" | "price"
+  field      String       // "description" | "specs" | "price"; write-back targets the product's English translation
   before Json   after Json
   writeBack  Boolean @default(false)   // the "also update the product" checkbox, OFF by default
   appliedAt  DateTime?                  // set when write-back committed
@@ -331,8 +325,8 @@ model DocumentSequence { type String @id  prefix String  year Int  next Int }   
 ### 3.7 Phase 7: settings and audit
 
 ```prisma
-model CompanySettings { id "default", name Json (ar/en), logoUrl, logoProviderId, address Json, phone, email, website, taxNumber, commercialRegister, brandColor, defaultCurrency, defaultTaxRate Decimal, quotationValidityDays Int, … }
-model TermsTemplate   { id, kind (QUOTATION|INVOICE), name, body Json (ar/en), isDefault }
+model CompanySettings { id "default", name String, logoUrl, logoProviderId, address Json, phone, email, website, taxNumber, commercialRegister, brandColor, defaultCurrency, defaultTaxRate Decimal, quotationValidityDays Int, … }
+model TermsTemplate   { id, kind (QUOTATION|INVOICE), name, body String (English, D11), isDefault }
 model AuditLog        { id, actorId, actorType (ADMIN|SYSTEM), entity, entityId, action, before Json?, after Json?, createdAt  @@index([entity, entityId]) }
 ```
 `PriceHistory` stays and is also mirrored into `AuditLog`. Discount create/update/deactivate always writes `AuditLog`.
@@ -410,7 +404,7 @@ Order matters. Each step is its own commit, and the repo builds after every one.
    - A backfill script uploads the existing `/public` product images to Cloudinary and fills `ProductImage`.
 5. **Bulk price editing:** select products, then set / increase / decrease by % or amount (price or compare-at), with a preview diff before applying. Everything runs in one transaction and writes PriceHistory and AuditLog.
 6. **Excel import/export (exceljs):**
-   - Export uses the current filters, one sheet per language for localized fields plus a specs sheet, with an RTL sheet for Arabic.
+   - Export uses the current filters. This is a data round-trip file, not a customer document, so it carries **both** languages as columns (`name_en`, `name_ar`, …) plus a specs sheet. Headers are English and the sheet is left-to-right.
    - Import is upload → validate every row (zod) → preview screen showing create/update/errors per row → apply in batches. Matching is by SKU. Import never deletes.
 7. Web migrates off `Product.productImages[]` / `Product.quantity` / `Product.discount` (reads the new tables).
 
@@ -426,16 +420,16 @@ Order matters. Each step is its own commit, and the repo builds after every one.
 
 ### Phase 4: Quotations, datasheets and catalogue (Altruvex approach)
 0. **Cloudinary check (D6):** confirm the account can deliver PDF/ZIP raw files (Settings → Security → *Allow delivery of PDF and ZIP files*, off by default on free plans) with a test upload and a signed fetch. Report what to enable before building on it.
-1. **Arabic render spike** (§1.7): pptxgenjs→LibreOffice vs HTML→Chromium, side by side, plus the XLSX. Results go to Ali before continuing.
+1. **Long-table fixture:** a 3-page quotation, rendered to PDF and XLSX, to validate pagination (§1.7) before the templates are finalized.
 2. Generalize the worker into `apps/document-worker`:
-   - `/convert`, `/render-html` (Chromium), `/preview` (PNG pages), and the existing bulk jobs
-   - Arabic fonts added to the image, `fc-list` + Chromium version in `/health`
+   - `/convert`, `/preview` (PNG pages), and the existing bulk jobs
+   - the Noto Naskh Arabic fallback font added to the image, `fc-list` in `/health`
    - pptxgenjs 4
    - still a plain, host-agnostic Dockerfile configured only by env vars, with a `docker compose` file for local development
    - **Durable bulk jobs (D7):** jobs are stored in Postgres (`DocumentJob`: status `QUEUED | RUNNING | DONE | FAILED`, params, progress, attempts, error, result file). Output ZIP/PDF files go to Cloudinary, not local disk or memory, so downloads survive a restart. On startup the worker re-queues `QUEUED`/`RUNNING` jobs (generation is idempotent), up to 3 attempts. After that a job is `FAILED` with a clear error, and the admin shows a **Retry** button that creates a new attempt. If the worker is unreachable, the admin shows "worker offline" instead of polling forever.
 3. `packages/documents` (it grows out of `packages/datasheet`):
    - shared tokens and branding from `CompanySettings`
-   - page header/footer, table pagination and RTL-aware primitives
+   - page header/footer and table pagination primitives
    - templates `quotation`, `datasheet`, `catalogue` and `invoice` (the invoice is used in Phase 5)
    - `xlsx/quotation.ts` (exceljs, with a formula-live totals column)
 4. Migrations from §3.6, plus the numbering service.
@@ -443,15 +437,15 @@ Order matters. Each step is its own commit, and the repo builds after every one.
    - pick or create a customer, add products (search), per-line quantity, price and discount
    - overall discount, tax, validity, terms (from a template), notes
    - live totals come from `packages/pricing`
-   - **per-line "Edit content for this document"** drawer: description (ar/en), specs, price, each with an **"Also update the product in the database"** checkbox, off by default. The confirm dialog lists exactly which product fields will change.
+   - **per-line "Edit content for this document"** drawer: description (English), specs, price, each with an **"Also update the product in the database"** checkbox, off by default. The confirm dialog lists exactly which product fields will change.
    - Preview (PNG pages), generate PDF and XLSX, stored as `GeneratedFile`
 6. Status workflow: DRAFT → SENT (when emailed or marked sent) → ACCEPTED / REJECTED, and EXPIRED by a daily job (a Vercel cron route) when `validUntil` has passed. **Convert to order** is available on ACCEPTED: it creates an order from the snapshot prices (it doesn't reprice), decrements stock and links the two records.
-7. Email the quotation: Resend with a React Email template in the customer's language, a signed link to the PDF and optionally the attachment. The send is logged. (The Resend setup lands here if Phase 5 hasn't happened yet.)
-8. Datasheets: the existing single/bulk flow now also accepts `language` (Arabic/RTL) and saves a `Datasheet` snapshot record. The same edit-and-optional-write-back drawer applies. Product specs come from the new `SpecGroup`s.
-9. Catalogue: choose categories or products, language and cover options, then generate a job on the worker: cover, table of contents by category, one product per half or full page, and a back cover with company info.
+7. Email the quotation: Resend with a React Email template (English), a signed link to the PDF and optionally the attachment. The send is logged. (The Resend setup lands here if Phase 5 hasn't happened yet.)
+8. Datasheets: the existing single/bulk flow stays English (the unused `language` parameter is removed) and saves a `Datasheet` snapshot record. The same edit-and-optional-write-back drawer applies. Product specs come from the new `SpecGroup`s.
+9. Catalogue: choose categories or products and cover options, then generate a job on the worker: cover, table of contents by category, one product per half or full page, and a back cover with company info.
 
 ### Phase 5: Orders and transactional email
-1. Migrations from §3.5 (⚠ D4/D5, shown first) and the backfill.
+1. Migrations from §3.5: one clean migration for D4/D5 (SQL shown first, run on `dev` first, production only after approval).
 2. Admin orders:
    - list with filters (status, date, customer, total, payment) and search by number or email
    - detail page with a timeline, notes and a status workflow with allowed transitions (a state machine in `packages/orders`)
@@ -461,7 +455,7 @@ Order matters. Each step is its own commit, and the repo builds after every one.
    - every change writes a `StockMovement`
    - low-stock badge and filter based on `lowStockThreshold`
 4. Customers section: profile, addresses, orders, quotations and lifetime value.
-5. `packages/emails`: React Email templates with ar/en and RTL (`dir="rtl"` wrapper, Arabic web-safe font stack), sent through Resend in the customer's preferred language:
+5. `packages/emails`: React Email templates, **English only, one template each** (D11), sent through Resend:
    - order confirmation
    - status update
    - shipped (with tracking)
@@ -482,7 +476,7 @@ Order matters. Each step is its own commit, and the repo builds after every one.
 5. Search and filters: Postgres full-text search (turning `add-performance-indexes.sql` into a migration, with Arabic normalization of alef/ya/ta-marbuta) plus facets for category, brand, IP, color temperature and price range.
 6. Customer account: profile, addresses, order history and detail, quotations.
 7. "Request a quotation" (from the product page or the cart): creates a DRAFT quotation in the admin and emails staff.
-8. Download-datasheet button: serves the latest generated datasheet in the page language, generating and caching it if it is missing.
+8. Download-datasheet button: serves the latest generated (English) datasheet on both locales, generating and caching it if it is missing.
 9. **Gaps found, you choose which to build:**
    - payment gateway (D10)
    - wishlist
@@ -495,7 +489,6 @@ Order matters. Each step is its own commit, and the repo builds after every one.
    - shipping zones and rates
    - order tracking page without login
    - WhatsApp contact / order button
-   - Arabic-numeral formatting preference
    - analytics / events
    - cookie consent
    - 404/500 localized pages audit

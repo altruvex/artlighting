@@ -7,6 +7,10 @@
  * Idempotent: it deletes the rows it created before (matched by the
  * DEV_EMAIL_DOMAIN below) and recreates them.
  *
+ * Customers are created through Better Auth's own signup so they have a
+ * usable password (DEV_CUSTOMER_PASSWORD below) — the ownership tests need
+ * to sign in as them.
+ *
  * Run: pnpm --filter @repo/database seed:dev
  */
 import { assertNotProduction, databaseUrl, hostOf, loadEnv } from "../load-env";
@@ -16,9 +20,14 @@ assertNotProduction();
 
 const { prisma } = await import("../index");
 const { OrderStatus } = await import("../index");
+const { betterAuth } = await import("better-auth");
+const { prismaAdapter } = await import("better-auth/adapters/prisma");
 
 /** Everything this script creates is tagged with this domain. */
 const DEV_EMAIL_DOMAIN = "seed.dev.local";
+
+/** Dev-only password for the seeded customers. Never used anywhere real. */
+const DEV_CUSTOMER_PASSWORD = "dev-password-12345";
 
 const CUSTOMERS = [
   {
@@ -120,12 +129,23 @@ async function main() {
     console.log(`Removed ${existing.length} previously seeded customer(s) and their orders.`);
   }
 
+  // Same shape as apps/web/src/lib/auth.ts, so the password hash is one the
+  // storefront can verify. The secret only has to be present, not match the
+  // app's, for hashing to work.
+  const auth = betterAuth({
+    database: prismaAdapter(prisma, { provider: "postgresql" }),
+    secret: process.env.BETTER_AUTH_SECRET ?? "dev-seed-secret-dev-seed-secret-32",
+    emailAndPassword: { enabled: true },
+  });
+
   const customers = [];
   for (const customer of CUSTOMERS) {
-    const user = await prisma.user.create({
+    await auth.api.signUpEmail({
+      body: { email: customer.email, password: DEV_CUSTOMER_PASSWORD, name: customer.name },
+    });
+    const user = await prisma.user.update({
+      where: { email: customer.email },
       data: {
-        email: customer.email,
-        name: customer.name,
         emailVerified: true,
         phoneNumber: customer.phone,
         preferredLanguage: customer.language,
@@ -134,7 +154,7 @@ async function main() {
       include: { shippingAddress: true },
     });
     customers.push(user);
-    console.log(`Customer: ${user.name} <${user.email}>`);
+    console.log(`Customer: ${user.name} <${user.email}> (password: ${DEV_CUSTOMER_PASSWORD})`);
   }
 
   let created = 0;

@@ -1,4 +1,5 @@
 import Breadcrumb from "@/components/breadcrumb/custom-breadcrumb"
+import { auth } from "@/lib/auth-server";
 import ProductRouter from "@/components/product-router"
 import { getLocaleFromParams } from "@/lib/i18n/utils"
 import { constructMetadata } from "@/lib/metadata"
@@ -28,7 +29,7 @@ export default async function Page({ params }: PagePropsTypes) {
   if (!product) notFound()
 
   const [configuration, relatedProducts] = await Promise.all([
-    ProductService.getOrCreateConfiguration(product),
+    ProductService.getOrCreateConfiguration(product, (await auth()).userId),
     ProductService.getRelatedProducts(product.productId, "balcom", subCategory, locale, {
       spotlightType: product.spotlightType,
       maxIP: product.maxIP ?? undefined,

@@ -14,6 +14,10 @@ datasource db {
 model Configuration {
   id                String    @id @default(cuid())
   productId         String
+  /// Owner, once a signed-in customer touches it. Null while the visitor is
+  /// anonymous; the first authenticated write claims it, and after that only
+  /// that customer may change it.
+  userId            String?
   configPrice       Float
   priceIncrease     Float     @default(0)
   shippingPrice     Float     @default(0)
@@ -28,9 +32,11 @@ model Configuration {
 
   orders     Order[]     @relation("ConfigurationToOrder")
   orderItems OrderItem[]
+  user       User?       @relation("ConfigurationOwner", fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([productId])
   @@index([productId, updatedAt(sort: Desc)], name: "idx_configuration_product_updated")
+  @@index([userId])
   @@map("configurations")
 }
 
@@ -53,6 +59,7 @@ model User {
   shippingAddressId String?  @unique
 
   shippingAddress ShippingAddress?
+  configurations  Configuration[]  @relation("ConfigurationOwner")
   cart            Cart?
   orders          Order[]
   sessions        Session[]

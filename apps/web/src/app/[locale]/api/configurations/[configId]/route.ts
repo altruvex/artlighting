@@ -1,10 +1,13 @@
+import { auth } from "@/lib/auth-server"
 import { prisma } from "@repo/database"
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 
+/** Upper bound so a single line can't be inflated into an absurd order. */
+const MAX_QUANTITY = 100
 
 const SaveConfigSchema = z.object({
-    quantity: z.number().int().positive("Quantity must be a positive integer"),
+    quantity: z.number().int().positive("Quantity must be a positive integer").max(MAX_QUANTITY),
 })
 
 export type SaveConfigArgs = z.infer<typeof SaveConfigSchema>
@@ -20,15 +23,17 @@ export async function POST(
     request: NextRequest,
     { params }: { params: Promise<{ configId: string }> }
 ) {
+    const { userId } = await auth()
+    if (!userId) {
+        return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
+    }
+
     try {
         const { configId } = await params
         const body = await request.json()
-        
-        console.log("Save config started with args:", { configId, ...body })
 
         // Validate input data
         const validatedData = SaveConfigSchema.parse(body)
-        console.log("Data validation passed:", validatedData)
 
         const {
             quantity,
@@ -44,14 +49,25 @@ export async function POST(
             }
         })
 
-        if (!existingConfig) {
-            console.error(`Configuration not found: ${configId}`)
+        // A configuration owned by someone else answers exactly like one that
+        // doesn't exist, so ids can't be probed by watching the status code.
+        const isForeign = Boolean(existingConfig?.userId) && existingConfig?.userId !== userId
+        if (!existingConfig || isForeign) {
             return NextResponse.json(
                 {
                     success: false,
                     error: "Configuration not found"
                 },
                 { status: 404 }
+            )
+        }
+
+        // Once an order references it, the configuration is part of that
+        // order's record and must not change underneath it.
+        if (existingConfig.orders.length > 0) {
+            return NextResponse.json(
+                { success: false, error: "This configuration belongs to a placed order" },
+                { status: 409 },
             )
         }
 
@@ -126,6 +142,8 @@ export async function POST(
             data: {
                 quantity,
                 productId: existingConfig.productId,
+                // First authenticated write claims an anonymous configuration.
+                userId,
                 configPrice: unitConfigPrice,
                 priceIncrease,
                 lampPriceIncrease,

@@ -1,6 +1,17 @@
 import { auth } from "@/lib/auth-server";
 import { prisma } from "@repo/database";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+
+/** Upper bound so a single line can't be inflated into an absurd order. */
+const MAX_QUANTITY = 100;
+
+const CartItemQuantitySchema = z.object({
+  itemId: z.string().min(1),
+  quantity: z.number().int().positive().max(MAX_QUANTITY),
+});
+
+const CartItemSchema = z.object({ itemId: z.string().min(1) });
 
 export async function GET() {
   const { userId } = await auth();
@@ -58,15 +69,11 @@ export async function PATCH(request: NextRequest) {
   }
 
   try {
-    const { itemId, quantity } = await request.json();
-
-    // Validate quantity
-    if (!quantity || quantity < 1) {
-      return NextResponse.json(
-        { error: "Invalid quantity" },
-        { status: 400 }
-      );
+    const parsed = CartItemQuantitySchema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid quantity" }, { status: 400 });
     }
+    const { itemId, quantity } = parsed.data;
 
     // Check if cart exists and user owns the item
     const cart = await prisma.cart.findUnique({
@@ -127,7 +134,11 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
-    const { itemId, quantity } = await request.json();
+    const parsed = CartItemQuantitySchema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid quantity" }, { status: 400 });
+    }
+    const { itemId, quantity } = parsed.data;
 
     const cart = await prisma.cart.findUnique({
       where: { userId },
@@ -184,7 +195,11 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
-    const { itemId } = await request.json();
+    const parsed = CartItemSchema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
+    const { itemId } = parsed.data;
 
     // Verify the item belongs to the user's cart before deleting
     const cart = await prisma.cart.findUnique({

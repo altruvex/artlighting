@@ -38,23 +38,20 @@ export async function POST(request: NextRequest) {
     // Fetch configuration from database
     const configuration = await prisma.configuration.findUnique({
       where: { id: configurationId },
-      include: {
-        users: { where: { id: userId }, select: { id: true } },
-      },
     });
 
-    if (!configuration) {
+    // Ownership: a configuration belonging to another customer answers like
+    // one that doesn't exist, so ids can't be probed. An unclaimed
+    // (anonymous) configuration is readable — the owner is recorded on the
+    // first authenticated write.
+    //
+    // This previously checked Configuration.users, a relation fed by
+    // User.configurationId, which was never written for any user: the check
+    // rejected everyone, so this endpoint always answered 403.
+    if (!configuration || (configuration.userId && configuration.userId !== userId)) {
       return NextResponse.json(
         { error: "Configuration not found" },
         { status: 404 }
-      );
-    }
-
-    // Verify user owns this configuration
-    if (configuration.users.length === 0) {
-      return NextResponse.json(
-        { error: "Unauthorized access to configuration" },
-        { status: 403 }
       );
     }
 

@@ -1,3 +1,4 @@
+import { auth } from "@/lib/auth-server"
 import { getLocaleFromParams, getServerI18n } from "@/lib/i18n/utils"
 import { PagePropsTypes } from "@/types"
 import { prisma } from "@repo/database"
@@ -33,8 +34,9 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
   try {
     if (ProductId) {
       console.log(`Fetching configuration for ProductId: ${ProductId}`)
+      const { userId } = await auth()
       configuration = await prisma.configuration.findFirst({
-        where: { productId: ProductId },
+        where: { productId: ProductId, userId: userId ?? null },
         orderBy: { updatedAt: 'desc' }
       })
 
@@ -51,6 +53,7 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
           configuration = await prisma.configuration.create({
             data: {
               productId: ProductId,
+              userId: userId ?? null,
               configPrice: productExists.price,
               priceIncrease: 0,
               shippingPrice: 69,

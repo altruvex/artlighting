@@ -319,9 +319,15 @@ export class ProductService {
     return products;
   }
 
-  static async getOrCreateConfiguration(product: LocalizedProductData) {
+  /**
+   * The signed-in customer's configuration for this product, created if
+   * missing. Scoped by owner: it used to return the newest configuration for
+   * the product regardless of who made it, so two customers shared one row
+   * and each overwrote the other's quantity.
+   */
+  static async getOrCreateConfiguration(product: LocalizedProductData, userId?: string | null) {
     let config = await prisma.configuration.findFirst({
-      where: { productId: product.productId },
+      where: { productId: product.productId, userId: userId ?? null },
       orderBy: { updatedAt: "desc" },
     });
 
@@ -329,6 +335,7 @@ export class ProductService {
       config = await prisma.configuration.create({
         data: {
           productId: product.productId,
+          userId: userId ?? null,
           configPrice: product.price,
           priceIncrease: product.priceIncrease,
           shippingPrice: 69,

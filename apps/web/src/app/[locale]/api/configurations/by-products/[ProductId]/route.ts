@@ -1,3 +1,4 @@
+import { auth } from "@/lib/auth-server"
 import { prisma } from "@repo/database"
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
@@ -13,8 +14,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     console.log(`API: Fetching configuration for ProductId: ${ProductId}`)
 
+    // Scoped to the caller (or to the anonymous pool when signed out), so
+    // customers don't share and overwrite one configuration row.
+    const { userId } = await auth()
+
     const configuration = await prisma.configuration.findFirst({
-      where: { productId: ProductId }, 
+      where: { productId: ProductId, userId: userId ?? null },
       orderBy: { updatedAt: "desc" },
     })
 
@@ -32,6 +37,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         const newConfiguration = await prisma.configuration.create({
           data: {
             productId: ProductId,
+            userId: userId ?? null,
             configPrice: product.price,
             priceIncrease: 0,
             shippingPrice: 69,

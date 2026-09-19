@@ -19,12 +19,13 @@ export async function GET(
   try {
     const locale = request.headers.get("accept-language")?.split(",")[0]?.split("-")[0] || "ar"
     const order = await OrderService.getOrderWithDetails(orderId, userId, locale)
+    // Missing and not-yours answer the same, so ids can't be probed.
+    if (!order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 })
+    }
     return NextResponse.json(order)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
-    return NextResponse.json(
-      { error: "Failed to fetch order", details: errorMessage },
-      { status: 500 }
-    )
+    console.error("Failed to fetch order", error)
+    return NextResponse.json({ error: "Failed to fetch order" }, { status: 500 })
   }
 }

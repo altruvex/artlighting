@@ -81,6 +81,11 @@ export class OrderService {
         });
     }
 
+    /**
+     * The caller's own order, or null. Scoped by userId: another customer's
+     * order is indistinguishable from one that doesn't exist, so callers
+     * answer 404 for both and order ids can't be probed.
+     */
     static async getOrderWithDetails(orderId: number, userId: string, locale: string = "ar") {
         const order = await prisma.order.findFirst({
             where: { id: orderId, userId },
@@ -96,10 +101,6 @@ export class OrderService {
                 configuration: true,
             },
         });
-
-        if (!order) {
-            throw new Error("Order not found or unauthorized");
-        }
 
         return order;
     }

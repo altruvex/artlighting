@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { Container } from "@/components/container";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ export default function NewProductForm({
   topCategories: Category[];
   childCategories: Category[];
 }) {
+  const t = useTranslations("NewProduct");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -43,11 +45,11 @@ export default function NewProductForm({
 
   function handleSubmit() {
     if (!productId || !productName || !price || !categoryId || !lightingtypeId) {
-      toast.error("Fill in product ID, name, price, and category/subcategory");
+      toast.error(t("errors.missingFields"));
       return;
     }
     if (!selectedTop || !selectedChild) {
-      toast.error("Invalid category selection");
+      toast.error(t("errors.invalidCategory"));
       return;
     }
 
@@ -64,10 +66,10 @@ export default function NewProductForm({
           price: Number(price),
           quantity: Number(quantity),
         });
-        toast.success("Product created");
+        toast.success(t("created"));
         router.push(`/admin/dashboard/products/${product.id}`);
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to create product");
+        toast.error(err instanceof Error ? err.message : t("errors.createFailed"));
       }
     });
   }
@@ -76,23 +78,23 @@ export default function NewProductForm({
     <Container>
       <Card className="max-w-lg glass-surface rounded-2xl">
         <CardHeader>
-          <CardTitle>New product</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Product ID / SKU</Label>
+            <Label>{t("sku")}</Label>
             <Input
               value={productId}
               onChange={(e) => setProductId(e.target.value)}
-              placeholder="e.g. jy-999-15w"
+              placeholder={t("skuPlaceholder")}
             />
           </div>
           <div className="space-y-2">
-            <Label>Product name</Label>
+            <Label>{t("productName")}</Label>
             <Input value={productName} onChange={(e) => setProductName(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>Brand</Label>
+            <Label>{t("brand")}</Label>
             <Select value={brand} onValueChange={setBrand}>
               <SelectTrigger>
                 <SelectValue />
@@ -104,7 +106,7 @@ export default function NewProductForm({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Category</Label>
+            <Label>{t("category")}</Label>
             <Select
               value={categoryId}
               onValueChange={(v) => {
@@ -125,10 +127,10 @@ export default function NewProductForm({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Subcategory (lighting type)</Label>
+            <Label>{t("subcategory")}</Label>
             <Select value={lightingtypeId} onValueChange={setLightingtypeId}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a subcategory" />
+                <SelectValue placeholder={t("subcategoryPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
                 {availableChildren.map((c) => (
@@ -141,11 +143,11 @@ export default function NewProductForm({
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-2">
-              <Label>Price (EGP)</Label>
+              <Label>{t("price")}</Label>
               <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Initial stock</Label>
+              <Label>{t("initialStock")}</Label>
               <Input
                 type="number"
                 value={quantity}
@@ -154,7 +156,7 @@ export default function NewProductForm({
             </div>
           </div>
           <Button disabled={isPending} onClick={handleSubmit} className="w-full">
-            Create product
+            {t("create")}
           </Button>
         </CardContent>
       </Card>

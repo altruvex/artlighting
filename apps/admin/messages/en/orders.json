@@ -1,0 +1,112 @@
+{
+  "OrderStatus": {
+    "awaiting_shipment": "Awaiting Shipment",
+    "processing": "Processing Shipment",
+    "shipped": "Shipped",
+    "delivered": "Delivered",
+    "fulfilled": "Fulfilled",
+    "cancelled": "Cancelled",
+    "refunded": "Refunded"
+  },
+  "Summary": {
+    "totalSales": "Total Sales",
+    "totalSalesDescription": "Completed orders, after cancellations",
+    "customers": "Customers",
+    "customersDescription": "Registered accounts",
+    "orders": "Orders",
+    "ordersDescription": "Completed orders"
+  },
+  "Dashboard": {
+    "recentOrders": "Recent Orders",
+    "recentOrdersDescription": "Overview of recent orders placed on the website.",
+    "columns": {
+      "orderId": "# Order ID",
+      "customer": "Customer",
+      "productId": "Product ID",
+      "productPrice": "Product Price",
+      "discount": "Discount",
+      "qty": "Qty",
+      "shippingFee": "Shipping Fee",
+      "total": "Total",
+      "date": "Date",
+      "status": "Status",
+      "action": "Action"
+    },
+    "noDiscount": "No discount",
+    "viewOrder": "View Order",
+    "customerDetails": "Customer Details"
+  },
+  "Orders": {
+    "searchPlaceholder": "Search orders",
+    "allOrders": "All Orders",
+    "columns": {
+      "orderNumber": "Order #",
+      "customerName": "Customer Name",
+      "product": "Product",
+      "colorTemp": "Product Color Temp",
+      "ipRating": "IP Rating",
+      "lampWattage": "Lamp Wattage",
+      "productPrice": "Product Price",
+      "discount": "Discount",
+      "priceAfterDiscount": "Product Price After Discount",
+      "qty": "Qty",
+      "shippingFee": "Shipping Fee",
+      "total": "Total",
+      "customer": "Customer",
+      "phoneNumber": "Phone Number",
+      "date": "Date",
+      "estimatedOrderDate": "Estimated Order Date",
+      "status": "Status"
+    },
+    "noOrders": "No Orders Found",
+    "filterError": "Error filtering orders.",
+    "productImageAlt": "Product Image",
+    "noIp": "No IP",
+    "noLamp": "No Lamp",
+    "noDiscount": "No discount",
+    "noDiscountOnProduct": "No Discount On This Product",
+    "values": {
+      "colorTemp": {
+        "warm": "Warm",
+        "cool": "Cool",
+        "white": "White"
+      },
+      "lamp": {
+        "lamp9w": "9W lamp",
+        "lamp12w": "12W lamp"
+      },
+      "lightingType": {
+        "lamp": "Lamp",
+        "led": "LED"
+      }
+    }
+  },
+  "OrderDetail": {
+    "title": "Order #{id}",
+    "placedOn": "Placed on {date}",
+    "lastUpdated": "Last updated: {date}",
+    "progress": {
+      "ordered": "Ordered",
+      "processing": "Processing",
+      "fulfilled": "Fulfilled"
+    },
+    "productInformation": "Product Information",
+    "colorTemperature": "Color Temperature",
+    "ipRating": "IP Rating",
+    "lampType": "Lamp Type",
+    "brand": "Brand",
+    "lightingType": "Lighting Type",
+    "priceBreakdown": "Price Breakdown",
+    "productPrice": "Product Price",
+    "discountWithRate": "Discount ({rate})",
+    "priceIncrease": "Price Increase",
+    "shipping": "Shipping",
+    "shippingInformation": "Shipping Information",
+    "estimatedDelivery": "Estimated Delivery: {date}",
+    "noShippingInfo": "No shipping information available"
+  },
+  "Notifications": {
+    "title": "Notifications",
+    "placeholder": "Not built yet — there’s no transactional email or in-app notification system wired up in this project. This page is a placeholder until that’s scoped."
+  }
+}

@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useFormatter, useTranslations } from "next-intl";
 import { Container } from "@/components/container";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +20,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Upload, Loader2, Download } from "lucide-react";
-import { formatPrice } from "@/lib/utils";
 import {
   updateProductGeneral,
   updateProductPrice,
@@ -86,25 +86,26 @@ const LANGUAGES = [
   { value: "ar", label: "العربية" },
 ] as const;
 
-const SPEC_FIELDS: { key: keyof ProductSpecificationInput; label: string }[] = [
-  { key: "input", label: "Input (AC voltage)" },
-  { key: "maximumWattage", label: "Maximum wattage" },
-  { key: "brandOfLed", label: "Brand of LED" },
-  { key: "luminousFlux", label: "Luminous flux" },
-  { key: "mainMaterial", label: "Main material" },
-  { key: "cri", label: "CRI" },
-  { key: "beamAngle", label: "Beam angle" },
-  { key: "workingTemperature", label: "Working temperature" },
-  { key: "fixtureDimmable", label: "Fixture dimmable" },
-  { key: "electrical", label: "Electrical (driver)" },
-  { key: "powerFactor", label: "Power factor" },
-  { key: "colorTemperature", label: "Color temperature" },
-  { key: "ip", label: "IP rating" },
-  { key: "energySaving", label: "Energy saving" },
-  { key: "lifeTime", label: "Life time" },
-  { key: "finish", label: "Finish (chandeliers)" },
-  { key: "lampBase", label: "Lamp base (chandeliers)" },
-  { key: "bulb", label: "Bulb included (chandeliers)" },
+// Labels live in messages under ProductEditor.specFields.<key>.
+const SPEC_FIELDS: { key: keyof ProductSpecificationInput }[] = [
+  { key: "input" },
+  { key: "maximumWattage" },
+  { key: "brandOfLed" },
+  { key: "luminousFlux" },
+  { key: "mainMaterial" },
+  { key: "cri" },
+  { key: "beamAngle" },
+  { key: "workingTemperature" },
+  { key: "fixtureDimmable" },
+  { key: "electrical" },
+  { key: "powerFactor" },
+  { key: "colorTemperature" },
+  { key: "ip" },
+  { key: "energySaving" },
+  { key: "lifeTime" },
+  { key: "finish" },
+  { key: "lampBase" },
+  { key: "bulb" },
 ];
 
 interface Props {
@@ -145,6 +146,10 @@ export default function ProductEditor({
   priceHistory,
   isOwner,
 }: Props) {
+  const t = useTranslations("ProductEditor");
+  const tProducts = useTranslations("Products");
+  const tCommon = useTranslations("Common");
+  const format = useFormatter();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -184,7 +189,7 @@ export default function ProductEditor({
         toast.success(successMsg);
         router.refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Something went wrong");
+        toast.error(err instanceof Error ? err.message : tCommon("genericError"));
       }
     });
   }
@@ -211,41 +216,43 @@ export default function ProductEditor({
             variant="outline"
             className="rounded-xl"
             disabled={isPending}
-            onClick={() => run(() => duplicateProduct(product.id), "Product duplicated")}
+            onClick={() => run(() => duplicateProduct(product.id), t("toasts.duplicated"))}
           >
-            Duplicate
+            {t("duplicate")}
           </Button>
           <Button
             variant="destructive"
             className="rounded-xl"
             disabled={isPending}
-            onClick={() => run(() => softDeleteProduct(product.id), "Product deleted (soft)")}
+            onClick={() => run(() => softDeleteProduct(product.id), t("toasts.deleted"))}
           >
-            Delete
+            {tCommon("delete")}
           </Button>
         </div>
       </div>
 
       <Tabs defaultValue="general">
         <TabsList className="flex-wrap">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="translations">Translations</TabsTrigger>
-          <TabsTrigger value="specifications">Specifications</TabsTrigger>
-          <TabsTrigger value="images">Images ({product.images.length})</TabsTrigger>
-          <TabsTrigger value="variants">Stock & Variant</TabsTrigger>
-          <TabsTrigger value="pricing">Pricing</TabsTrigger>
-          <TabsTrigger value="discounts">Discounts</TabsTrigger>
+          <TabsTrigger value="general">{t("tabs.general")}</TabsTrigger>
+          <TabsTrigger value="translations">{t("tabs.translations")}</TabsTrigger>
+          <TabsTrigger value="specifications">{t("tabs.specifications")}</TabsTrigger>
+          <TabsTrigger value="images">
+            {t("tabs.images", { count: product.images.length })}
+          </TabsTrigger>
+          <TabsTrigger value="variants">{t("tabs.variants")}</TabsTrigger>
+          <TabsTrigger value="pricing">{t("tabs.pricing")}</TabsTrigger>
+          <TabsTrigger value="discounts">{t("tabs.discounts")}</TabsTrigger>
         </TabsList>
 
         {/* ── General ─────────────────────────────────────────── */}
         <TabsContent value="general">
           <Card className="glass-surface rounded-2xl">
             <CardHeader>
-              <CardTitle>General</CardTitle>
+              <CardTitle>{t("general.title")}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
-                <Label>Product name</Label>
+                <Label>{t("general.productName")}</Label>
                 <Input
                   className="rounded-xl"
                   value={productName}
@@ -254,7 +261,7 @@ export default function ProductEditor({
               </div>
 
               <div className="space-y-2">
-                <Label>Brand</Label>
+                <Label>{t("general.brand")}</Label>
                 <Select value={brand} onValueChange={setBrand}>
                   <SelectTrigger className="rounded-xl">
                     <SelectValue />
@@ -270,7 +277,7 @@ export default function ProductEditor({
               </div>
 
               <div className="space-y-2">
-                <Label>Category</Label>
+                <Label>{t("general.category")}</Label>
                 <Select
                   value={categoryId}
                   onValueChange={(v) => {
@@ -293,7 +300,7 @@ export default function ProductEditor({
               </div>
 
               <div className="space-y-2">
-                <Label>Subcategory (lighting type)</Label>
+                <Label>{t("general.subcategory")}</Label>
                 <Select value={lightingtypeId} onValueChange={setLightingtypeId}>
                   <SelectTrigger className="rounded-xl">
                     <SelectValue />
@@ -309,7 +316,7 @@ export default function ProductEditor({
               </div>
 
               <div className="space-y-2">
-                <Label>Color temperature</Label>
+                <Label>{t("general.colorTemperature")}</Label>
                 <Select value={productColor} onValueChange={setProductColor}>
                   <SelectTrigger className="rounded-xl">
                     <SelectValue />
@@ -317,7 +324,7 @@ export default function ProductEditor({
                   <SelectContent>
                     {PRODUCT_COLORS.map((c) => (
                       <SelectItem key={c} value={c}>
-                        {c}
+                        {tProducts(`colorTemp.${c}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -325,7 +332,7 @@ export default function ProductEditor({
               </div>
 
               <div className="space-y-2">
-                <Label>Base IP rating</Label>
+                <Label>{t("general.baseIp")}</Label>
                 <Select value={productIp} onValueChange={setProductIp}>
                   <SelectTrigger className="rounded-xl">
                     <SelectValue />
@@ -341,18 +348,18 @@ export default function ProductEditor({
               </div>
 
               <div className="space-y-2">
-                <Label>Max IP rating (integer)</Label>
+                <Label>{t("general.maxIp")}</Label>
                 <Input
                   className="rounded-xl"
                   type="number"
-                  placeholder="e.g. 65"
+                  placeholder={t("general.maxIpPlaceholder")}
                   value={maxIP}
                   onChange={(e) => setMaxIP(e.target.value)}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Chandelier lamp wattage</Label>
+                <Label>{t("general.chandLamp")}</Label>
                 <Select value={productChandLamp} onValueChange={setProductChandLamp}>
                   <SelectTrigger className="rounded-xl">
                     <SelectValue />
@@ -360,7 +367,7 @@ export default function ProductEditor({
                   <SelectContent>
                     {PRODUCT_CHAND_LAMPS.map((l) => (
                       <SelectItem key={l} value={l}>
-                        {l}
+                        {tProducts(`chandLamp.${l}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -368,17 +375,17 @@ export default function ProductEditor({
               </div>
 
               <div className="space-y-2">
-                <Label>Chandelier lighting type</Label>
+                <Label>{t("general.chandLightingType")}</Label>
                 <Input
                   className="rounded-xl"
-                  placeholder="LED or lamp"
+                  placeholder={t("general.chandLightingTypePlaceholder")}
                   value={chandelierLightingType}
                   onChange={(e) => setChandelierLightingType(e.target.value)}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Number of heads (chandeliers)</Label>
+                <Label>{t("general.heads")}</Label>
                 <Input
                   className="rounded-xl"
                   type="number"
@@ -389,18 +396,17 @@ export default function ProductEditor({
 
               <div className="space-y-2 sm:col-span-2">
                 <Label className="flex items-center gap-1.5">
-                  <FileText className="h-3.5 w-3.5" /> Datasheet PDF URL
+                  <FileText className="h-3.5 w-3.5" /> {t("general.datasheetUrl")}
                 </Label>
                 <Input
                   className="rounded-xl"
-                  placeholder="https://... link to the spec sheet PDF"
+                  dir="ltr"
+                  placeholder={t("general.datasheetUrlPlaceholder")}
                   value={specSheetUrl}
                   onChange={(e) => setSpecSheetUrl(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Same URL-based approach as images — paste a link once the PDF is hosted
-                  somewhere. Wiring an actual upload flow is follow-up work once a storage
-                  provider is chosen.
+                  {t("general.datasheetUrlHint")}
                 </p>
               </div>
 
@@ -411,7 +417,7 @@ export default function ProductEditor({
                   className="rounded-xl"
                   onClick={() => setIsActive((v) => !v)}
                 >
-                  {isActive ? "Active" : "Inactive"}
+                  {isActive ? tCommon("active") : tCommon("inactive")}
                 </Button>
                 <Button
                   type="button"
@@ -419,7 +425,7 @@ export default function ProductEditor({
                   className="rounded-xl"
                   onClick={() => setFeatured((v) => !v)}
                 >
-                  {featured ? "Featured" : "Not featured"}
+                  {featured ? t("general.featured") : t("general.notFeatured")}
                 </Button>
               </div>
 
@@ -444,11 +450,11 @@ export default function ProductEditor({
                         chandelierLightingType: chandelierLightingType || null,
                         specSheetUrl: specSheetUrl || null,
                       }),
-                    "Saved"
+                    tCommon("saved")
                   )
                 }
               >
-                Save changes
+                {t("general.saveChanges")}
               </Button>
             </CardContent>
           </Card>
@@ -458,9 +464,9 @@ export default function ProductEditor({
         <TabsContent value="translations">
           <Card className="glass-surface rounded-2xl">
             <CardHeader>
-              <CardTitle>Translations</CardTitle>
+              <CardTitle>{t("translations.title")}</CardTitle>
               <p className="text-sm text-muted-foreground">
-                The localized name and description shown on the storefront per language.
+                {t("translations.description")}
               </p>
             </CardHeader>
             <CardContent>
@@ -493,9 +499,9 @@ export default function ProductEditor({
         <TabsContent value="specifications">
           <Card className="glass-surface rounded-2xl">
             <CardHeader>
-              <CardTitle>Specifications</CardTitle>
+              <CardTitle>{t("specifications.title")}</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Technical spec sheet fields shown on the product page, per language.
+                {t("specifications.description")}
               </p>
             </CardHeader>
             <CardContent>
@@ -528,10 +534,9 @@ export default function ProductEditor({
         <TabsContent value="images">
           <Card className="glass-surface rounded-2xl">
             <CardHeader>
-              <CardTitle>Images</CardTitle>
+              <CardTitle>{t("images.title")}</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Upload files directly, or paste a URL for an image already hosted elsewhere.
-                JPEG/PNG/WEBP/AVIF, up to 8MB.
+                {t("images.description")}
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -545,7 +550,7 @@ export default function ProductEditor({
               <div className="flex max-w-xl gap-2">
                 <Input
                   className="rounded-xl"
-                  placeholder="or paste an existing image URL"
+                  placeholder={t("images.urlPlaceholder")}
                   value={newImageUrl}
                   onChange={(e) => setNewImageUrl(e.target.value)}
                 />
@@ -557,10 +562,10 @@ export default function ProductEditor({
                     run(async () => {
                       await addProductImage(product.id, newImageUrl, product.productName);
                       setNewImageUrl("");
-                    }, "Image added")
+                    }, t("images.added"))
                   }
                 >
-                  Add URL
+                  {t("images.addUrl")}
                 </Button>
               </div>
 
@@ -575,7 +580,7 @@ export default function ProductEditor({
                     />
                     <div className="flex items-center justify-between">
                       {img.isPrimary ? (
-                        <Badge>Primary</Badge>
+                        <Badge>{t("images.primary")}</Badge>
                       ) : (
                         <Button
                           variant="outline"
@@ -583,10 +588,10 @@ export default function ProductEditor({
                           className="rounded-lg"
                           disabled={isPending}
                           onClick={() =>
-                            run(() => setPrimaryImage(img.id, product.id), "Primary image set")
+                            run(() => setPrimaryImage(img.id, product.id), t("images.primarySet"))
                           }
                         >
-                          Set primary
+                          {t("images.setPrimary")}
                         </Button>
                       )}
                       <Button
@@ -595,10 +600,10 @@ export default function ProductEditor({
                         className="rounded-lg"
                         disabled={isPending}
                         onClick={() =>
-                          run(() => removeProductImage(img.id, product.id), "Image removed")
+                          run(() => removeProductImage(img.id, product.id), t("images.removed"))
                         }
                       >
-                        Remove
+                        {t("images.remove")}
                       </Button>
                     </div>
                     <div className="flex gap-1">
@@ -610,10 +615,10 @@ export default function ProductEditor({
                         onClick={() => {
                           const order = product.images.map((i) => i.id);
                           [order[index - 1], order[index]] = [order[index], order[index - 1]];
-                          run(() => reorderProductImages(product.id, order), "Reordered");
+                          run(() => reorderProductImages(product.id, order), t("images.reordered"));
                         }}
                       >
-                        ← Move up
+                        {t("images.moveUp")}
                       </Button>
                       <Button
                         variant="outline"
@@ -623,10 +628,10 @@ export default function ProductEditor({
                         onClick={() => {
                           const order = product.images.map((i) => i.id);
                           [order[index + 1], order[index]] = [order[index], order[index + 1]];
-                          run(() => reorderProductImages(product.id, order), "Reordered");
+                          run(() => reorderProductImages(product.id, order), t("images.reordered"));
                         }}
                       >
-                        Move down →
+                        {t("images.moveDown")}
                       </Button>
                     </div>
                   </div>
@@ -640,7 +645,7 @@ export default function ProductEditor({
         <TabsContent value="variants">
           <Card className="glass-surface rounded-2xl">
             <CardHeader>
-              <CardTitle>Stock & variant</CardTitle>
+              <CardTitle>{t("variants.title")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {product.variants.map((variant) => (
@@ -660,11 +665,11 @@ export default function ProductEditor({
         <TabsContent value="pricing">
           <Card className="glass-surface rounded-2xl">
             <CardHeader>
-              <CardTitle>Pricing</CardTitle>
+              <CardTitle>{t("pricing.title")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 max-w-lg">
               <div className="space-y-2">
-                <Label>Price (EGP)</Label>
+                <Label>{t("pricing.price")}</Label>
                 <div className="flex gap-2">
                   <Input
                     className="rounded-xl"
@@ -679,33 +684,38 @@ export default function ProductEditor({
                     onClick={() =>
                       run(
                         () => updateProductPrice(product.id, Number(priceInput)),
-                        "Price updated"
+                        t("pricing.updated")
                       )
                     }
                   >
-                    Update price
+                    {t("pricing.update")}
                   </Button>
                 </div>
                 {!isOwner && (
                   <p className="text-sm text-muted-foreground">
-                    Only owners can change price.
+                    {t("pricing.ownerOnly")}
                   </p>
                 )}
               </div>
 
               <div>
-                <Label>Price history</Label>
+                <Label>{t("pricing.history")}</Label>
                 {priceHistory.length === 0 ? (
-                  <p className="mt-1 text-sm text-muted-foreground">No changes recorded yet.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{t("pricing.noHistory")}</p>
                 ) : (
                   <ul className="mt-2 space-y-1 text-sm">
                     {priceHistory.map((h) => (
                       <li key={h.id} className="flex justify-between border-b border-border py-1">
                         <span>
-                          {formatPrice(h.oldPrice)} → {formatPrice(h.newPrice)}
+                          {format.number(h.oldPrice, { style: "currency", currency: "EGP" })}{" "}
+                          <span className="inline-block rtl:rotate-180">→</span>{" "}
+                          {format.number(h.newPrice, { style: "currency", currency: "EGP" })}
                         </span>
                         <span className="text-muted-foreground">
-                          {new Date(h.changedAt).toLocaleString()}
+                          {format.dateTime(new Date(h.changedAt), {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })}
                         </span>
                       </li>
                     ))}
@@ -720,17 +730,17 @@ export default function ProductEditor({
         <TabsContent value="discounts">
           <Card className="glass-surface rounded-2xl">
             <CardHeader>
-              <CardTitle>Discounts</CardTitle>
+              <CardTitle>{t("discounts.title")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               {!isOwner ? (
                 <p className="text-sm text-muted-foreground">
-                  Only owners can create or change discounts.
+                  {t("discounts.ownerOnly")}
                 </p>
               ) : (
                 <div className="grid grid-cols-2 items-end gap-2 md:grid-cols-5 max-w-3xl">
                   <div className="space-y-1">
-                    <Label>Type</Label>
+                    <Label>{t("discounts.type")}</Label>
                     <Select
                       value={discountType}
                       onValueChange={(v) => setDiscountType(v as "percentage" | "fixed")}
@@ -739,13 +749,13 @@ export default function ProductEditor({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="percentage">Percentage</SelectItem>
-                        <SelectItem value="fixed">Fixed</SelectItem>
+                        <SelectItem value="percentage">{t("discounts.percentage")}</SelectItem>
+                        <SelectItem value="fixed">{t("discounts.fixed")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1">
-                    <Label>Scope</Label>
+                    <Label>{t("discounts.scope")}</Label>
                     <Select
                       value={discountScope}
                       onValueChange={(v) =>
@@ -756,14 +766,14 @@ export default function ProductEditor({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="product">This product</SelectItem>
-                        <SelectItem value="category">This category</SelectItem>
-                        <SelectItem value="global">Store-wide</SelectItem>
+                        <SelectItem value="product">{t("discounts.scopeProduct")}</SelectItem>
+                        <SelectItem value="category">{t("discounts.scopeCategory")}</SelectItem>
+                        <SelectItem value="global">{t("discounts.scopeGlobal")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1">
-                    <Label>Value</Label>
+                    <Label>{t("discounts.value")}</Label>
                     <Input
                       className="rounded-xl"
                       type="number"
@@ -772,7 +782,7 @@ export default function ProductEditor({
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label>Coupon code (optional)</Label>
+                    <Label>{t("discounts.code")}</Label>
                     <Input
                       className="rounded-xl"
                       value={discountCode}
@@ -793,11 +803,11 @@ export default function ProductEditor({
                             productId: discountScope === "product" ? product.id : null,
                             categoryId: discountScope === "category" ? categoryId : null,
                           }),
-                        "Discount created"
+                        t("discounts.created")
                       )
                     }
                   >
-                    Create discount
+                    {t("discounts.create")}
                   </Button>
                 </div>
               )}
@@ -805,7 +815,7 @@ export default function ProductEditor({
               <div className="space-y-2">
                 {discounts.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    No active discounts on this product.
+                    {t("discounts.none")}
                   </p>
                 ) : (
                   discounts.map((d) => (
@@ -814,8 +824,12 @@ export default function ProductEditor({
                       className="flex items-center justify-between rounded-xl border border-border p-2"
                     >
                       <span>
-                        {d.type === "percentage" ? `${d.value}%` : formatPrice(d.value)} off
-                        {d.code ? ` — code ${d.code}` : ""}
+                        {d.type === "percentage"
+                          ? t("discounts.percentOff", { value: d.value })
+                          : t("discounts.amountOff", {
+                              amount: format.number(d.value, { style: "currency", currency: "EGP" }),
+                            })}
+                        {d.code ? ` — ${t("discounts.withCode", { code: d.code })}` : ""}
                       </span>
                       {isOwner && (
                         <Button
@@ -824,10 +838,10 @@ export default function ProductEditor({
                           className="rounded-lg"
                           disabled={isPending}
                           onClick={() =>
-                            run(() => deactivateDiscount(d.id), "Discount deactivated")
+                            run(() => deactivateDiscount(d.id), t("discounts.deactivated"))
                           }
                         >
-                          Deactivate
+                          {t("discounts.deactivate")}
                         </Button>
                       )}
                     </div>
@@ -857,17 +871,18 @@ function TranslationForm({
   isPending: boolean;
   run: (fn: () => Promise<unknown>, msg: string) => void;
 }) {
+  const t = useTranslations("ProductEditor.translations");
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
 
   return (
     <div className="max-w-xl space-y-4 pt-4">
       <div className="space-y-2">
-        <Label>Name ({language})</Label>
+        <Label>{t("name", { language })}</Label>
         <Input className="rounded-xl" value={name} onChange={(e) => setName(e.target.value)} />
       </div>
       <div className="space-y-2">
-        <Label>Description ({language})</Label>
+        <Label>{t("descriptionLabel", { language })}</Label>
         <Textarea
           className="rounded-xl"
           rows={4}
@@ -885,11 +900,11 @@ function TranslationForm({
                 name,
                 description: description || null,
               }),
-            `${language.toUpperCase()} translation saved`
+            t("saved", { language: language.toUpperCase() })
           )
         }
       >
-        Save {language.toUpperCase()} translation
+        {t("save", { language: language.toUpperCase() })}
       </Button>
     </div>
   );
@@ -910,6 +925,7 @@ function SpecificationForm({
   isPending: boolean;
   run: (fn: () => Promise<unknown>, msg: string) => void;
 }) {
+  const t = useTranslations("ProductEditor");
   const [values, setValues] = useState<ProductSpecificationInput>(() => {
     const v: ProductSpecificationInput = {};
     for (const { key } of SPEC_FIELDS) {
@@ -925,9 +941,9 @@ function SpecificationForm({
   return (
     <div className="space-y-4 pt-4">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {SPEC_FIELDS.map(({ key, label }) => (
+        {SPEC_FIELDS.map(({ key }) => (
           <div key={key} className="space-y-2">
-            <Label>{label}</Label>
+            <Label>{t(`specFields.${key}`)}</Label>
             <Input
               className="rounded-xl"
               value={values[key] ?? ""}
@@ -963,11 +979,11 @@ function SpecificationForm({
                 lampBase: values.lampBase || null,
                 bulb: values.bulb || null,
               }),
-            `${language.toUpperCase()} specifications saved`
+            t("specifications.saved", { language: language.toUpperCase() })
           )
         }
       >
-        Save {language.toUpperCase()} specifications
+        {t("specifications.save", { language: language.toUpperCase() })}
       </Button>
     </div>
   );
@@ -984,6 +1000,7 @@ function ImageUploadDropzone({
   isPending: boolean;
   run: (fn: () => Promise<unknown>, msg: string) => void;
 }) {
+  const t = useTranslations("ProductEditor.images");
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -999,7 +1016,7 @@ function ImageUploadDropzone({
         formData.set("file", file);
         await uploadProductImage(productId, productSku, formData);
       }
-    }, list.length > 1 ? `${list.length} images uploaded` : "Image uploaded");
+    }, t("uploaded", { count: list.length }));
     setIsUploading(false);
   }
 
@@ -1036,7 +1053,7 @@ function ImageUploadDropzone({
         <Upload className="h-6 w-6 text-muted-foreground" />
       )}
       <p className="text-sm font-medium">
-        {busy ? "Uploading..." : "Drag images here, or click to browse"}
+        {busy ? t("uploading") : t("dropzone")}
       </p>
     </div>
   );
@@ -1053,6 +1070,7 @@ function VariantRow({
   isPending: boolean;
   run: (fn: () => Promise<unknown>, msg: string) => void;
 }) {
+  const t = useTranslations("ProductEditor.variants");
   const [wattage, setWattage] = useState(variant.wattage ?? "");
   const [finish, setFinish] = useState(variant.finish ?? "");
   const [size, setSize] = useState(variant.size ?? "");
@@ -1061,23 +1079,23 @@ function VariantRow({
   return (
     <div className="grid grid-cols-2 items-end gap-2 rounded-xl border border-border p-3 md:grid-cols-5">
       <div className="space-y-1">
-        <Label>SKU</Label>
+        <Label>{t("sku")}</Label>
         <Input className="rounded-xl" value={variant.sku} disabled />
       </div>
       <div className="space-y-1">
-        <Label>Wattage</Label>
+        <Label>{t("wattage")}</Label>
         <Input className="rounded-xl" value={wattage} onChange={(e) => setWattage(e.target.value)} />
       </div>
       <div className="space-y-1">
-        <Label>Finish</Label>
+        <Label>{t("finish")}</Label>
         <Input className="rounded-xl" value={finish} onChange={(e) => setFinish(e.target.value)} />
       </div>
       <div className="space-y-1">
-        <Label>Size</Label>
+        <Label>{t("size")}</Label>
         <Input className="rounded-xl" value={size} onChange={(e) => setSize(e.target.value)} />
       </div>
       <div className="space-y-1">
-        <Label>Stock</Label>
+        <Label>{t("stock")}</Label>
         <Input
           className="rounded-xl"
           type="number"
@@ -1097,11 +1115,11 @@ function VariantRow({
                 size: size || null,
                 stock: Number(stock),
               }),
-            "Variant updated"
+            t("updated")
           )
         }
       >
-        Save variant
+        {t("save")}
       </Button>
     </div>
   );

@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Layers, Download } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Category = { id: string; name: string };
 
@@ -34,6 +35,8 @@ interface JobStatusResponse {
 const POLL_INTERVAL_MS = 2000;
 
 export default function BulkGenerateSheet({ topCategories }: { topCategories: Category[] }) {
+  const t = useTranslations("BulkDatasheet");
+  const tCommon = useTranslations("Common");
   const [open, setOpen] = useState(false);
   const [scope, setScope] = useState<"all" | "category">("all");
   const [categoryId, setCategoryId] = useState<string | undefined>(topCategories[0]?.id);
@@ -71,13 +74,13 @@ export default function BulkGenerateSheet({ topCategories }: { topCategories: Ca
         }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? "failed to start job");
+      if (!res.ok) throw new Error(body?.error ?? t("errors.startFailed"));
 
       setJobId(body.jobId);
       pollRef.current = setInterval(() => void pollStatus(body.jobId), POLL_INTERVAL_MS);
       void pollStatus(body.jobId);
     } catch (err) {
-      setStartError(err instanceof Error ? err.message : "Something went wrong");
+      setStartError(err instanceof Error ? err.message : tCommon("genericError"));
     } finally {
       setStarting(false);
     }
@@ -113,35 +116,34 @@ export default function BulkGenerateSheet({ topCategories }: { topCategories: Ca
     >
       <SheetTrigger asChild>
         <Button variant="outline" size="sm">
-          <Layers className="h-4 w-4" /> Bulk generate
+          <Layers className="h-4 w-4" /> {t("trigger")}
         </Button>
       </SheetTrigger>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Bulk generate datasheets</SheetTitle>
+          <SheetTitle>{t("title")}</SheetTitle>
           <SheetDescription>
-            Runs in the background — this can take several minutes for the full catalog. You
-            can close this panel and come back.
+            {t("description")}
           </SheetDescription>
         </SheetHeader>
 
         <div className="flex flex-col gap-4 px-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Scope</label>
+            <label className="text-sm font-medium">{t("scope")}</label>
             <Select value={scope} onValueChange={(v) => setScope(v as "all" | "category")}>
               <SelectTrigger className="rounded-xl" disabled={!!jobId}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All active products</SelectItem>
-                <SelectItem value="category">By category</SelectItem>
+                <SelectItem value="all">{t("scopeAll")}</SelectItem>
+                <SelectItem value="category">{t("scopeCategory")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {scope === "category" && (
             <div className="space-y-2">
-              <label className="text-sm font-medium">Category</label>
+              <label className="text-sm font-medium">{t("category")}</label>
               <Select value={categoryId} onValueChange={setCategoryId}>
                 <SelectTrigger className="rounded-xl" disabled={!!jobId}>
                   <SelectValue />
@@ -158,7 +160,7 @@ export default function BulkGenerateSheet({ topCategories }: { topCategories: Ca
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Format</label>
+            <label className="text-sm font-medium">{t("format")}</label>
             <Select value={format} onValueChange={(v) => setFormat(v as "pptx" | "pdf")}>
               <SelectTrigger className="rounded-xl" disabled={!!jobId}>
                 <SelectValue />
@@ -171,7 +173,7 @@ export default function BulkGenerateSheet({ topCategories }: { topCategories: Ca
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Output</label>
+            <label className="text-sm font-medium">{t("output")}</label>
             <Select
               value={outputShape}
               onValueChange={(v) => setOutputShape(v as "zip" | "combined")}
@@ -180,8 +182,8 @@ export default function BulkGenerateSheet({ topCategories }: { topCategories: Ca
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="zip">Zip of individual files</SelectItem>
-                <SelectItem value="combined">Combined by category</SelectItem>
+                <SelectItem value="zip">{t("outputZip")}</SelectItem>
+                <SelectItem value="combined">{t("outputCombined")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -193,10 +195,10 @@ export default function BulkGenerateSheet({ topCategories }: { topCategories: Ca
               <div className="flex items-center justify-between text-sm">
                 <span>
                   {job.status === "done"
-                    ? "Done"
+                    ? t("status.done")
                     : job.status === "error"
-                      ? "Failed"
-                      : "Generating…"}
+                      ? t("status.failed")
+                      : t("status.generating")}
                 </span>
                 <span className="text-muted-foreground">
                   {job.completed}/{job.total}
@@ -207,7 +209,7 @@ export default function BulkGenerateSheet({ topCategories }: { topCategories: Ca
               {job.skipped.length > 0 && (
                 <div className="space-y-1 text-xs text-muted-foreground">
                   <p className="font-medium text-foreground">
-                    {job.skipped.length} skipped:
+                    {t("skipped", { count: job.skipped.length })}
                   </p>
                   {job.skipped.map((s) => (
                     <p key={s.productCode}>
@@ -225,11 +227,11 @@ export default function BulkGenerateSheet({ topCategories }: { topCategories: Ca
             <>
               <Button className="rounded-xl" asChild>
                 <a href={`/api/products/datasheet/bulk/${jobId}/download`}>
-                  <Download className="h-4 w-4" /> Download
+                  <Download className="h-4 w-4" /> {t("download")}
                 </a>
               </Button>
               <Button variant="outline" className="rounded-xl" onClick={reset}>
-                Start another
+                {t("startAnother")}
               </Button>
             </>
           ) : (
@@ -238,7 +240,7 @@ export default function BulkGenerateSheet({ topCategories }: { topCategories: Ca
               disabled={starting || (!!jobId && job?.status !== "error")}
               onClick={startJob}
             >
-              {starting ? "Starting…" : jobId ? "Generating…" : "Start"}
+              {starting ? t("starting") : jobId ? t("status.generating") : t("start")}
             </Button>
           )}
         </SheetFooter>

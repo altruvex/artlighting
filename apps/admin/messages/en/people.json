@@ -1,0 +1,149 @@
+{
+  "Customers": {
+    "searchPlaceholder": "Search customers",
+    "allCustomers": "All Customers",
+    "cardTitle": "Customers",
+    "columns": {
+      "id": "Customer ID",
+      "name": "Customer Name",
+      "phone": "Phone Number",
+      "shippingAddress": "Shipping Address"
+    },
+    "empty": "No customers found",
+    "filterError": "Error filtering customers",
+    "loadError": "Error loading customers"
+  },
+  "CustomerDetail": {
+    "accountTitle": "{name}'s Account",
+    "personalInfo": "Personal Information",
+    "editPersonalInfo": "Edit personal information",
+    "memberSince": "Member since {date}",
+    "fullName": "Full Name",
+    "shippingInfo": "Shipping Information",
+    "editShippingInfo": "Edit shipping information",
+    "billingAddress": "Billing Address",
+    "shippingAddress": "Shipping Address",
+    "orderHistory": "Order History",
+    "orderHistoryDescription": "View and manage past orders",
+    "productImageAlt": "Product image",
+    "tabs": {
+      "all": "All Orders",
+      "awaiting": "Awaiting",
+      "processing": "Processing",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "columns": {
+      "orderNumber": "Order #",
+      "product": "Product",
+      "colorTemp": "Color Temp",
+      "ip": "IP",
+      "lamp": "Lamp",
+      "discount": "Discount",
+      "afterDiscount": "After Discount",
+      "qty": "Qty",
+      "shipping": "Shipping",
+      "orderDate": "Order Date",
+      "estDate": "Est. Date"
+    },
+    "noOrders": "No orders found",
+    "loadError": "Error loading customer data."
+  },
+  "Team": {
+    "addTitle": "Add a team member",
+    "addDescription": "This is the only way a new admin account gets created — there's no public sign-up anymore. Share the generated password with them over a secure channel (not email/chat in plain text if you can help it).",
+    "password": "Password",
+    "generate": "Generate",
+    "passwordHint": "Minimum 12 characters.",
+    "role": "Role",
+    "roleOptions": {
+      "staff": "Staff (no price/discount access)",
+      "owner": "Owner (full access)"
+    },
+    "roles": {
+      "owner": "Owner",
+      "staff": "Staff"
+    },
+    "createAccount": "Create account",
+    "createdNotice": "Created {email} — copy this password now, it won't be shown again:",
+    "copyPassword": "Copy password",
+    "adminsTitle": "Admins ({count})",
+    "you": "(you)",
+    "makeStaff": "Make staff",
+    "makeOwner": "Make owner",
+    "revoke": "Revoke",
+    "toasts": {
+      "fillRequired": "Fill in name, email, and password",
+      "accountCreated": "Account created",
+      "createFailed": "Failed to create account",
+      "roleUpdated": "Role updated",
+      "accessRevoked": "Access revoked"
+    },
+    "errors": {
+      "passwordTooShort": "Password must be at least 12 characters",
+      "emailExists": "An admin with this email already exists",
+      "cantDemoteSelf": "You can't demote yourself",
+      "cantRevokeSelf": "You can't revoke your own access"
+    }
+  },
+  "Categories": {
+    "addTitle": "Add category / subcategory",
+    "slug": "Slug",
+    "parentLabel": "Parent (leave as \"Top-level\" for a new section)",
+    "topLevel": "Top-level",
+    "under": "Under {name}",
+    "productCount": "({count, plural, one {# product} other {# products}})",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "toasts": {
+      "created": "Category created",
+      "movedUp": "Moved up",
+      "movedDown": "Moved down"
+    }
+  },
+  "Discounts": {
+    "newTitle": "New store-wide or category discount",
+    "newDescription": "Product-specific discounts are created from that product's edit page.",
+    "scopeLabel": "Scope",
+    "categoryLabel": "Category",
+    "typeLabel": "Type",
+    "valueLabel": "Value",
+    "codeLabel": "Coupon code (optional)",
+    "scope": {
+      "global": "Store-wide",
+      "category": "Category",
+      "product": "Product"
+    },
+    "type": {
+      "percentage": "Percentage",
+      "fixed": "Fixed"
+    },
+    "createDiscount": "Create discount",
+    "activeTitle": "Active discounts",
+    "empty": "No active discounts.",
+    "amountOff": "{amount} off — {target}",
+    "storeWideTarget": "store-wide",
+    "codeSuffix": " — code {code}",
+    "deactivate": "Deactivate",
+    "toasts": {
+      "created": "Discount created",
+      "deactivated": "Discount deactivated"
+    },
+    "errors": {
+      "productRequired": "A product is required for a product-scoped discount",
+      "categoryRequired": "A category is required for a category-scoped discount"
+    }
+  },
+  "Auth": {
+    "errors": {
+      "unauthenticated": "Your session has expired. Please sign in again.",
+      "notAdmin": "This account doesn't have admin access.",
+      "notOwner": "Only an owner can do this."
+    }
+  },
+  "Unauthorized": {
+    "title": "Access Denied",
+    "description": "You’re not authorized to access this area. This section is limited to administrators only.",
+    "backToSignIn": "Return to Sign In"
+  }
+}

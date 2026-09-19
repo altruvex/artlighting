@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { AdminAuthError, requireAdmin } from "@/lib/auth";
 import { buildProductDatasheetPptx } from "@repo/datasheet";
 import { getDatasheetProductData } from "@/lib/datasheet/get-datasheet-data";
@@ -10,11 +11,12 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ productId: string }> }
 ) {
+  const t = await getTranslations("Datasheet");
   try {
     await requireAdmin();
   } catch (err) {
     if (err instanceof AdminAuthError) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("errors.unauthorized") }, { status: 401 });
     }
     throw err;
   }
@@ -24,7 +26,7 @@ export async function GET(
 
   const data = await getDatasheetProductData(productId);
   if (!data) {
-    return NextResponse.json({ error: "product not found" }, { status: 404 });
+    return NextResponse.json({ error: t("errors.notFound") }, { status: 404 });
   }
 
   let pptxBuffer: Buffer;
@@ -32,7 +34,7 @@ export async function GET(
     pptxBuffer = await buildProductDatasheetPptx(data);
   } catch (err) {
     console.error("datasheet: failed to build PPTX", err);
-    return NextResponse.json({ error: "failed to generate datasheet" }, { status: 500 });
+    return NextResponse.json({ error: t("errors.generateFailed") }, { status: 500 });
   }
 
   if (format === "pptx") {
@@ -48,7 +50,7 @@ export async function GET(
   const workerSecret = process.env.DATASHEET_WORKER_SECRET;
   if (!workerUrl || !workerSecret) {
     return NextResponse.json(
-      { error: "PDF export is not configured (DATASHEET_WORKER_URL/DATASHEET_WORKER_SECRET unset)" },
+      { error: t("errors.pdfNotConfigured") },
       { status: 503 }
     );
   }
@@ -65,12 +67,12 @@ export async function GET(
     });
   } catch (err) {
     console.error("datasheet: worker request failed", err);
-    return NextResponse.json({ error: "PDF conversion service unreachable" }, { status: 502 });
+    return NextResponse.json({ error: t("errors.pdfUnreachable") }, { status: 502 });
   }
 
   if (!pdfRes.ok) {
     console.error("datasheet: worker returned", pdfRes.status, await pdfRes.text());
-    return NextResponse.json({ error: "PDF conversion failed" }, { status: 502 });
+    return NextResponse.json({ error: t("errors.pdfFailed") }, { status: 502 });
   }
 
   const pdfBuffer = new Uint8Array(await pdfRes.arrayBuffer());

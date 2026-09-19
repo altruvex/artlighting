@@ -1,0 +1,149 @@
+{
+  "Customers": {
+    "searchPlaceholder": "ابحث في العملاء",
+    "allCustomers": "كل العملاء",
+    "cardTitle": "العملاء",
+    "columns": {
+      "id": "رقم العميل",
+      "name": "اسم العميل",
+      "phone": "رقم الهاتف",
+      "shippingAddress": "عنوان الشحن"
+    },
+    "empty": "لا يوجد عملاء",
+    "filterError": "تعذّر تصفية العملاء",
+    "loadError": "تعذّر تحميل العملاء"
+  },
+  "CustomerDetail": {
+    "accountTitle": "حساب {name}",
+    "personalInfo": "البيانات الشخصية",
+    "editPersonalInfo": "تعديل البيانات الشخصية",
+    "memberSince": "عضو منذ {date}",
+    "fullName": "الاسم بالكامل",
+    "shippingInfo": "بيانات الشحن",
+    "editShippingInfo": "تعديل بيانات الشحن",
+    "billingAddress": "عنوان الفاتورة",
+    "shippingAddress": "عنوان الشحن",
+    "orderHistory": "سجل الطلبات",
+    "orderHistoryDescription": "عرض الطلبات السابقة وإدارتها",
+    "productImageAlt": "صورة المنتج",
+    "tabs": {
+      "all": "كل الطلبات",
+      "awaiting": "بانتظار الشحن",
+      "processing": "قيد التجهيز",
+      "completed": "مكتملة",
+      "cancelled": "ملغاة"
+    },
+    "columns": {
+      "orderNumber": "رقم الطلب",
+      "product": "المنتج",
+      "colorTemp": "درجة حرارة اللون",
+      "ip": "IP",
+      "lamp": "اللمبة",
+      "discount": "الخصم",
+      "afterDiscount": "بعد الخصم",
+      "qty": "الكمية",
+      "shipping": "الشحن",
+      "orderDate": "تاريخ الطلب",
+      "estDate": "التاريخ المتوقع"
+    },
+    "noOrders": "لا توجد طلبات",
+    "loadError": "تعذّر تحميل بيانات العميل."
+  },
+  "Team": {
+    "addTitle": "إضافة عضو إلى الفريق",
+    "addDescription": "هذه هي الطريقة الوحيدة لإنشاء حساب مسؤول جديد، فلم يعد هناك تسجيل عام. شارك كلمة المرور المولَّدة معه عبر وسيلة آمنة (وتجنّب إرسالها كنص صريح عبر البريد أو المحادثات قدر الإمكان).",
+    "password": "كلمة المرور",
+    "generate": "توليد",
+    "passwordHint": "12 حرفًا على الأقل.",
+    "role": "الدور",
+    "roleOptions": {
+      "staff": "موظف (بدون صلاحية الأسعار والخصومات)",
+      "owner": "مالك (صلاحيات كاملة)"
+    },
+    "roles": {
+      "owner": "مالك",
+      "staff": "موظف"
+    },
+    "createAccount": "إنشاء الحساب",
+    "createdNotice": "تم إنشاء {email} — انسخ كلمة المرور الآن، فلن تظهر مرة أخرى:",
+    "copyPassword": "نسخ كلمة المرور",
+    "adminsTitle": "المسؤولون ({count})",
+    "you": "(أنت)",
+    "makeStaff": "تحويل إلى موظف",
+    "makeOwner": "تحويل إلى مالك",
+    "revoke": "سحب الصلاحية",
+    "toasts": {
+      "fillRequired": "أدخل الاسم والبريد الإلكتروني وكلمة المرور",
+      "accountCreated": "تم إنشاء الحساب",
+      "createFailed": "تعذّر إنشاء الحساب",
+      "roleUpdated": "تم تحديث الدور",
+      "accessRevoked": "تم سحب الصلاحية"
+    },
+    "errors": {
+      "passwordTooShort": "يجب ألا تقل كلمة المرور عن 12 حرفًا",
+      "emailExists": "يوجد مسؤول مسجّل بهذا البريد الإلكتروني بالفعل",
+      "cantDemoteSelf": "لا يمكنك تخفيض دورك بنفسك",
+      "cantRevokeSelf": "لا يمكنك سحب صلاحيتك بنفسك"
+    }
+  },
+  "Categories": {
+    "addTitle": "إضافة فئة / فئة فرعية",
+    "slug": "المعرّف (Slug)",
+    "parentLabel": "الفئة الأم (اتركها \"فئة رئيسية\" لإنشاء قسم جديد)",
+    "topLevel": "فئة رئيسية",
+    "under": "ضمن {name}",
+    "productCount": "({count, plural, zero {لا توجد منتجات} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}})",
+    "moveUp": "نقل لأعلى",
+    "moveDown": "نقل لأسفل",
+    "toasts": {
+      "created": "تم إنشاء الفئة",
+      "movedUp": "تم النقل لأعلى",
+      "movedDown": "تم النقل لأسفل"
+    }
+  },
+  "Discounts": {
+    "newTitle": "خصم جديد على المتجر بالكامل أو على فئة",
+    "newDescription": "تُنشأ خصومات المنتجات المحددة من صفحة تعديل المنتج نفسه.",
+    "scopeLabel": "النطاق",
+    "categoryLabel": "الفئة",
+    "typeLabel": "النوع",
+    "valueLabel": "القيمة",
+    "codeLabel": "كود الكوبون (اختياري)",
+    "scope": {
+      "global": "المتجر بالكامل",
+      "category": "فئة",
+      "product": "منتج"
+    },
+    "type": {
+      "percentage": "نسبة مئوية",
+      "fixed": "مبلغ ثابت"
+    },
+    "createDiscount": "إنشاء الخصم",
+    "activeTitle": "الخصومات الفعّالة",
+    "empty": "لا توجد خصومات فعّالة.",
+    "amountOff": "خصم {amount} — {target}",
+    "storeWideTarget": "على المتجر بالكامل",
+    "codeSuffix": " — الكود {code}",
+    "deactivate": "إيقاف",
+    "toasts": {
+      "created": "تم إنشاء الخصم",
+      "deactivated": "تم إيقاف الخصم"
+    },
+    "errors": {
+      "productRequired": "يجب تحديد منتج للخصم الخاص بمنتج",
+      "categoryRequired": "يجب تحديد فئة للخصم الخاص بفئة"
+    }
+  },
+  "Auth": {
+    "errors": {
+      "unauthenticated": "انتهت جلستك. يُرجى تسجيل الدخول مرة أخرى.",
+      "notAdmin": "هذا الحساب لا يملك صلاحيات المسؤول.",
+      "notOwner": "هذا الإجراء متاح للمالك فقط."
+    }
+  },
+  "Unauthorized": {
+    "title": "تم رفض الوصول",
+    "description": "غير مصرّح لك بالوصول إلى هذه المنطقة. هذا القسم مخصّص للمسؤولين فقط.",
+    "backToSignIn": "العودة إلى تسجيل الدخول"
+  }
+}

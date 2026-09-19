@@ -10,10 +10,9 @@ import {
 import { Progress } from "@/components/ui/progress";
 import type { Configuration, Order, Product, ShippingAddress, User } from "@repo/database";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatPrice } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
-import { format } from "date-fns";
 import { Box, Calendar, MapPin, Truck } from "lucide-react";
+import { useFormatter, useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
@@ -30,7 +29,19 @@ interface OrderPageProps {
 }
 
 export default function OrderPage({ order }: OrderPageProps) {
+  const t = useTranslations("OrderDetail");
+  const tOrders = useTranslations("Orders");
+  const tCommon = useTranslations("Common");
+  const format = useFormatter();
   const orderProgress = getOrderProgress(order.status);
+  const formatMoney = (value: number) =>
+    format.number(value, { style: "currency", currency: "EGP" });
+  const formatDate = (date: Date) => format.dateTime(date, { dateStyle: "long" });
+  // Free-text DB values: translate known ones, show anything else as stored.
+  const valueLabel = (group: "colorTemp" | "lamp" | "lightingType", value: string) => {
+    const key = `values.${group}.${value.toLowerCase()}`;
+    return tOrders.has(key as never) ? tOrders(key as never) : value;
+  };
 
   return (
     <div className="py-8">
@@ -40,24 +51,24 @@ export default function OrderPage({ order }: OrderPageProps) {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <CardTitle className="text-2xl sm:text-3xl mb-2">
-                  Order #{order.id}
+                  {t("title", { id: order.id })}
                 </CardTitle>
                 <CardDescription className="text-primary-foreground/803 mt-5">
-                  Placed on {format(order.createdAt, "PPP")}
+                  {t("placedOn", { date: formatDate(order.createdAt) })}
                 </CardDescription>
               </div>
               <StatusDropdown id={order.id} orderStatus={order.status} />
             </div>
           </CardHeader>
           <CardContent className="overflow-x-auto custom-scrollbar">
-            <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-4">
-              <span>Last updated: {format(order.updatedAt, "PPP")}</span>
+            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+              <span>{t("lastUpdated", { date: formatDate(order.updatedAt) })}</span>
             </div>
             <Progress value={orderProgress} className="w-full h-3 mb-2" />
             <div className="flex justify-between text-xs sm:text-sm font-medium">
-              <span>Ordered</span>
-              <span>Processing</span>
-              <span>Fulfilled</span>
+              <span>{t("progress.ordered")}</span>
+              <span>{t("progress.processing")}</span>
+              <span>{t("progress.fulfilled")}</span>
             </div>
           </CardContent>
         </Card>
@@ -65,11 +76,11 @@ export default function OrderPage({ order }: OrderPageProps) {
           <Card className="md:col-span-2 glass-surface rounded-2xl">
             <CardHeader>
               <CardTitle className="flex items-center text-xl sm:text-2xl">
-                <Box className="mr-2" /> Product Information
+                <Box className="me-2" /> {t("productInformation")}
               </CardTitle>
             </CardHeader>
             <CardContent className="overflow-x-auto custom-scrollbar">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:space-x-6">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:gap-6">
                 {order.productImages?.[0] && (
                   <Image
                     width={192}
@@ -84,25 +95,25 @@ export default function OrderPage({ order }: OrderPageProps) {
                     {order.productName}
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <ProductDetail label="Quantity" value={order.quantity} />
+                    <ProductDetail label={tCommon("quantity")} value={format.number(order.quantity)} />
                     <ProductDetail
-                      label="Color Temperature"
-                      value={order.productColorTemp}
+                      label={t("colorTemperature")}
+                      value={valueLabel("colorTemp", order.productColorTemp)}
                     />
-                    <ProductDetail label="IP Rating" value={order.configuration.productIp ?? ""} />
+                    <ProductDetail label={t("ipRating")} value={order.configuration.productIp ?? ""} />
                     {order.chandelierLightingType && (
                       <ProductDetail
-                        label="Lamp Type"
-                        value={order.productChandLamp}
+                        label={t("lampType")}
+                        value={valueLabel("lamp", order.productChandLamp)}
                       />
                     )}
                     {order.brand && (
-                      <ProductDetail label="Brand" value={order.brand} />
+                      <ProductDetail label={t("brand")} value={order.brand} />
                     )}
                     {order.chandelierLightingType && (
                       <ProductDetail
-                        label="Lighting Type"
-                        value={order.chandelierLightingType}
+                        label={t("lightingType")}
+                        value={valueLabel("lightingType", order.chandelierLightingType)}
                       />
                     )}
                   </div>
@@ -113,36 +124,38 @@ export default function OrderPage({ order }: OrderPageProps) {
           <Card className="overflow-hidden glass-surface rounded-2xl">
             <CardHeader>
               <CardTitle className="flex items-center text-xl sm:text-2xl">
-                Price Breakdown
+                {t("priceBreakdown")}
               </CardTitle>
             </CardHeader>
             <CardContent className="overflow-x-auto custom-scrollbar">
               <div className="space-y-4">
                 <PriceDetail
-                  label="Product Price"
-                  value={formatPrice(order.configPrice)}
+                  label={t("productPrice")}
+                  value={formatMoney(order.configPrice)}
                 />
                 {order.discountRate && order.discountRate > 0 && (
                   <PriceDetail
-                    label={`Discount (${(order.discountRate * 100).toFixed(0)}%)`}
-                    value={`-${formatPrice((order.productPrice - (order.discountedPrice || 0)) * order.quantity)}`}
+                    label={t("discountWithRate", {
+                      rate: format.number(order.discountRate, { style: "percent" }),
+                    })}
+                    value={formatMoney(-((order.productPrice - (order.discountedPrice || 0)) * order.quantity))}
                     className="text-green-600"
                   />
                 )}
                 {order.priceIncrease && order.priceIncrease > 0 && (
                   <PriceDetail
-                    label="Price Increase"
-                    value={formatPrice(order.priceIncrease)}
+                    label={t("priceIncrease")}
+                    value={formatMoney(order.priceIncrease)}
                   />
                 )}
                 <PriceDetail
-                  label="Shipping"
-                  value={formatPrice(order.shippingPrice)}
+                  label={t("shipping")}
+                  value={formatMoney(order.shippingPrice)}
                 />
                 <Separator className="my-2" />
                 <PriceDetail
-                  label="Total"
-                  value={formatPrice(order.totalPrice)}
+                  label={tCommon("total")}
+                  value={formatMoney(order.totalPrice)}
                   className="font-bold text-lg"
                 />
               </div>
@@ -151,15 +164,15 @@ export default function OrderPage({ order }: OrderPageProps) {
           <Card className="md:col-span-3 glass-surface rounded-2xl">
             <CardHeader>
               <CardTitle className="flex items-center text-xl sm:text-2xl">
-                <Truck className="mr-2" /> Shipping Information
+                <Truck className="me-2" /> {t("shippingInformation")}
               </CardTitle>
             </CardHeader>
             <CardContent className="overflow-x-auto custom-scrollbar">
               {order.shippingAddress ? (
                 <div className="grid sm:grid-cols-2 gap-6">
                   <div className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <Avatar className="h-7 w-7 mr-1.5">
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-7 w-7 me-1.5">
                         <AvatarImage
                           src={`https://api.dicebear.com/6.x/initials/svg?seed=${order.user.email}`}
                           alt={order.user.email ?? ""}
@@ -178,7 +191,7 @@ export default function OrderPage({ order }: OrderPageProps) {
                           {order.shippingAddress.fullName}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {order.shippingAddress.phoneNumber}
+                          <span dir="ltr">{order.shippingAddress.phoneNumber}</span>
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {order.user.email}
@@ -200,14 +213,16 @@ export default function OrderPage({ order }: OrderPageProps) {
                     {order.orderTimeReceived && (
                       <ShippingDetail
                         icon={Calendar}
-                        value={`Estimated Delivery: ${format(order.orderTimeReceived, "PPP")}`}
+                        value={t("estimatedDelivery", {
+                          date: formatDate(order.orderTimeReceived),
+                        })}
                       />
                     )}
                   </div>
                 </div>
               ) : (
                 <p className="text-muted-foreground">
-                  No shipping information available
+                  {t("noShippingInfo")}
                 </p>
               )}
             </CardContent>
@@ -259,7 +274,7 @@ function ShippingDetail({
   value: string;
 }) {
   return (
-    <div className="flex items-start space-x-2">
+    <div className="flex items-start gap-2">
       <Icon className="h-5 w-5 text-muted-foreground mt-0.5" />
       <span className="text-sm">{value}</span>
     </div>

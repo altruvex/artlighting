@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useFormatter, useTranslations } from "next-intl";
 import { Container } from "@/components/container";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatPrice } from "@/lib/utils";
 import { createDiscount, deactivateDiscount } from "@/lib/actions/discounts";
 
 type Discount = {
@@ -39,6 +39,9 @@ export default function DiscountsManager({
   isOwner: boolean;
 }) {
   const router = useRouter();
+  const t = useTranslations("Discounts");
+  const tCommon = useTranslations("Common");
+  const format = useFormatter();
   const [isPending, startTransition] = useTransition();
 
   const [scope, setScope] = useState<"category" | "global">("global");
@@ -54,7 +57,7 @@ export default function DiscountsManager({
         toast.success(msg);
         router.refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Something went wrong");
+        toast.error(err instanceof Error ? err.message : tCommon("genericError"));
       }
     });
   }
@@ -64,27 +67,25 @@ export default function DiscountsManager({
       {isOwner && (
         <Card className="max-w-2xl mb-6 glass-surface rounded-2xl">
           <CardHeader>
-            <CardTitle>New store-wide or category discount</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Product-specific discounts are created from that product's edit page.
-            </p>
+            <CardTitle>{t("newTitle")}</CardTitle>
+            <p className="text-sm text-muted-foreground">{t("newDescription")}</p>
           </CardHeader>
           <CardContent className="grid grid-cols-2 md:grid-cols-5 gap-2 items-end">
             <div className="space-y-1">
-              <Label>Scope</Label>
+              <Label>{t("scopeLabel")}</Label>
               <Select value={scope} onValueChange={(v) => setScope(v as "category" | "global")}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="global">Store-wide</SelectItem>
-                  <SelectItem value="category">Category</SelectItem>
+                  <SelectItem value="global">{t("scope.global")}</SelectItem>
+                  <SelectItem value="category">{t("scope.category")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {scope === "category" && (
               <div className="space-y-1">
-                <Label>Category</Label>
+                <Label>{t("categoryLabel")}</Label>
                 <Select value={categoryId} onValueChange={setCategoryId}>
                   <SelectTrigger>
                     <SelectValue />
@@ -100,24 +101,24 @@ export default function DiscountsManager({
               </div>
             )}
             <div className="space-y-1">
-              <Label>Type</Label>
+              <Label>{t("typeLabel")}</Label>
               <Select value={type} onValueChange={(v) => setType(v as "percentage" | "fixed")}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="percentage">Percentage</SelectItem>
-                  <SelectItem value="fixed">Fixed</SelectItem>
+                  <SelectItem value="percentage">{t("type.percentage")}</SelectItem>
+                  <SelectItem value="fixed">{t("type.fixed")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Value</Label>
+              <Label>{t("valueLabel")}</Label>
               <Input type="number" value={value} onChange={(e) => setValue(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label>Coupon code (optional)</Label>
-              <Input value={code} onChange={(e) => setCode(e.target.value)} />
+              <Label>{t("codeLabel")}</Label>
+              <Input dir="ltr" value={code} onChange={(e) => setCode(e.target.value)} />
             </div>
             <Button
               className="col-span-2 md:col-span-5"
@@ -132,11 +133,11 @@ export default function DiscountsManager({
                       code: code || null,
                       categoryId: scope === "category" ? categoryId : null,
                     }),
-                  "Discount created"
+                  t("toasts.created")
                 )
               }
             >
-              Create discount
+              {t("createDiscount")}
             </Button>
           </CardContent>
         </Card>
@@ -144,31 +145,37 @@ export default function DiscountsManager({
 
       <Card className="glass-surface rounded-2xl">
         <CardHeader>
-          <CardTitle>Active discounts</CardTitle>
+          <CardTitle>{t("activeTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {discounts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No active discounts.</p>
+            <p className="text-sm text-muted-foreground">{t("empty")}</p>
           ) : (
             discounts.map((d) => (
               <div key={d.id} className="flex items-center justify-between border rounded-lg p-2">
                 <span>
-                  {d.type === "percentage" ? `${d.value}%` : formatPrice(d.value)} off —{" "}
-                  {d.scope === "global"
-                    ? "store-wide"
-                    : d.scope === "category"
-                      ? d.category?.name
-                      : d.product?.productName}
-                  {d.code ? ` — code ${d.code}` : ""}
+                  {t("amountOff", {
+                    amount:
+                      d.type === "percentage"
+                        ? format.number(d.value / 100, { style: "percent", maximumFractionDigits: 2 })
+                        : format.number(d.value, { style: "currency", currency: "EGP" }),
+                    target:
+                      d.scope === "global"
+                        ? t("storeWideTarget")
+                        : d.scope === "category"
+                          ? (d.category?.name ?? "")
+                          : (d.product?.productName ?? ""),
+                  })}
+                  {d.code ? t("codeSuffix", { code: d.code }) : ""}
                 </span>
                 {isOwner && (
                   <Button
                     variant="ghost"
                     size="sm"
                     disabled={isPending}
-                    onClick={() => run(() => deactivateDiscount(d.id), "Discount deactivated")}
+                    onClick={() => run(() => deactivateDiscount(d.id), t("toasts.deactivated"))}
                   >
-                    Deactivate
+                    {t("deactivate")}
                   </Button>
                 )}
               </div>

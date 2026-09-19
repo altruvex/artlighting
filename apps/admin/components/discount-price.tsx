@@ -1,4 +1,5 @@
-import { cn, formatPrice } from "@/lib/utils";
+import { useFormatter } from "next-intl";
+import { cn } from "@/lib/utils";
 
 interface DiscountPriceProps {
   price: number;
@@ -15,11 +16,13 @@ export default function DiscountPrice({
   shippingPrice = 0,
   className
 }: DiscountPriceProps) {
+  const format = useFormatter();
   const priceIncreasing = Math.ceil(price);
   const discountedPrice = Math.ceil(priceIncreasing * (1 - discount));
-  const formattedPrice = formatPrice(
-    discountedPrice * quantity + shippingPrice,
-  );
+  const formattedPrice = format.number(discountedPrice * quantity + shippingPrice, {
+    style: "currency",
+    currency: "EGP",
+  });
   return (
     <div>
       <p className={cn("text-destructive font-semibold",className)}>{formattedPrice}</p>

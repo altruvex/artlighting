@@ -15,7 +15,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/container";
-import { formatPrice } from "@/lib/utils";
+import { getFormatter, getTranslations } from "next-intl/server";
 import BulkGenerateSheet from "./bulk-generate-sheet";
 
 const ProductsPage = async () => {
@@ -25,6 +25,12 @@ const ProductsPage = async () => {
     if (err instanceof AdminAuthError) return notFound();
     throw err;
   }
+
+  const [t, tCommon, format] = await Promise.all([
+    getTranslations("Products"),
+    getTranslations("Common"),
+    getFormatter(),
+  ]);
 
   const [products, topCategories] = await Promise.all([
     prisma.product.findMany({
@@ -41,29 +47,29 @@ const ProductsPage = async () => {
 
   return (
     <div className="flex flex-col min-h-screen pb-10">
-      <DashboardHeader Route="Products">
+      <DashboardHeader Route={t("title")}>
         <div className="flex gap-2">
           <BulkGenerateSheet topCategories={topCategories} />
           <Button asChild size="sm">
-            <Link href="/admin/dashboard/products/new">New product</Link>
+            <Link href="/admin/dashboard/products/new">{t("newProduct")}</Link>
           </Button>
         </div>
       </DashboardHeader>
       <div className="mt-8">
         <Container>
           <h1 className="font-semibold text-lg mb-4">
-            Products ({products.length})
+            {t("heading", { count: products.length })}
           </h1>
           <div className="overflow-x-auto border rounded-lg shadow">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t("columns.product")}</TableHead>
+                  <TableHead>{t("columns.category")}</TableHead>
+                  <TableHead>{tCommon("price")}</TableHead>
+                  <TableHead>{t("columns.stock")}</TableHead>
+                  <TableHead>{tCommon("status")}</TableHead>
+                  <TableHead className="text-end">{tCommon("actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -91,19 +97,19 @@ const ProductsPage = async () => {
                     <TableCell>
                       {product.category.name} / {product.lightingtype.name}
                     </TableCell>
-                    <TableCell>{formatPrice(product.price)}</TableCell>
+                    <TableCell>{format.number(product.price, { style: "currency", currency: "EGP" })}</TableCell>
                     <TableCell>{product.variants[0]?.stock ?? product.quantity}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Badge variant={product.isActive ? "default" : "secondary"}>
-                          {product.isActive ? "Active" : "Inactive"}
+                          {product.isActive ? tCommon("active") : tCommon("inactive")}
                         </Badge>
-                        {product.featured && <Badge variant="outline">Featured</Badge>}
+                        {product.featured && <Badge variant="outline">{t("featured")}</Badge>}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       <Button asChild variant="ghost" size="sm">
-                        <Link href={`/admin/dashboard/products/${product.id}`}>Edit</Link>
+                        <Link href={`/admin/dashboard/products/${product.id}`}>{tCommon("edit")}</Link>
                       </Button>
                     </TableCell>
                   </TableRow>

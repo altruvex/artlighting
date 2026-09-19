@@ -1,8 +1,11 @@
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemedSignIn } from "@/components/theme-sign-in";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-const SignInPage = () => {
+const SignInPage = async () => {
+  const t = await getTranslations("SignIn");
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-16">
       {/* Ambient glow field — the same warm light the product line sells,
@@ -23,11 +26,13 @@ const SignInPage = () => {
 
       <Link
         href="/"
-        className="absolute left-4 top-4 z-10 flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground sm:left-6 sm:top-6"
+        className="absolute start-4 top-4 z-10 flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground sm:start-6 sm:top-6"
       >
-        <ArrowLeft className="h-4 w-4" />
-        Back to home
+        <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
+        {t("backHome")}
       </Link>
+
+      <LanguageSwitcher className="absolute end-4 top-4 z-10 sm:end-6 sm:top-6" />
 
       <div className="relative z-10 w-full max-w-md">
         <ThemedSignIn />

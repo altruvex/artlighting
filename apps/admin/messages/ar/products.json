@@ -1,0 +1,224 @@
+{
+  "Products": {
+    "title": "المنتجات",
+    "heading": "المنتجات ({count})",
+    "newProduct": "منتج جديد",
+    "featured": "مميز",
+    "columns": {
+      "product": "المنتج",
+      "category": "الفئة",
+      "stock": "المخزون"
+    },
+    "colorTemp": {
+      "warm": "دافئ",
+      "cool": "بارد",
+      "white": "أبيض"
+    },
+    "chandLamp": {
+      "lamp9w": "لمبة 9W",
+      "lamp12w": "لمبة 12W"
+    }
+  },
+  "ProductEditor": {
+    "duplicate": "نسخ",
+    "tabs": {
+      "general": "عام",
+      "translations": "الترجمات",
+      "specifications": "المواصفات",
+      "images": "الصور ({count})",
+      "variants": "المخزون والنسخة",
+      "pricing": "التسعير",
+      "discounts": "الخصومات"
+    },
+    "toasts": {
+      "duplicated": "تم نسخ المنتج",
+      "deleted": "تم حذف المنتج (حذف مؤقت)"
+    },
+    "general": {
+      "title": "عام",
+      "productName": "اسم المنتج",
+      "brand": "العلامة التجارية",
+      "category": "الفئة",
+      "subcategory": "الفئة الفرعية (نوع الإضاءة)",
+      "colorTemperature": "درجة حرارة اللون",
+      "baseIp": "تصنيف IP الأساسي",
+      "maxIp": "أقصى تصنيف IP (رقم صحيح)",
+      "maxIpPlaceholder": "مثال: 65",
+      "chandLamp": "قدرة لمبة النجفة",
+      "chandLightingType": "نوع إضاءة النجفة",
+      "chandLightingTypePlaceholder": "LED أو لمبة",
+      "heads": "عدد الرؤوس (للنجف)",
+      "datasheetUrl": "رابط ملف PDF لورقة البيانات",
+      "datasheetUrlPlaceholder": "https://... رابط ملف PDF لورقة المواصفات",
+      "datasheetUrlHint": "نفس طريقة الصور المعتمدة على الروابط — الصق الرابط بعد رفع ملف PDF على أي استضافة. ربط الرفع المباشر سيُنفّذ لاحقًا بعد اختيار مزوّد التخزين.",
+      "featured": "مميز",
+      "notFeatured": "غير مميز",
+      "saveChanges": "حفظ التغييرات"
+    },
+    "translations": {
+      "title": "الترجمات",
+      "description": "الاسم والوصف المترجمان المعروضان في المتجر لكل لغة.",
+      "name": "الاسم ({language})",
+      "descriptionLabel": "الوصف ({language})",
+      "save": "حفظ ترجمة {language}",
+      "saved": "تم حفظ ترجمة {language}"
+    },
+    "specifications": {
+      "title": "المواصفات",
+      "description": "حقول ورقة المواصفات الفنية المعروضة في صفحة المنتج لكل لغة.",
+      "save": "حفظ مواصفات {language}",
+      "saved": "تم حفظ مواصفات {language}"
+    },
+    "specFields": {
+      "input": "الدخل (جهد AC)",
+      "maximumWattage": "أقصى قدرة",
+      "brandOfLed": "ماركة LED",
+      "luminousFlux": "التدفق الضوئي",
+      "mainMaterial": "الخامة الأساسية",
+      "cri": "CRI",
+      "beamAngle": "زاوية الإضاءة",
+      "workingTemperature": "درجة حرارة التشغيل",
+      "fixtureDimmable": "قابلية التعتيم",
+      "electrical": "الكهرباء (الدرايفر)",
+      "powerFactor": "معامل القدرة",
+      "colorTemperature": "درجة حرارة اللون",
+      "ip": "تصنيف IP",
+      "energySaving": "توفير الطاقة",
+      "lifeTime": "العمر الافتراضي",
+      "finish": "التشطيب (للنجف)",
+      "lampBase": "قاعدة اللمبة (للنجف)",
+      "bulb": "اللمبة مرفقة (للنجف)"
+    },
+    "images": {
+      "title": "الصور",
+      "description": "ارفع الملفات مباشرة، أو الصق رابط صورة مستضافة في مكان آخر. JPEG/PNG/WEBP/AVIF، بحد أقصى 8MB.",
+      "urlPlaceholder": "أو الصق رابط صورة موجودة",
+      "addUrl": "إضافة الرابط",
+      "added": "تمت إضافة الصورة",
+      "primary": "رئيسية",
+      "setPrimary": "تعيين كرئيسية",
+      "primarySet": "تم تعيين الصورة الرئيسية",
+      "remove": "إزالة",
+      "removed": "تمت إزالة الصورة",
+      "moveUp": "→ تقديم",
+      "moveDown": "تأخير ←",
+      "reordered": "تم تغيير الترتيب",
+      "uploading": "جارٍ الرفع...",
+      "dropzone": "اسحب الصور هنا، أو انقر للتصفح",
+      "uploaded": "{count, plural, zero {لم تُرفع أي صورة} one {تم رفع الصورة} two {تم رفع صورتين} few {تم رفع # صور} many {تم رفع # صورة} other {تم رفع # صورة}}"
+    },
+    "variants": {
+      "title": "المخزون والنسخة",
+      "sku": "SKU",
+      "wattage": "القدرة",
+      "finish": "التشطيب",
+      "size": "المقاس",
+      "stock": "المخزون",
+      "save": "حفظ النسخة",
+      "updated": "تم تحديث النسخة"
+    },
+    "pricing": {
+      "title": "التسعير",
+      "price": "السعر (EGP)",
+      "update": "تحديث السعر",
+      "updated": "تم تحديث السعر",
+      "ownerOnly": "تغيير السعر متاح للمالكين فقط.",
+      "history": "سجل الأسعار",
+      "noHistory": "لا توجد تغييرات مسجلة بعد."
+    },
+    "discounts": {
+      "title": "الخصومات",
+      "ownerOnly": "إنشاء الخصومات وتعديلها متاح للمالكين فقط.",
+      "type": "النوع",
+      "percentage": "نسبة مئوية",
+      "fixed": "مبلغ ثابت",
+      "scope": "النطاق",
+      "scopeProduct": "هذا المنتج",
+      "scopeCategory": "هذه الفئة",
+      "scopeGlobal": "المتجر بالكامل",
+      "value": "القيمة",
+      "code": "كود الكوبون (اختياري)",
+      "create": "إنشاء خصم",
+      "created": "تم إنشاء الخصم",
+      "none": "لا توجد خصومات نشطة على هذا المنتج.",
+      "percentOff": "خصم {value}%",
+      "amountOff": "خصم {amount}",
+      "withCode": "الكود {code}",
+      "deactivate": "إيقاف",
+      "deactivated": "تم إيقاف الخصم"
+    }
+  },
+  "NewProduct": {
+    "title": "منتج جديد",
+    "sku": "رقم المنتج / SKU",
+    "skuPlaceholder": "مثال: jy-999-15w",
+    "productName": "اسم المنتج",
+    "brand": "العلامة التجارية",
+    "category": "الفئة",
+    "subcategory": "الفئة الفرعية (نوع الإضاءة)",
+    "subcategoryPlaceholder": "اختر فئة فرعية",
+    "price": "السعر (EGP)",
+    "initialStock": "المخزون المبدئي",
+    "create": "إنشاء المنتج",
+    "created": "تم إنشاء المنتج",
+    "errors": {
+      "missingFields": "أدخل رقم المنتج والاسم والسعر والفئة/الفئة الفرعية",
+      "invalidCategory": "اختيار الفئة غير صالح",
+      "createFailed": "تعذّر إنشاء المنتج"
+    }
+  },
+  "ProductActions": {
+    "errors": {
+      "noFile": "لم يتم اختيار ملف",
+      "invalidType": "يُسمح فقط بصور JPEG أو PNG أو WEBP أو AVIF",
+      "tooLarge": "يجب ألا يتجاوز حجم الصورة 8MB"
+    }
+  },
+  "BulkDatasheet": {
+    "trigger": "إنشاء جماعي",
+    "title": "إنشاء أوراق البيانات جماعيًا",
+    "description": "تعمل في الخلفية — قد تستغرق عدة دقائق للكتالوج بالكامل. يمكنك إغلاق هذه اللوحة والعودة لاحقًا.",
+    "scope": "النطاق",
+    "scopeAll": "كل المنتجات النشطة",
+    "scopeCategory": "حسب الفئة",
+    "category": "الفئة",
+    "format": "الصيغة",
+    "output": "المخرجات",
+    "outputZip": "ملف Zip بملفات منفصلة",
+    "outputCombined": "ملف مجمّع لكل فئة",
+    "status": {
+      "done": "اكتمل",
+      "failed": "فشل",
+      "generating": "جارٍ الإنشاء…"
+    },
+    "skipped": "تم تخطي {count}:",
+    "download": "تنزيل",
+    "startAnother": "بدء عملية أخرى",
+    "starting": "جارٍ البدء…",
+    "start": "ابدأ",
+    "errors": {
+      "unauthorized": "غير مصرح",
+      "invalidScope": "يجب أن يكون النطاق 'all' أو 'category'",
+      "categoryRequired": "categoryId مطلوب عندما يكون النطاق 'category'",
+      "invalidFormat": "يجب أن تكون الصيغة 'pptx' أو 'pdf'",
+      "invalidOutputShape": "يجب أن تكون قيمة outputShape هي 'zip' أو 'combined'",
+      "noProducts": "لا توجد منتجات نشطة ضمن هذا النطاق",
+      "notConfiguredDetailed": "الإنشاء الجماعي غير مُعد (DATASHEET_WORKER_URL/DATASHEET_WORKER_SECRET غير مضبوطين)",
+      "notConfigured": "الإنشاء الجماعي غير مُعد",
+      "unreachable": "تعذّر الوصول إلى خدمة الإنشاء الجماعي",
+      "unexpectedResponse": "أعادت خدمة الإنشاء الجماعي استجابة غير متوقعة",
+      "startFailed": "تعذّر بدء العملية",
+      "downloadFailed": "فشل التنزيل"
+    }
+  },
+  "Datasheet": {
+    "errors": {
+      "unauthorized": "غير مصرح",
+      "notFound": "المنتج غير موجود",
+      "generateFailed": "تعذّر إنشاء ورقة البيانات",
+      "pdfNotConfigured": "تصدير PDF غير مُعد (DATASHEET_WORKER_URL/DATASHEET_WORKER_SECRET غير مضبوطين)",
+      "pdfUnreachable": "تعذّر الوصول إلى خدمة تحويل PDF",
+      "pdfFailed": "فشل التحويل إلى PDF"
+    }
+  }
+}

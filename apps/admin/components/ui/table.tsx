@@ -17,8 +17,8 @@ function Table({ className, dir, ...props }: React.ComponentProps<"table"> & { d
           // RTL styles
           dir === "rtl" && [
             "[&_th]:text-right [&_td]:text-right",
-            "[&_th]:border-r [&_th]:border-l-0 [&_th:first-child]:border-l [&_th:first-child]:border-r-0",
-            "[&_td]:border-r [&_td]:border-l-0 [&_td:first-child]:border-l [&_td:first-child]:border-r-0",
+            "[&_th]:border-e [&_th]:border-s-0 [&_th:first-child]:border-s [&_th:first-child]:border-e-0",
+            "[&_td]:border-e [&_td]:border-s-0 [&_td:first-child]:border-s [&_td:first-child]:border-e-0",
           ],
           // LTR styles (default)
           dir !== "rtl" && [
@@ -87,7 +87,7 @@ function TableHead({
     <th
       data-slot="table-head"
       className={cn(
-        "text-foreground h-10 px-2 align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "text-foreground h-10 px-2 align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pe-0 [&>[role=checkbox]]:translate-y-[2px]",
         // RTL/LTR text alignment
         dir === "rtl" ? "text-right" : "text-left",
         className
@@ -106,7 +106,7 @@ function TableCell({
     <td
       data-slot="table-cell"
       className={cn(
-        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pe-0 [&>[role=checkbox]]:translate-y-[2px]",
         // RTL/LTR text alignment
         dir === "rtl" ? "text-right" : "text-left",
         className

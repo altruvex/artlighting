@@ -1,0 +1,72 @@
+{
+  "Metadata": {
+    "title": "Art Lighting Admin",
+    "description": "Manage products, orders, discounts and customers."
+  },
+  "LanguageSwitcher": {
+    "label": "Language"
+  },
+  "Shell": {
+    "brand": "Art Lighting",
+    "admin": "Admin",
+    "openSidebar": "Open sidebar",
+    "closeSidebar": "Close sidebar"
+  },
+  "Nav": {
+    "dashboard": "Dashboard",
+    "orders": "Orders",
+    "products": "Products",
+    "categories": "Categories",
+    "discounts": "Discounts",
+    "customers": "Customers",
+    "team": "Team",
+    "notifications": "Notifications"
+  },
+  "SignIn": {
+    "brand": "Art Lighting",
+    "title": "Admin sign in",
+    "subtitle": "Sign in to manage products, orders, and discounts",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "accessNote": "Admin accounts are created by an owner from inside the dashboard — contact yours if you need access.",
+    "backHome": "Back to home",
+    "errors": {
+      "invalidCredentials": "Invalid email or password",
+      "tooManyAttempts": "Too many attempts. Please wait a moment and try again."
+    }
+  },
+  "Common": {
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "close": "Close",
+    "confirm": "Confirm",
+    "back": "Back",
+    "search": "Search",
+    "loading": "Loading…",
+    "actions": "Actions",
+    "yes": "Yes",
+    "no": "No",
+    "none": "None",
+    "all": "All",
+    "active": "Active",
+    "inactive": "Inactive",
+    "status": "Status",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "date": "Date",
+    "total": "Total",
+    "price": "Price",
+    "quantity": "Quantity",
+    "noResults": "No results found.",
+    "genericError": "Something went wrong. Please try again.",
+    "notAuthorized": "You don't have permission to do this.",
+    "saved": "Saved"
+  }
+}

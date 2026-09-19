@@ -1,0 +1,224 @@
+{
+  "Products": {
+    "title": "Products",
+    "heading": "Products ({count})",
+    "newProduct": "New product",
+    "featured": "Featured",
+    "columns": {
+      "product": "Product",
+      "category": "Category",
+      "stock": "Stock"
+    },
+    "colorTemp": {
+      "warm": "Warm",
+      "cool": "Cool",
+      "white": "White"
+    },
+    "chandLamp": {
+      "lamp9w": "9W lamp",
+      "lamp12w": "12W lamp"
+    }
+  },
+  "ProductEditor": {
+    "duplicate": "Duplicate",
+    "tabs": {
+      "general": "General",
+      "translations": "Translations",
+      "specifications": "Specifications",
+      "images": "Images ({count})",
+      "variants": "Stock & variant",
+      "pricing": "Pricing",
+      "discounts": "Discounts"
+    },
+    "toasts": {
+      "duplicated": "Product duplicated",
+      "deleted": "Product deleted (soft)"
+    },
+    "general": {
+      "title": "General",
+      "productName": "Product name",
+      "brand": "Brand",
+      "category": "Category",
+      "subcategory": "Subcategory (lighting type)",
+      "colorTemperature": "Color temperature",
+      "baseIp": "Base IP rating",
+      "maxIp": "Max IP rating (integer)",
+      "maxIpPlaceholder": "e.g. 65",
+      "chandLamp": "Chandelier lamp wattage",
+      "chandLightingType": "Chandelier lighting type",
+      "chandLightingTypePlaceholder": "LED or lamp",
+      "heads": "Number of heads (chandeliers)",
+      "datasheetUrl": "Datasheet PDF URL",
+      "datasheetUrlPlaceholder": "https://... link to the spec sheet PDF",
+      "datasheetUrlHint": "Same URL-based approach as images — paste a link once the PDF is hosted somewhere. Wiring an actual upload flow is follow-up work once a storage provider is chosen.",
+      "featured": "Featured",
+      "notFeatured": "Not featured",
+      "saveChanges": "Save changes"
+    },
+    "translations": {
+      "title": "Translations",
+      "description": "The localized name and description shown on the storefront per language.",
+      "name": "Name ({language})",
+      "descriptionLabel": "Description ({language})",
+      "save": "Save {language} translation",
+      "saved": "{language} translation saved"
+    },
+    "specifications": {
+      "title": "Specifications",
+      "description": "Technical spec sheet fields shown on the product page, per language.",
+      "save": "Save {language} specifications",
+      "saved": "{language} specifications saved"
+    },
+    "specFields": {
+      "input": "Input (AC voltage)",
+      "maximumWattage": "Maximum wattage",
+      "brandOfLed": "Brand of LED",
+      "luminousFlux": "Luminous flux",
+      "mainMaterial": "Main material",
+      "cri": "CRI",
+      "beamAngle": "Beam angle",
+      "workingTemperature": "Working temperature",
+      "fixtureDimmable": "Fixture dimmable",
+      "electrical": "Electrical (driver)",
+      "powerFactor": "Power factor",
+      "colorTemperature": "Color temperature",
+      "ip": "IP rating",
+      "energySaving": "Energy saving",
+      "lifeTime": "Life time",
+      "finish": "Finish (chandeliers)",
+      "lampBase": "Lamp base (chandeliers)",
+      "bulb": "Bulb included (chandeliers)"
+    },
+    "images": {
+      "title": "Images",
+      "description": "Upload files directly, or paste a URL for an image already hosted elsewhere. JPEG/PNG/WEBP/AVIF, up to 8MB.",
+      "urlPlaceholder": "or paste an existing image URL",
+      "addUrl": "Add URL",
+      "added": "Image added",
+      "primary": "Primary",
+      "setPrimary": "Set primary",
+      "primarySet": "Primary image set",
+      "remove": "Remove",
+      "removed": "Image removed",
+      "moveUp": "← Move up",
+      "moveDown": "Move down →",
+      "reordered": "Reordered",
+      "uploading": "Uploading...",
+      "dropzone": "Drag images here, or click to browse",
+      "uploaded": "{count, plural, one {Image uploaded} other {# images uploaded}}"
+    },
+    "variants": {
+      "title": "Stock & variant",
+      "sku": "SKU",
+      "wattage": "Wattage",
+      "finish": "Finish",
+      "size": "Size",
+      "stock": "Stock",
+      "save": "Save variant",
+      "updated": "Variant updated"
+    },
+    "pricing": {
+      "title": "Pricing",
+      "price": "Price (EGP)",
+      "update": "Update price",
+      "updated": "Price updated",
+      "ownerOnly": "Only owners can change price.",
+      "history": "Price history",
+      "noHistory": "No changes recorded yet."
+    },
+    "discounts": {
+      "title": "Discounts",
+      "ownerOnly": "Only owners can create or change discounts.",
+      "type": "Type",
+      "percentage": "Percentage",
+      "fixed": "Fixed",
+      "scope": "Scope",
+      "scopeProduct": "This product",
+      "scopeCategory": "This category",
+      "scopeGlobal": "Store-wide",
+      "value": "Value",
+      "code": "Coupon code (optional)",
+      "create": "Create discount",
+      "created": "Discount created",
+      "none": "No active discounts on this product.",
+      "percentOff": "{value}% off",
+      "amountOff": "{amount} off",
+      "withCode": "code {code}",
+      "deactivate": "Deactivate",
+      "deactivated": "Discount deactivated"
+    }
+  },
+  "NewProduct": {
+    "title": "New product",
+    "sku": "Product ID / SKU",
+    "skuPlaceholder": "e.g. jy-999-15w",
+    "productName": "Product name",
+    "brand": "Brand",
+    "category": "Category",
+    "subcategory": "Subcategory (lighting type)",
+    "subcategoryPlaceholder": "Select a subcategory",
+    "price": "Price (EGP)",
+    "initialStock": "Initial stock",
+    "create": "Create product",
+    "created": "Product created",
+    "errors": {
+      "missingFields": "Fill in product ID, name, price, and category/subcategory",
+      "invalidCategory": "Invalid category selection",
+      "createFailed": "Failed to create product"
+    }
+  },
+  "ProductActions": {
+    "errors": {
+      "noFile": "No file provided",
+      "invalidType": "Only JPEG, PNG, WEBP, or AVIF images are allowed",
+      "tooLarge": "Image must be under 8MB"
+    }
+  },
+  "BulkDatasheet": {
+    "trigger": "Bulk generate",
+    "title": "Bulk generate datasheets",
+    "description": "Runs in the background — this can take several minutes for the full catalog. You can close this panel and come back.",
+    "scope": "Scope",
+    "scopeAll": "All active products",
+    "scopeCategory": "By category",
+    "category": "Category",
+    "format": "Format",
+    "output": "Output",
+    "outputZip": "Zip of individual files",
+    "outputCombined": "Combined by category",
+    "status": {
+      "done": "Done",
+      "failed": "Failed",
+      "generating": "Generating…"
+    },
+    "skipped": "{count} skipped:",
+    "download": "Download",
+    "startAnother": "Start another",
+    "starting": "Starting…",
+    "start": "Start",
+    "errors": {
+      "unauthorized": "Unauthorized",
+      "invalidScope": "Scope must be 'all' or 'category'",
+      "categoryRequired": "categoryId is required when scope is 'category'",
+      "invalidFormat": "Format must be 'pptx' or 'pdf'",
+      "invalidOutputShape": "outputShape must be 'zip' or 'combined'",
+      "noProducts": "No active products match that scope",
+      "notConfiguredDetailed": "Bulk generation is not configured (DATASHEET_WORKER_URL/DATASHEET_WORKER_SECRET unset)",
+      "notConfigured": "Bulk generation is not configured",
+      "unreachable": "Bulk generation service unreachable",
+      "unexpectedResponse": "Bulk generation service returned an unexpected response",
+      "startFailed": "Failed to start job",
+      "downloadFailed": "Download failed"
+    }
+  },
+  "Datasheet": {
+    "errors": {
+      "unauthorized": "Unauthorized",
+      "notFound": "Product not found",
+      "generateFailed": "Failed to generate datasheet",
+      "pdfNotConfigured": "PDF export is not configured (DATASHEET_WORKER_URL/DATASHEET_WORKER_SECRET unset)",
+      "pdfUnreachable": "PDF conversion service unreachable",
+      "pdfFailed": "PDF conversion failed"
+    }
+  }
+}

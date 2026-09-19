@@ -3,6 +3,7 @@
 import { prisma } from "@repo/database";
 import { requireOwner } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import type { DiscountScope, DiscountType } from "@repo/database";
 
 export async function createDiscount(data: {
@@ -18,10 +19,12 @@ export async function createDiscount(data: {
   await requireOwner();
 
   if (data.scope === "product" && !data.productId) {
-    throw new Error("productId is required for a product-scoped discount");
+    const t = await getTranslations("Discounts");
+    throw new Error(t("errors.productRequired"));
   }
   if (data.scope === "category" && !data.categoryId) {
-    throw new Error("categoryId is required for a category-scoped discount");
+    const t = await getTranslations("Discounts");
+    throw new Error(t("errors.categoryRequired"));
   }
 
   const discount = await prisma.discount.create({

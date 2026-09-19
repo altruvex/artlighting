@@ -1,4 +1,4 @@
-import { formatPrice } from "@/lib/utils";
+import { useFormatter } from "next-intl";
 
 type ProductPrices = {
   price: number;
@@ -12,9 +12,13 @@ export default function NormalPrice({
   quantity = 1,
   shippingPrice = 0,
 }: ProductPrices) {
+  const format = useFormatter();
   const normalPrice = Math.ceil(price);
   const PriceAfterTimesQuantity = normalPrice * quantity + shippingPrice;
-  const formattedTotalPrice = formatPrice(PriceAfterTimesQuantity);
+  const formattedTotalPrice = format.number(PriceAfterTimesQuantity, {
+    style: "currency",
+    currency: "EGP",
+  });
   return (
     <div>
       <p>{formattedTotalPrice}</p>

@@ -1,6 +1,7 @@
 import "server-only";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { auth as authInstance } from "./auth-server";
 
 export interface CurrentAdmin {
@@ -29,7 +30,7 @@ export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
 export async function requireAdmin(): Promise<CurrentAdmin> {
   const admin = await getCurrentAdmin();
   if (!admin) {
-    throw new AdminAuthError("unauthenticated");
+    throw new AdminAuthError("unauthenticated", await authErrorMessage("unauthenticated"));
   }
   return admin;
 }
@@ -38,14 +39,31 @@ export async function requireAdmin(): Promise<CurrentAdmin> {
 export async function requireOwner(): Promise<CurrentAdmin> {
   const admin = await requireAdmin();
   if (admin.role !== "owner") {
-    throw new AdminAuthError("not_owner");
+    throw new AdminAuthError("not_owner", await authErrorMessage("not_owner"));
   }
   return admin;
 }
 
+type AdminAuthReason = "unauthenticated" | "not_admin" | "not_owner";
+
+const AUTH_ERROR_KEYS = {
+  unauthenticated: "errors.unauthenticated",
+  not_admin: "errors.notAdmin",
+  not_owner: "errors.notOwner",
+} as const;
+
+/** Localized, user-facing text for an auth failure (the reason code stays the stable identifier). */
+async function authErrorMessage(reason: AdminAuthReason): Promise<string> {
+  const t = await getTranslations("Auth");
+  return t(AUTH_ERROR_KEYS[reason]);
+}
+
 export class AdminAuthError extends Error {
-  constructor(public reason: "unauthenticated" | "not_admin" | "not_owner") {
-    super(reason);
+  constructor(
+    public reason: AdminAuthReason,
+    message?: string,
+  ) {
+    super(message ?? reason);
     this.name = "AdminAuthError";
   }
 }

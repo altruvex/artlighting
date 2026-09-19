@@ -4,6 +4,7 @@ import { prisma } from "@repo/database";
 import { requireOwner } from "@/lib/auth";
 import { auth as authInstance } from "@/lib/auth-server";
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 
 /**
  * Creates a new admin/staff account. This is the only way an account gets
@@ -22,12 +23,14 @@ export async function createStaffAccount(data: {
   await requireOwner();
 
   if (data.password.length < 12) {
-    throw new Error("Password must be at least 12 characters");
+    const t = await getTranslations("Team");
+    throw new Error(t("errors.passwordTooShort"));
   }
 
   const existing = await prisma.admin.findUnique({ where: { email: data.email } });
   if (existing) {
-    throw new Error("An admin with this email already exists");
+    const t = await getTranslations("Team");
+    throw new Error(t("errors.emailExists"));
   }
 
   await authInstance.api.signUpEmail({
@@ -46,7 +49,8 @@ export async function createStaffAccount(data: {
 export async function updateAdminRole(adminId: string, role: "owner" | "staff") {
   const owner = await requireOwner();
   if (adminId === owner.id && role === "staff") {
-    throw new Error("You can't demote yourself");
+    const t = await getTranslations("Team");
+    throw new Error(t("errors.cantDemoteSelf"));
   }
   const admin = await prisma.admin.update({ where: { id: adminId }, data: { role } });
   revalidatePath("/admin/dashboard/team");
@@ -56,7 +60,8 @@ export async function updateAdminRole(adminId: string, role: "owner" | "staff") 
 export async function revokeAdminAccess(adminId: string) {
   const owner = await requireOwner();
   if (adminId === owner.id) {
-    throw new Error("You can't revoke your own access");
+    const t = await getTranslations("Team");
+    throw new Error(t("errors.cantRevokeSelf"));
   }
   await prisma.admin.delete({ where: { id: adminId } });
   revalidatePath("/admin/dashboard/team");

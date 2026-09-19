@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { AdminAuthError, requireAdmin } from "@/lib/auth";
 import { prisma } from "@repo/database";
 
@@ -11,11 +12,12 @@ interface BulkStartRequest {
 }
 
 export async function POST(req: Request) {
+  const t = await getTranslations("BulkDatasheet");
   try {
     await requireAdmin();
   } catch (err) {
     if (err instanceof AdminAuthError) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: t("errors.unauthorized") }, { status: 401 });
     }
     throw err;
   }
@@ -23,16 +25,16 @@ export async function POST(req: Request) {
   const body = (await req.json()) as Partial<BulkStartRequest>;
 
   if (body.scope !== "all" && body.scope !== "category") {
-    return NextResponse.json({ error: "scope must be 'all' or 'category'" }, { status: 400 });
+    return NextResponse.json({ error: t("errors.invalidScope") }, { status: 400 });
   }
   if (body.scope === "category" && !body.categoryId) {
-    return NextResponse.json({ error: "categoryId is required when scope is 'category'" }, { status: 400 });
+    return NextResponse.json({ error: t("errors.categoryRequired") }, { status: 400 });
   }
   if (body.format !== "pptx" && body.format !== "pdf") {
-    return NextResponse.json({ error: "format must be 'pptx' or 'pdf'" }, { status: 400 });
+    return NextResponse.json({ error: t("errors.invalidFormat") }, { status: 400 });
   }
   if (body.outputShape !== "zip" && body.outputShape !== "combined") {
-    return NextResponse.json({ error: "outputShape must be 'zip' or 'combined'" }, { status: 400 });
+    return NextResponse.json({ error: t("errors.invalidOutputShape") }, { status: 400 });
   }
 
   const products = await prisma.product.findMany({
@@ -47,14 +49,14 @@ export async function POST(req: Request) {
   });
 
   if (products.length === 0) {
-    return NextResponse.json({ error: "no active products match that scope" }, { status: 400 });
+    return NextResponse.json({ error: t("errors.noProducts") }, { status: 400 });
   }
 
   const workerUrl = process.env.DATASHEET_WORKER_URL;
   const workerSecret = process.env.DATASHEET_WORKER_SECRET;
   if (!workerUrl || !workerSecret) {
     return NextResponse.json(
-      { error: "Bulk generation is not configured (DATASHEET_WORKER_URL/DATASHEET_WORKER_SECRET unset)" },
+      { error: t("errors.notConfiguredDetailed") },
       { status: 503 }
     );
   }
@@ -76,7 +78,7 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     console.error("bulk datasheet: worker request failed", err);
-    return NextResponse.json({ error: "bulk generation service unreachable" }, { status: 502 });
+    return NextResponse.json({ error: t("errors.unreachable") }, { status: 502 });
   }
 
   // The worker is a separate deployable and can be down, mid-deploy, or
@@ -88,11 +90,11 @@ export async function POST(req: Request) {
     workerBody = rawBody ? JSON.parse(rawBody) : {};
   } catch {
     console.error("bulk datasheet: worker returned non-JSON response", workerRes.status, rawBody.slice(0, 500));
-    return NextResponse.json({ error: "bulk generation service returned an unexpected response" }, { status: 502 });
+    return NextResponse.json({ error: t("errors.unexpectedResponse") }, { status: 502 });
   }
 
   if (!workerRes.ok || !workerBody.jobId) {
-    return NextResponse.json({ error: workerBody.error ?? "failed to start job" }, { status: 502 });
+    return NextResponse.json({ error: workerBody.error ?? t("errors.startFailed") }, { status: 502 });
   }
 
   return NextResponse.json({ jobId: workerBody.jobId, total: products.length });

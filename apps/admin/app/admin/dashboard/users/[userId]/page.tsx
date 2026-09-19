@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import UserClient from "./user-client";
 import { requireAdminOrRedirect } from "@/lib/auth";
 import { prisma } from "@repo/database";
+import { getTranslations } from "next-intl/server";
 
 const UserPage = async ({ params }: { params: Promise<{ userId: string }> }) => {
   await requireAdminOrRedirect();
@@ -36,9 +37,10 @@ const UserPage = async ({ params }: { params: Promise<{ userId: string }> }) => 
     return <UserClient user={user} />;
   } catch (error) {
     console.error("Error fetching user:", error);
+    const t = await getTranslations("CustomerDetail");
     return (
       <div className="container mx-auto px-4 py-8 text-center">
-        Error loading customer data.
+        {t("loadError")}
       </div>
     );
   }

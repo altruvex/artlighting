@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { Container } from "@/components/container";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,8 @@ export default function TeamManager({
   currentAdminId: string;
 }) {
   const router = useRouter();
+  const t = useTranslations("Team");
+  const tCommon = useTranslations("Common");
   const [isPending, startTransition] = useTransition();
 
   const [name, setName] = useState("");
@@ -61,7 +64,7 @@ export default function TeamManager({
         toast.success(msg);
         router.refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Something went wrong");
+        toast.error(err instanceof Error ? err.message : tCommon("genericError"));
       }
     });
   }
@@ -72,7 +75,7 @@ export default function TeamManager({
 
   function handleCreate() {
     if (!name || !email || !password) {
-      toast.error("Fill in name, email, and password");
+      toast.error(t("toasts.fillRequired"));
       return;
     }
     startTransition(async () => {
@@ -83,10 +86,10 @@ export default function TeamManager({
         setEmail("");
         setPassword("");
         setRole("staff");
-        toast.success("Account created");
+        toast.success(t("toasts.accountCreated"));
         router.refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to create account");
+        toast.error(err instanceof Error ? err.message : t("toasts.createFailed"));
       }
     });
   }
@@ -95,66 +98,63 @@ export default function TeamManager({
     <Container>
       <Card className="max-w-xl mb-6 glass-surface rounded-2xl">
         <CardHeader>
-          <CardTitle>Add a team member</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            This is the only way a new admin account gets created — there's no public sign-up
-            anymore. Share the generated password with them over a secure channel (not email/chat
-            in plain text if you can help it).
-          </p>
+          <CardTitle>{t("addTitle")}</CardTitle>
+          <p className="text-sm text-muted-foreground">{t("addDescription")}</p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-2">
-              <Label>Name</Label>
+              <Label>{tCommon("name")}</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Email</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Label>{tCommon("email")}</Label>
+              <Input type="email" dir="ltr" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Password</Label>
+            <Label>{t("password")}</Label>
             <div className="flex gap-2">
-              <Input value={password} onChange={(e) => setPassword(e.target.value)} />
+              <Input dir="ltr" value={password} onChange={(e) => setPassword(e.target.value)} />
               <Button type="button" variant="outline" onClick={handleGeneratePassword}>
-                Generate
+                {t("generate")}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">Minimum 12 characters.</p>
+            <p className="text-xs text-muted-foreground">{t("passwordHint")}</p>
           </div>
 
           <div className="space-y-2">
-            <Label>Role</Label>
+            <Label>{t("role")}</Label>
             <Select value={role} onValueChange={(v) => setRole(v as "owner" | "staff")}>
               <SelectTrigger className="max-w-[200px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="staff">Staff (no price/discount access)</SelectItem>
-                <SelectItem value="owner">Owner (full access)</SelectItem>
+                <SelectItem value="staff">{t("roleOptions.staff")}</SelectItem>
+                <SelectItem value="owner">{t("roleOptions.owner")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <Button disabled={isPending} onClick={handleCreate}>
-            Create account
+            {t("createAccount")}
           </Button>
 
           {lastCreated && (
             <div className="border rounded-lg p-3 bg-muted/40 space-y-1">
               <p className="text-sm font-medium">
-                Created {lastCreated.email} — copy this password now, it won&apos;t be shown again:
+                {t("createdNotice", { email: lastCreated.email })}
               </p>
               <div className="flex items-center gap-2">
-                <code className="text-sm bg-background border rounded px-2 py-1 flex-1 overflow-x-auto">
+                <code dir="ltr" className="text-sm bg-background border rounded px-2 py-1 flex-1 overflow-x-auto">
                   {lastCreated.password}
                 </code>
                 <Button
                   type="button"
                   variant="outline"
                   size="icon"
+                  aria-label={t("copyPassword")}
                   onClick={async () => {
                     await navigator.clipboard.writeText(lastCreated.password);
                     setCopied(true);
@@ -171,7 +171,7 @@ export default function TeamManager({
 
       <Card className="glass-surface rounded-2xl">
         <CardHeader>
-          <CardTitle>Admins ({admins.length})</CardTitle>
+          <CardTitle>{t("adminsTitle", { count: admins.length })}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {admins.map((admin) => (
@@ -180,14 +180,14 @@ export default function TeamManager({
                 <p className="font-medium">
                   {admin.name}{" "}
                   {admin.id === currentAdminId && (
-                    <span className="text-xs text-muted-foreground">(you)</span>
+                    <span className="text-xs text-muted-foreground">{t("you")}</span>
                   )}
                 </p>
                 <p className="text-sm text-muted-foreground">{admin.email}</p>
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant={admin.role === "owner" ? "default" : "secondary"}>
-                  {admin.role}
+                  {t(`roles.${admin.role as "owner" | "staff"}`)}
                 </Badge>
                 {admin.id !== currentAdminId && (
                   <>
@@ -202,19 +202,19 @@ export default function TeamManager({
                               admin.id,
                               admin.role === "owner" ? "staff" : "owner"
                             ),
-                          "Role updated"
+                          t("toasts.roleUpdated")
                         )
                       }
                     >
-                      Make {admin.role === "owner" ? "staff" : "owner"}
+                      {admin.role === "owner" ? t("makeStaff") : t("makeOwner")}
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       disabled={isPending}
-                      onClick={() => run(() => revokeAdminAccess(admin.id), "Access revoked")}
+                      onClick={() => run(() => revokeAdminAccess(admin.id), t("toasts.accessRevoked"))}
                     >
-                      Revoke
+                      {t("revoke")}
                     </Button>
                   </>
                 )}

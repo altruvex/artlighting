@@ -21,12 +21,11 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import UserAvatar from "@/components/user-avatar";
-import { formatPrice } from "@/lib/utils";
 import { Order, Product, ShippingAddress, User } from "@prisma/client";
-import { format } from "date-fns";
 import { Edit2, FilePenIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useFormatter, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import StatusDropdown from "../../status-dropdown-menu";
 
@@ -42,6 +41,9 @@ interface UserPageClientProps {
 
 const UserPageClient = ({ user }: UserPageClientProps) => {
   const [filter, setFilter] = useState<string>("all");
+  const t = useTranslations("CustomerDetail");
+  const tCommon = useTranslations("Common");
+  const format = useFormatter();
 
   const filteredOrders = useMemo(() => {
     if (!user) return [];
@@ -65,7 +67,7 @@ const UserPageClient = ({ user }: UserPageClientProps) => {
               {order.productImages && order.productImages.length > 0 && (
                 <Image
                   src={order.productImages[0]}
-                  alt="Product Image"
+                  alt={t("productImageAlt")}
                   width={40}
                   height={40}
                   className="rounded-md object-cover shrink-0"
@@ -93,7 +95,7 @@ const UserPageClient = ({ user }: UserPageClientProps) => {
           </TableCell>
           <TableCell className="font-medium">
             {order.discountRate && order.discountRate > 0
-              ? `${(order.discountRate * 100).toFixed(0)}%`
+              ? format.number(order.discountRate, { style: "percent" })
               : "—"}
           </TableCell>
           <TableCell className="font-medium">
@@ -110,7 +112,7 @@ const UserPageClient = ({ user }: UserPageClientProps) => {
             {order.quantity}
           </TableCell>
           <TableCell className="font-medium">
-            {formatPrice(order.shippingPrice)}
+            {format.number(order.shippingPrice, { style: "currency", currency: "EGP" })}
           </TableCell>
           <TableCell className="font-medium">
             {order.discountRate && order.discountRate > 0 ? (
@@ -129,17 +131,17 @@ const UserPageClient = ({ user }: UserPageClientProps) => {
             )}
           </TableCell>
           <TableCell className="font-medium">
-            {order.createdAt?.toLocaleDateString()}
+            {order.createdAt && format.dateTime(order.createdAt, { dateStyle: "medium" })}
           </TableCell>
           <TableCell className="font-medium">
-            {order.orderTimeReceived?.toLocaleDateString()}
+            {order.orderTimeReceived && format.dateTime(order.orderTimeReceived, { dateStyle: "medium" })}
           </TableCell>
           <TableCell>
             <StatusDropdown id={order.id} orderStatus={order.status} />
           </TableCell>
         </TableRow>
       )),
-    [filteredOrders]
+    [filteredOrders, format, t]
   );
 
   return (
@@ -147,15 +149,15 @@ const UserPageClient = ({ user }: UserPageClientProps) => {
       <Container>
         <div className="mb-8">
           <h1 className="text-3xl font-bold">
-            {user.shippingAddress?.fullName}&apos;s Account
+            {t("accountTitle", { name: user.shippingAddress?.fullName ?? "" })}
           </h1>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="col-span-1 glass-surface rounded-2xl">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Personal Information</CardTitle>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <CardTitle className="text-lg">{t("personalInfo")}</CardTitle>
+                <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={t("editPersonalInfo")}>
                   <Edit2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -168,14 +170,14 @@ const UserPageClient = ({ user }: UserPageClientProps) => {
                 <div className="flex-1 min-w-0">
                   <h2 className="text-sm font-semibold truncate">{user.email}</h2>
                   <p className="text-xs text-muted-foreground">
-                    Member since {format(new Date(user.createdAt), "MMM yyyy")}
+                    {t("memberSince", { date: format.dateTime(new Date(user.createdAt), { month: "short", year: "numeric" }) })}
                   </p>
                 </div>
               </div>
               <div className="space-y-3">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground">
-                    Full Name
+                    {t("fullName")}
                   </p>
                   <p className="text-sm font-medium">
                     {user.shippingAddress?.fullName || "—"}
@@ -183,16 +185,16 @@ const UserPageClient = ({ user }: UserPageClientProps) => {
                 </div>
                 <div>
                   <p className="text-xs font-medium text-muted-foreground">
-                    Email
+                    {tCommon("email")}
                   </p>
                   <p className="text-sm font-medium break-all">{user.email}</p>
                 </div>
                 <div>
                   <p className="text-xs font-medium text-muted-foreground">
-                    Phone
+                    {tCommon("phone")}
                   </p>
                   <p className="text-sm font-medium">
-                    {user.shippingAddress?.phoneNumber || "—"}
+                    <span dir="ltr">{user.shippingAddress?.phoneNumber || "—"}</span>
                   </p>
                 </div>
               </div>
@@ -201,8 +203,8 @@ const UserPageClient = ({ user }: UserPageClientProps) => {
           <Card className="col-span-1 md:col-span-2 glass-surface rounded-2xl">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Shipping Information</CardTitle>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <CardTitle className="text-lg">{t("shippingInfo")}</CardTitle>
+                <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={t("editShippingInfo")}>
                   <FilePenIcon className="h-4 w-4" />
                 </Button>
               </div>
@@ -211,7 +213,7 @@ const UserPageClient = ({ user }: UserPageClientProps) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
                   <h3 className="text-sm font-semibold mb-4">
-                    Billing Address
+                    {t("billingAddress")}
                   </h3>
                   <div className="space-y-2 text-sm">
                     <p className="text-muted-foreground">
@@ -219,20 +221,20 @@ const UserPageClient = ({ user }: UserPageClientProps) => {
                     </p>
                     <p className="text-muted-foreground">{user.email}</p>
                     <p className="text-muted-foreground">
-                      {user.shippingAddress?.phoneNumber || "—"}
+                      <span dir="ltr">{user.shippingAddress?.phoneNumber || "—"}</span>
                     </p>
                   </div>
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold mb-4">
-                    Shipping Address
+                    {t("shippingAddress")}
                   </h3>
                   <div className="space-y-2 text-sm">
                     <p className="text-muted-foreground">
                       {user.shippingAddress?.address || "—"}
                     </p>
                     <p className="text-muted-foreground">
-                      {user.shippingAddress?.phoneNumber || "—"}
+                      <span dir="ltr">{user.shippingAddress?.phoneNumber || "—"}</span>
                     </p>
                   </div>
                 </div>
@@ -243,8 +245,8 @@ const UserPageClient = ({ user }: UserPageClientProps) => {
         <Card className="glass-surface rounded-2xl">
           <CardHeader className="pb-4">
             <div>
-              <CardTitle className="text-lg">Order History</CardTitle>
-              <CardDescription>View and manage your past orders</CardDescription>
+              <CardTitle className="text-lg">{t("orderHistory")}</CardTitle>
+              <CardDescription>{t("orderHistoryDescription")}</CardDescription>
             </div>
           </CardHeader>
           <CardContent>
@@ -255,35 +257,35 @@ const UserPageClient = ({ user }: UserPageClientProps) => {
                   onClick={() => setFilter("all")}
                   className="text-xs"
                 >
-                  All Orders
+                  {t("tabs.all")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="awaiting_shipment"
                   onClick={() => setFilter("awaiting_shipment")}
                   className="text-xs"
                 >
-                  Awaiting
+                  {t("tabs.awaiting")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="processing"
                   onClick={() => setFilter("processing")}
                   className="text-xs"
                 >
-                  Processing
+                  {t("tabs.processing")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="fulfilled"
                   onClick={() => setFilter("fulfilled")}
                   className="text-xs"
                 >
-                  Completed
+                  {t("tabs.completed")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="cancelled"
                   onClick={() => setFilter("cancelled")}
                   className="text-xs"
                 >
-                  Cancelled
+                  {t("tabs.cancelled")}
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="all" className="mt-0">
@@ -292,46 +294,46 @@ const UserPageClient = ({ user }: UserPageClientProps) => {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="text-xs font-semibold">
-                          Order #
+                          {t("columns.orderNumber")}
                         </TableHead>
                         <TableHead className="text-xs font-semibold">
-                          Product
+                          {t("columns.product")}
                         </TableHead>
                         <TableHead className="text-xs font-semibold">
-                          Color Temp
+                          {t("columns.colorTemp")}
                         </TableHead>
                         <TableHead className="text-xs font-semibold">
-                          IP
+                          {t("columns.ip")}
                         </TableHead>
                         <TableHead className="text-xs font-semibold">
-                          Lamp
+                          {t("columns.lamp")}
                         </TableHead>
                         <TableHead className="text-xs font-semibold">
-                          Price
+                          {tCommon("price")}
                         </TableHead>
                         <TableHead className="text-xs font-semibold">
-                          Discount
+                          {t("columns.discount")}
                         </TableHead>
                         <TableHead className="text-xs font-semibold">
-                          After Discount
+                          {t("columns.afterDiscount")}
                         </TableHead>
                         <TableHead className="text-xs font-semibold text-center">
-                          Qty
+                          {t("columns.qty")}
                         </TableHead>
                         <TableHead className="text-xs font-semibold">
-                          Shipping
+                          {t("columns.shipping")}
                         </TableHead>
                         <TableHead className="text-xs font-semibold">
-                          Total
+                          {tCommon("total")}
                         </TableHead>
                         <TableHead className="text-xs font-semibold">
-                          Order Date
+                          {t("columns.orderDate")}
                         </TableHead>
                         <TableHead className="text-xs font-semibold">
-                          Est. Date
+                          {t("columns.estDate")}
                         </TableHead>
                         <TableHead className="text-xs font-semibold">
-                          Status
+                          {tCommon("status")}
                         </TableHead>
                       </TableRow>
                     </TableHeader>
@@ -342,7 +344,7 @@ const UserPageClient = ({ user }: UserPageClientProps) => {
                         <TableRow>
                           <TableCell colSpan={14} className="text-center py-8">
                             <p className="text-muted-foreground">
-                              No orders found
+                              {t("noOrders")}
                             </p>
                           </TableCell>
                         </TableRow>

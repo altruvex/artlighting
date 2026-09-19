@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { Container } from "@/components/container";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,8 @@ export default function CategoriesManager({
   categories: CategoryWithCount[];
 }) {
   const router = useRouter();
+  const t = useTranslations("Categories");
+  const tCommon = useTranslations("Common");
   const [isPending, startTransition] = useTransition();
 
   const [name, setName] = useState("");
@@ -50,7 +53,7 @@ export default function CategoriesManager({
         toast.success(msg);
         router.refresh();
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Something went wrong");
+        toast.error(err instanceof Error ? err.message : tCommon("genericError"));
       }
     });
   }
@@ -59,30 +62,30 @@ export default function CategoriesManager({
     <Container>
       <Card className="max-w-lg mb-6 glass-surface rounded-2xl">
         <CardHeader>
-          <CardTitle>Add category / subcategory</CardTitle>
+          <CardTitle>{t("addTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-2">
-              <Label>Name</Label>
+              <Label>{tCommon("name")}</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Slug</Label>
-              <Input value={slug} onChange={(e) => setSlug(e.target.value)} />
+              <Label>{t("slug")}</Label>
+              <Input dir="ltr" value={slug} onChange={(e) => setSlug(e.target.value)} />
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Parent (leave as "Top-level" for a new section)</Label>
+            <Label>{t("parentLabel")}</Label>
             <Select value={parentId} onValueChange={setParentId}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__top__">Top-level</SelectItem>
+                <SelectItem value="__top__">{t("topLevel")}</SelectItem>
                 {topCategories.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
-                    Under {c.name}
+                    {t("under", { name: c.name })}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -99,10 +102,10 @@ export default function CategoriesManager({
                 });
                 setName("");
                 setSlug("");
-              }, "Category created")
+              }, t("toasts.created"))
             }
           >
-            Create
+            {tCommon("create")}
           </Button>
         </CardContent>
       </Card>
@@ -119,10 +122,10 @@ export default function CategoriesManager({
                 <CardTitle>
                   {top.name}{" "}
                   <span className="text-sm font-normal text-muted-foreground">
-                    ({top._count.products} products)
+                    {t("productCount", { count: top._count.products })}
                   </span>
                 </CardTitle>
-                {!top.isActive && <Badge variant="secondary">Inactive</Badge>}
+                {!top.isActive && <Badge variant="secondary">{tCommon("inactive")}</Badge>}
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
@@ -134,7 +137,7 @@ export default function CategoriesManager({
                       <span>
                         {child.name}{" "}
                         <span className="text-sm text-muted-foreground">
-                          ({child._count.subProducts} products)
+                          {t("productCount", { count: child._count.subProducts })}
                         </span>
                       </span>
                       <div className="flex gap-1">
@@ -142,7 +145,8 @@ export default function CategoriesManager({
                           variant="outline"
                           size="icon"
                           disabled={isPending || index === 0}
-                          onClick={() => run(() => moveCategory(child.id, "up"), "Moved up")}
+                          aria-label={t("moveUp")}
+                          onClick={() => run(() => moveCategory(child.id, "up"), t("toasts.movedUp"))}
                         >
                           <ArrowUp className="w-4 h-4" />
                         </Button>
@@ -150,8 +154,9 @@ export default function CategoriesManager({
                           variant="outline"
                           size="icon"
                           disabled={isPending || index === children.length - 1}
+                          aria-label={t("moveDown")}
                           onClick={() =>
-                            run(() => moveCategory(child.id, "down"), "Moved down")
+                            run(() => moveCategory(child.id, "down"), t("toasts.movedDown"))
                           }
                         >
                           <ArrowDown className="w-4 h-4" />

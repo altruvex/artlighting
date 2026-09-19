@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { useTranslations } from "next-intl";
 
 export function ThemedSignIn() {
+  const t = useTranslations("SignIn");
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,7 +25,7 @@ export function ThemedSignIn() {
     const { error } = await authClient.signIn.email({ email, password });
     setIsLoading(false);
     if (error) {
-      setError(error.message ?? "Invalid email or password");
+      setError(error.status === 429 ? t("errors.tooManyAttempts") : t("errors.invalidCredentials"));
       return;
     }
     router.push("/admin/dashboard");
@@ -40,11 +42,11 @@ export function ThemedSignIn() {
           <Image src="/logo-en.png" alt="" width={36} height={36} className="rounded-md" />
         </div>
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary">
-          Art Lighting
+          {t("brand")}
         </p>
-        <h1 className="mt-2 text-2xl font-semibold text-foreground">Admin sign in</h1>
+        <h1 className="mt-2 text-2xl font-semibold text-foreground">{t("title")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Sign in to manage products, orders, and discounts
+          {t("subtitle")}
         </p>
       </div>
 
@@ -61,32 +63,32 @@ export function ThemedSignIn() {
 
       <div className="space-y-4">
         <div className="glow-ring-focus space-y-2 rounded-xl">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t("email")}</Label>
           <div className="relative">
-            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Mail className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="email"
               type="email"
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-11 rounded-xl pl-10"
+              className="h-11 rounded-xl ps-10"
               required
             />
           </div>
         </div>
 
         <div className="glow-ring-focus space-y-2 rounded-xl">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{t("password")}</Label>
           <div className="relative">
-            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Lock className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="password"
               type="password"
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-11 rounded-xl pl-10"
+              className="h-11 rounded-xl ps-10"
               required
             />
           </div>
@@ -101,16 +103,15 @@ export function ThemedSignIn() {
         {isLoading ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Signing in...
+            {t("submitting")}
           </>
         ) : (
-          "Sign in"
+          t("submit")
         )}
       </Button>
 
       <p className="text-center text-xs text-muted-foreground">
-        Admin accounts are created by an owner from inside the dashboard —
-        contact yours if you need access.
+        {t("accessNote")}
       </p>
     </form>
   );

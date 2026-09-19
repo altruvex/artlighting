@@ -2,13 +2,17 @@
 import { Button } from "@/components/ui/button";
 import { DASHBOARDS } from "@/constant";
 import { motion } from "framer-motion";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useState } from "react";
 import { cn } from "@/lib/utils";
 
 const Layout = ({ children }: { children: ReactNode }) => {
+  const t = useTranslations("Nav");
+  const tShell = useTranslations("Shell");
   const [isOpen, setIsOpen] = useState(true);
   const pathName = usePathname();
   const toggleSideBar = () => {
@@ -36,7 +40,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
         initial={false}
         animate={isOpen ? "open" : "closed"}
         variants={sidebarVariants}
-        className="glass-surface fixed left-0 top-0 z-40 h-screen overflow-hidden border-r border-border"
+        className="glass-surface fixed start-0 top-0 z-40 h-screen overflow-hidden border-e border-border"
         style={{ width: isOpen ? 264 : 0, opacity: isOpen ? 1 : 0 }}
       >
         <div className="flex h-full flex-col">
@@ -45,8 +49,8 @@ const Layout = ({ children }: { children: ReactNode }) => {
               <span className="text-sm font-bold text-primary">A</span>
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Art Lighting</h2>
-              <p className="text-xs text-muted-foreground">Admin</p>
+              <h2 className="text-sm font-semibold text-foreground">{tShell("brand")}</h2>
+              <p className="text-xs text-muted-foreground">{tShell("admin")}</p>
             </div>
           </div>
           <nav className="flex-1 space-y-1 px-3">
@@ -54,7 +58,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
               const isCurrent = pathName.endsWith(dash.url);
               return (
                 <Link
-                  key={dash.name}
+                  key={dash.key}
                   href={dash.url}
                   className={cn(
                     "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
@@ -64,11 +68,14 @@ const Layout = ({ children }: { children: ReactNode }) => {
                   )}
                 >
                   {dash.icon}
-                  <span>{dash.name}</span>
+                  <span>{t(dash.key)}</span>
                 </Link>
               );
             })}
           </nav>
+          <div className="p-4">
+            <LanguageSwitcher />
+          </div>
         </div>
       </motion.aside>
       <Button
@@ -77,18 +84,19 @@ const Layout = ({ children }: { children: ReactNode }) => {
         variant="secondary"
         className={cn(
           "fixed top-5 z-50 h-8 w-8 rounded-full shadow-md transition-all duration-300",
-          isOpen ? "left-[248px]" : "left-4",
+          isOpen ? "start-[248px]" : "start-4",
         )}
-        aria-label={isOpen ? "close sidebar" : "Open sidebar"}
+        aria-label={isOpen ? tShell("closeSidebar") : tShell("openSidebar")}
+        aria-expanded={isOpen}
       >
         {isOpen ? (
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
         ) : (
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-4 w-4 rtl:rotate-180" />
         )}
       </Button>
       <div
-        className={cn("transition-all duration-300", isOpen ? "lg:pl-[264px]" : "pl-0")}
+        className={cn("transition-all duration-300", isOpen ? "lg:ps-[264px]" : "ps-0")}
       >
         {children}
       </div>

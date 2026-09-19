@@ -3,6 +3,7 @@
 import { prisma } from "@repo/database";
 import { requireAdmin, requireOwner } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import type { ProductColorTemp, ProductIP, ProductChandLamp } from "@repo/database";
 import { cloudinary } from "@/lib/cloudinary";
 
@@ -251,16 +252,17 @@ const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avi
 
 export async function uploadProductImage(productId: string, sku: string, formData: FormData) {
   await requireAdmin();
+  const t = await getTranslations("ProductActions");
 
   const file = formData.get("file");
   if (!(file instanceof File)) {
-    throw new Error("No file provided");
+    throw new Error(t("errors.noFile"));
   }
   if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-    throw new Error("Only JPEG, PNG, WEBP, or AVIF images are allowed");
+    throw new Error(t("errors.invalidType"));
   }
   if (file.size > MAX_IMAGE_BYTES) {
-    throw new Error("Image must be under 8MB");
+    throw new Error(t("errors.tooLarge"));
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());

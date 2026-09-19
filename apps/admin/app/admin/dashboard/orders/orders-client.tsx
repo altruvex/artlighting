@@ -12,9 +12,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatPrice } from "@/lib/utils";
 import type { Prisma } from "@repo/database";
 import { SearchIcon } from "lucide-react";
+import { useFormatter, useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -29,6 +29,17 @@ interface OrdersClientProps {
 }
 
 const OrdersClient: React.FC<OrdersClientProps> = ({ orders }) => {
+  const t = useTranslations("Orders");
+  const tCommon = useTranslations("Common");
+  const tNav = useTranslations("Nav");
+  const format = useFormatter();
+  const formatMoney = (value: number) =>
+    format.number(value, { style: "currency", currency: "EGP" });
+  // Free-text DB values: translate known ones, show anything else as stored.
+  const valueLabel = (group: "colorTemp" | "lamp" | "lightingType", value: string) => {
+    const key = `values.${group}.${value.toLowerCase()}`;
+    return t.has(key as never) ? t(key as never) : value;
+  };
   const [searchItem, setSearchItem] = useState<string>("");
   const [filteredOrders, setFilteredOrders] =
     useState<OrderWithShipping[]>(orders);
@@ -51,66 +62,66 @@ const OrdersClient: React.FC<OrdersClientProps> = ({ orders }) => {
       );
       setFilteredOrders(newFilteredOrders);
     } catch (error) {
-      setError("Error filtering orders.");
+      setError(t("filterError"));
     } finally {
       setLoading(false);
     }
   };
   return (
     <div className="flex flex-col min-h-screen pb-10">
-      <DashboardHeader Route="Orders">
-        <div className="flex items-center gap-4 md:ml-auto">
-          <form className="ml-auto flex-1 sm:flex-initial">
+      <DashboardHeader Route={tNav("orders")}>
+        <div className="flex items-center gap-4 md:ms-auto">
+          <form className="ms-auto flex-1 sm:flex-initial">
             <div className="relative">
-              <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <SearchIcon className="absolute start-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 value={searchItem}
                 onChange={handleInputChange}
                 type="text"
-                placeholder="Search on orders."
-                className="pl-8 w-full sm:w-[300px] md:w-[200px] lg:w-[300px]"
+                placeholder={t("searchPlaceholder")}
+                className="ps-8 w-full sm:w-[300px] md:w-[200px] lg:w-[300px]"
               />
             </div>
           </form>
         </div>
       </DashboardHeader>
       <div className="mt-10 px-6">
-        <h2 className="text-xl font-semibold mb-7">All Orders</h2>
+        <h2 className="text-xl font-semibold mb-7">{t("allOrders")}</h2>
         <div className="overflow-x-auto border rounded-lg shadow custom-scrollbar">
           <div className="flex items-center">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-nowrap">Order #</TableHead>
-                  <TableHead className="text-nowrap">Customer Name</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead className="text-nowrap pl-4">
-                    Product Color Temp
+                  <TableHead className="text-nowrap">{t("columns.orderNumber")}</TableHead>
+                  <TableHead className="text-nowrap">{t("columns.customerName")}</TableHead>
+                  <TableHead>{t("columns.product")}</TableHead>
+                  <TableHead className="text-nowrap ps-4">
+                    {t("columns.colorTemp")}
                   </TableHead>
-                  <TableHead className="text-nowrap ">IP Rating</TableHead>
-                  <TableHead className="text-nowrap ">Lamp Wattage</TableHead>
-                  <TableHead className="text-nowrap">Product Price</TableHead>
-                  <TableHead>Discount</TableHead>
+                  <TableHead className="text-nowrap ">{t("columns.ipRating")}</TableHead>
+                  <TableHead className="text-nowrap ">{t("columns.lampWattage")}</TableHead>
+                  <TableHead className="text-nowrap">{t("columns.productPrice")}</TableHead>
+                  <TableHead>{t("columns.discount")}</TableHead>
                   <TableHead className="text-nowrap">
-                    Product Price After Discount
+                    {t("columns.priceAfterDiscount")}
                   </TableHead>
-                  <TableHead>Qty</TableHead>
-                  <TableHead className="text-nowrap">Shipping Fee</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead className="text-nowrap">Customer</TableHead>
-                  <TableHead className="text-nowrap">Phone Number</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead>{t("columns.qty")}</TableHead>
+                  <TableHead className="text-nowrap">{t("columns.shippingFee")}</TableHead>
+                  <TableHead>{t("columns.total")}</TableHead>
+                  <TableHead className="text-nowrap">{t("columns.customer")}</TableHead>
+                  <TableHead className="text-nowrap">{t("columns.phoneNumber")}</TableHead>
+                  <TableHead>{t("columns.date")}</TableHead>
                   <TableHead className="text-nowrap">
-                    Estimated Order Date
+                    {t("columns.estimatedOrderDate")}
                   </TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t("columns.status")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading && (
                   <TableRow>
                     <TableCell colSpan={12} className="text-center">
-                      Loading...
+                      {tCommon("loading")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -127,7 +138,7 @@ const OrdersClient: React.FC<OrdersClientProps> = ({ orders }) => {
                 {!loading && !error && filteredOrders.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={12} className="text-center">
-                      No Orders Found
+                      {t("noOrders")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -139,6 +150,7 @@ const OrdersClient: React.FC<OrdersClientProps> = ({ orders }) => {
                         <Link
                           href={`/admin/dashboard/orders/${order.id}`}
                           className="hover:text-primary hover:underline"
+                          dir="ltr"
                         >
                           # {order.id}
                         </Link>
@@ -151,39 +163,42 @@ const OrdersClient: React.FC<OrdersClientProps> = ({ orders }) => {
                           order.productImages.length > 0 && (
                             <Image
                               src={order.productImages[0]}
-                              alt="Product Image"
+                              alt={t("productImageAlt")}
                               width={40}
                               height={40}
                               className="rounded-md object-cover"
                             />
                           )}
-                        <p className="ml-2 uppercase text-nowrap font-medium">
+                        <p className="ms-2 uppercase text-nowrap font-medium">
                           {order.productName}
                         </p>
                       </TableCell>
-                      <TableCell className="capitalize font-medium pl-6">
-                        {order.productColorTemp}
+                      <TableCell className="capitalize font-medium ps-6">
+                        {valueLabel("colorTemp", order.productColorTemp)}
                       </TableCell>
                       <TableCell className="font-medium">
                         {order && order.brand === "balcom"
                           ? order.configuration?.productIp
-                          : "No IP"}
+                          : t("noIp")}
                       </TableCell>
                       <TableCell>
                         {order &&
                           order.brand === "mister-led" &&
                           order.product?.chandelierLightingType === "lamp"
-                          ? order.productChandLamp
-                          : "No Lamp"}
+                          ? valueLabel("lamp", order.productChandLamp)
+                          : t("noLamp")}
                       </TableCell>
                       <TableCell className="px-4 py-2 font-medium">
                         <NormalPrice price={order.configPrice} />
                       </TableCell>
                       <TableCell className="text-nowrap px-4 py-2">
                         {order.discountRate && order.discountRate > 0 ? (
-                          `${order.discountRate * 100}%`
+                          format.number(order.discountRate, {
+                            style: "percent",
+                            maximumFractionDigits: 2,
+                          })
                         ) : (
-                          <span>No discount</span>
+                          <span>{t("noDiscount")}</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -193,11 +208,11 @@ const OrdersClient: React.FC<OrdersClientProps> = ({ orders }) => {
                             discount={order.discountRate}
                           />
                         ) : (
-                          <span>No Discount On This Product</span>
+                          <span>{t("noDiscountOnProduct")}</span>
                         )}
                       </TableCell>
-                      <TableCell>{order.quantity}</TableCell>
-                      <TableCell>{formatPrice(order.shippingPrice)}</TableCell>
+                      <TableCell>{format.number(order.quantity)}</TableCell>
+                      <TableCell>{formatMoney(order.shippingPrice)}</TableCell>
                       <TableCell>
                         {order.discountRate && order.discountRate > 0 ? (
                           <DiscountPrice
@@ -218,13 +233,16 @@ const OrdersClient: React.FC<OrdersClientProps> = ({ orders }) => {
                         {order.shippingAddress?.fullName}
                       </TableCell>
                       <TableCell>
-                        {order.shippingAddress?.phoneNumber}
+                        <span dir="ltr">{order.shippingAddress?.phoneNumber}</span>
                       </TableCell>
                       <TableCell>
-                        {order.createdAt.toLocaleDateString()}
+                        {format.dateTime(order.createdAt, { dateStyle: "medium" })}
                       </TableCell>
                       <TableCell className="text-nowrap">
-                        {order.orderTimeReceived?.toLocaleDateString()}
+                        {order.orderTimeReceived &&
+                          format.dateTime(order.orderTimeReceived, {
+                            dateStyle: "medium",
+                          })}
                       </TableCell>
                       <TableCell>
                         <StatusDropdown

@@ -1,0 +1,112 @@
+{
+  "OrderStatus": {
+    "awaiting_shipment": "بانتظار الشحن",
+    "processing": "جارٍ تجهيز الشحنة",
+    "shipped": "تم الشحن",
+    "delivered": "تم التسليم",
+    "fulfilled": "مكتمل",
+    "cancelled": "ملغى",
+    "refunded": "مسترد"
+  },
+  "Summary": {
+    "totalSales": "إجمالي المبيعات",
+    "totalSalesDescription": "الطلبات المكتملة بعد خصم الإلغاءات",
+    "customers": "العملاء",
+    "customersDescription": "الحسابات المسجّلة",
+    "orders": "الطلبات",
+    "ordersDescription": "الطلبات المكتملة"
+  },
+  "Dashboard": {
+    "recentOrders": "أحدث الطلبات",
+    "recentOrdersDescription": "نظرة عامة على أحدث الطلبات المقدّمة عبر الموقع.",
+    "columns": {
+      "orderId": "رقم الطلب",
+      "customer": "العميل",
+      "productId": "المنتج",
+      "productPrice": "سعر المنتج",
+      "discount": "الخصم",
+      "qty": "الكمية",
+      "shippingFee": "رسوم الشحن",
+      "total": "الإجمالي",
+      "date": "التاريخ",
+      "status": "الحالة",
+      "action": "إجراء"
+    },
+    "noDiscount": "بدون خصم",
+    "viewOrder": "عرض الطلب",
+    "customerDetails": "بيانات العميل"
+  },
+  "Orders": {
+    "searchPlaceholder": "ابحث في الطلبات",
+    "allOrders": "كل الطلبات",
+    "columns": {
+      "orderNumber": "رقم الطلب",
+      "customerName": "اسم العميل",
+      "product": "المنتج",
+      "colorTemp": "درجة لون الإضاءة",
+      "ipRating": "درجة الحماية IP",
+      "lampWattage": "قدرة اللمبة",
+      "productPrice": "سعر المنتج",
+      "discount": "الخصم",
+      "priceAfterDiscount": "سعر المنتج بعد الخصم",
+      "qty": "الكمية",
+      "shippingFee": "رسوم الشحن",
+      "total": "الإجمالي",
+      "customer": "العميل",
+      "phoneNumber": "رقم الهاتف",
+      "date": "التاريخ",
+      "estimatedOrderDate": "التاريخ المتوقع للطلب",
+      "status": "الحالة"
+    },
+    "noOrders": "لا توجد طلبات",
+    "filterError": "حدث خطأ أثناء تصفية الطلبات.",
+    "productImageAlt": "صورة المنتج",
+    "noIp": "بدون IP",
+    "noLamp": "بدون لمبة",
+    "noDiscount": "بدون خصم",
+    "noDiscountOnProduct": "لا يوجد خصم على هذا المنتج",
+    "values": {
+      "colorTemp": {
+        "warm": "دافئ",
+        "cool": "بارد",
+        "white": "أبيض"
+      },
+      "lamp": {
+        "lamp9w": "لمبة 9W",
+        "lamp12w": "لمبة 12W"
+      },
+      "lightingType": {
+        "lamp": "لمبة",
+        "led": "LED"
+      }
+    }
+  },
+  "OrderDetail": {
+    "title": "الطلب رقم {id}",
+    "placedOn": "تاريخ الطلب: {date}",
+    "lastUpdated": "آخر تحديث: {date}",
+    "progress": {
+      "ordered": "تم الطلب",
+      "processing": "قيد التجهيز",
+      "fulfilled": "مكتمل"
+    },
+    "productInformation": "بيانات المنتج",
+    "colorTemperature": "درجة لون الإضاءة",
+    "ipRating": "درجة الحماية IP",
+    "lampType": "نوع اللمبة",
+    "brand": "العلامة التجارية",
+    "lightingType": "نوع الإضاءة",
+    "priceBreakdown": "تفاصيل السعر",
+    "productPrice": "سعر المنتج",
+    "discountWithRate": "الخصم ({rate})",
+    "priceIncrease": "زيادة السعر",
+    "shipping": "الشحن",
+    "shippingInformation": "بيانات الشحن",
+    "estimatedDelivery": "موعد التسليم المتوقع: {date}",
+    "noShippingInfo": "لا توجد بيانات شحن"
+  },
+  "Notifications": {
+    "title": "الإشعارات",
+    "placeholder": "لم تُنفَّذ بعد — لا يوجد حاليًا نظام بريد إلكتروني للمعاملات أو إشعارات داخل التطبيق في هذا المشروع. هذه الصفحة مؤقتة إلى أن يُحدَّد نطاق العمل."
+  }
+}

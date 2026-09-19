@@ -1,6 +1,7 @@
 import { requireAdmin, AdminAuthError } from "@/lib/auth";
 import { prisma } from "@repo/database";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import UsersClient from "./users-client";
 
 const Users = async () => {
@@ -38,7 +39,8 @@ const Users = async () => {
     return <UsersClient users={users} />;
   } catch (error) {
     console.error("Error fetching users:", error);
-    return <div>Error loading customers</div>;
+    const t = await getTranslations("Customers");
+    return <div>{t("loadError")}</div>;
   }
 };
 

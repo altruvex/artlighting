@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { StatusBadge, type StatusTone } from "@/components/status-badge";
 import {
   Sheet,
   SheetContent,
@@ -19,8 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Layers, Download } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { LayersIcon, DownloadIcon, Loader2Icon } from "lucide-react";
+import { useFormatter, useTranslations } from "next-intl";
 
 type Category = { id: string; name: string };
 
@@ -37,6 +39,8 @@ const POLL_INTERVAL_MS = 2000;
 export default function BulkGenerateSheet({ topCategories }: { topCategories: Category[] }) {
   const t = useTranslations("BulkDatasheet");
   const tCommon = useTranslations("Common");
+  const formatter = useFormatter();
+  const fieldId = useId();
   const [open, setOpen] = useState(false);
   const [scope, setScope] = useState<"all" | "category">("all");
   const [categoryId, setCategoryId] = useState<string | undefined>(topCategories[0]?.id);
@@ -114,6 +118,26 @@ export default function BulkGenerateSheet({ topCategories }: { topCategories: Ca
   }
 
   const progressPct = job && job.total > 0 ? Math.round((job.completed / job.total) * 100) : 0;
+  const locked = !!jobId && job?.status !== "error";
+  const failed = job?.status === "error";
+
+  const statusLabel = !job
+    ? t("status.queued")
+    : job.status === "done"
+      ? t("status.done")
+      : job.status === "error"
+        ? t("status.failed")
+        : job.status === "queued"
+          ? t("status.queued")
+          : t("status.generating");
+
+  const statusTone: StatusTone = !job
+    ? "neutral"
+    : job.status === "done"
+      ? "success"
+      : job.status === "error"
+        ? "danger"
+        : "info";
 
   return (
     <Sheet
@@ -125,131 +149,159 @@ export default function BulkGenerateSheet({ topCategories }: { topCategories: Ca
     >
       <SheetTrigger asChild>
         <Button variant="outline" size="sm">
-          <Layers className="h-4 w-4" /> {t("trigger")}
+          <LayersIcon className="size-4" aria-hidden /> {t("trigger")}
         </Button>
       </SheetTrigger>
-      <SheetContent>
-        <SheetHeader>
+      <SheetContent className="sm:max-w-md">
+        <SheetHeader className="border-b">
           <SheetTitle>{t("title")}</SheetTitle>
-          <SheetDescription>
-            {t("description")}
-          </SheetDescription>
+          <SheetDescription>{t("description")}</SheetDescription>
         </SheetHeader>
 
-        <div className="flex flex-col gap-4 px-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">{t("scope")}</label>
-            <Select value={scope} onValueChange={(v) => setScope(v as "all" | "category")}>
-              <SelectTrigger className="rounded-xl" disabled={!!jobId}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("scopeAll")}</SelectItem>
-                <SelectItem value="category">{t("scopeCategory")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="flex-1 space-y-5 overflow-y-auto px-4">
+          <section className="space-y-3">
+            <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              {t("settingsTitle")}
+            </h3>
 
-          {scope === "category" && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("category")}</label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger className="rounded-xl" disabled={!!jobId}>
+            <div className="space-y-1.5">
+              <Label htmlFor={`${fieldId}-scope`}>{t("scope")}</Label>
+              <Select
+                value={scope}
+                onValueChange={(v) => setScope(v as "all" | "category")}
+                disabled={locked}
+              >
+                <SelectTrigger id={`${fieldId}-scope`} className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {topCategories.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="all">{t("scopeAll")}</SelectItem>
+                  <SelectItem value="category">{t("scopeCategory")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {scope === "category" && (
+              <div className="space-y-1.5">
+                <Label htmlFor={`${fieldId}-category`}>{t("category")}</Label>
+                <Select value={categoryId} onValueChange={setCategoryId} disabled={locked}>
+                  <SelectTrigger id={`${fieldId}-category`} className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {topCategories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label htmlFor={`${fieldId}-format`}>{t("format")}</Label>
+              <Select
+                value={format}
+                onValueChange={(v) => setFormat(v as "pptx" | "pdf")}
+                disabled={locked}
+              >
+                <SelectTrigger id={`${fieldId}-format`} className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pptx">PPTX</SelectItem>
+                  <SelectItem value="pdf">PDF</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor={`${fieldId}-output`}>{t("output")}</Label>
+              <Select
+                value={outputShape}
+                onValueChange={(v) => setOutputShape(v as "zip" | "combined")}
+                disabled={locked}
+              >
+                <SelectTrigger id={`${fieldId}-output`} className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="zip">{t("outputZip")}</SelectItem>
+                  <SelectItem value="combined">{t("outputCombined")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {locked && <p className="text-xs text-muted-foreground">{t("settingsLocked")}</p>}
+          </section>
+
+          {startError && (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2">
+              <p className="text-sm font-medium text-destructive">{t("errors.title")}</p>
+              <p className="text-sm text-muted-foreground">{startError}</p>
+            </div>
           )}
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">{t("format")}</label>
-            <Select value={format} onValueChange={(v) => setFormat(v as "pptx" | "pdf")}>
-              <SelectTrigger className="rounded-xl" disabled={!!jobId}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pptx">PPTX</SelectItem>
-                <SelectItem value="pdf">PDF</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">{t("output")}</label>
-            <Select
-              value={outputShape}
-              onValueChange={(v) => setOutputShape(v as "zip" | "combined")}
-            >
-              <SelectTrigger className="rounded-xl" disabled={!!jobId}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="zip">{t("outputZip")}</SelectItem>
-                <SelectItem value="combined">{t("outputCombined")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {startError && <p className="text-sm text-destructive">{startError}</p>}
-
           {job && (
-            <div className="space-y-2 rounded-xl border border-border p-3">
-              <div className="flex items-center justify-between text-sm">
-                <span>
-                  {job.status === "done"
-                    ? t("status.done")
-                    : job.status === "error"
-                      ? t("status.failed")
-                      : t("status.generating")}
-                </span>
-                <span className="text-muted-foreground">
-                  {job.completed}/{job.total}
+            <section className="space-y-3 rounded-lg border p-3" aria-live="polite">
+              <div className="flex items-center justify-between gap-2">
+                <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
+                <span className="text-sm text-muted-foreground tabular-nums">
+                  {t("progressCount", {
+                    completed: formatter.number(job.completed),
+                    total: formatter.number(job.total),
+                  })}
                 </span>
               </div>
-              <Progress value={progressPct} />
-              {job.error && <p className="text-sm text-destructive">{job.error}</p>}
+
+              <Progress
+                value={progressPct}
+                aria-label={t("progressLabel")}
+                aria-valuetext={`${progressPct}%`}
+              />
+
+              {failed && job.error && <p className="text-sm text-destructive">{job.error}</p>}
+
               {job.skipped.length > 0 && (
-                <div className="space-y-1 text-xs text-muted-foreground">
-                  <p className="font-medium text-foreground">
-                    {t("skipped", { count: job.skipped.length })}
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium">
+                    {t("skippedTitle")} · {t("skipped", { count: job.skipped.length })}
                   </p>
-                  {job.skipped.map((s) => (
-                    <p key={s.productCode}>
-                      {s.productCode} — {s.reason}
-                    </p>
-                  ))}
+                  <ul className="max-h-40 divide-y overflow-y-auto rounded-md border text-xs">
+                    {job.skipped.map((s) => (
+                      <li key={s.productCode} className="px-2 py-1.5">
+                        <span className="font-mono" dir="ltr">
+                          {s.productCode}
+                        </span>
+                        <span className="block text-muted-foreground">{s.reason}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
-            </div>
+            </section>
           )}
         </div>
 
-        <SheetFooter>
+        <SheetFooter className="border-t">
           {job?.status === "done" ? (
             <>
-              <Button className="rounded-xl" asChild>
+              <Button asChild>
                 <a href={`/api/products/datasheet/bulk/${jobId}/download`}>
-                  <Download className="h-4 w-4" /> {t("download")}
+                  <DownloadIcon className="size-4" aria-hidden /> {t("download")}
                 </a>
               </Button>
-              <Button variant="outline" className="rounded-xl" onClick={reset}>
+              <Button variant="outline" onClick={reset}>
                 {t("startAnother")}
               </Button>
             </>
           ) : (
-            <Button
-              className="rounded-xl"
-              disabled={starting || (!!jobId && job?.status !== "error")}
-              onClick={startJob}
-            >
-              {starting ? t("starting") : jobId ? t("status.generating") : t("start")}
+            <Button disabled={starting || locked} onClick={startJob}>
+              {(starting || locked) && (
+                <Loader2Icon className="size-4 animate-spin" aria-hidden />
+              )}
+              {starting ? t("starting") : locked ? t("status.generating") : t("start")}
             </Button>
           )}
         </SheetFooter>

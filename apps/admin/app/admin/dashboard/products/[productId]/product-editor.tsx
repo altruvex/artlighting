@@ -1,15 +1,28 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useId, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useFormatter, useTranslations } from "next-intl";
-import { Container } from "@/components/container";
+import { PageHeader, PageShell } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
+import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -18,12 +31,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Upload, Loader2, Download } from "lucide-react";
+import {
+  ArrowRightIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  DownloadIcon,
+  ExternalLinkIcon,
+  ImageIcon,
+  Loader2Icon,
+  StarIcon,
+  Trash2Icon,
+  UploadIcon,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   updateProductGeneral,
   updateProductPrice,
   softDeleteProduct,
+  restoreProduct,
   duplicateProduct,
   addProductImage,
   uploadProductImage,
@@ -74,6 +99,9 @@ type PriceHistoryEntry = {
 type Translation = { language: string; name: string; description: string | null };
 type Specification = ProductSpecificationInput & { language: string };
 
+/** Runs a server action, then toasts and refreshes. */
+type Run = (fn: () => Promise<unknown>, successMsg: string) => void;
+
 const BRANDS = [
   { value: "balcom", label: "Balcom" },
   { value: "mister-led", label: "Mister LED" },
@@ -81,6 +109,8 @@ const BRANDS = [
 const PRODUCT_COLORS = ["warm", "cool", "white"] as const;
 const PRODUCT_IPS = ["IP20", "IP44", "IP54", "IP65", "IP68"] as const;
 const PRODUCT_CHAND_LAMPS = ["lamp9w", "lamp12w"] as const;
+// Each language is labelled in its own script, like the language switcher:
+// an endonym is findable whatever the UI language is set to.
 const LANGUAGES = [
   { value: "en", label: "English" },
   { value: "ar", label: "العربية" },
@@ -108,6 +138,8 @@ const SPEC_FIELDS: { key: keyof ProductSpecificationInput }[] = [
   { key: "bulb" },
 ];
 
+const MONEY = { style: "currency", currency: "EGP" } as const;
+
 interface Props {
   product: {
     id: string;
@@ -117,6 +149,7 @@ interface Props {
     price: number;
     isActive: boolean;
     featured: boolean;
+    deletedAt: Date | null;
     categoryId: string;
     lightingtypeId: string;
     maxIP: number | null;
@@ -136,8 +169,19 @@ interface Props {
   discounts: Discount[];
   priceHistory: PriceHistoryEntry[];
   isOwner: boolean;
+  /** Absolute storefront URL, or null when the product isn't linkable yet. */
+  storefrontUrl: string | null;
 }
 
+/**
+ * ERP record page for one product: header with the record's identity and
+ * record-level actions, a main column of content sections, an aside for
+ * commercial/meta data, and a sticky bar for the primary save.
+ *
+ * Saving is per section (each section maps to its own server action); the
+ * sticky bar saves the "details" set — general fields, visibility and the
+ * datasheet link — which share one form state.
+ */
 export default function ProductEditor({
   product,
   topCategories,
@@ -145,6 +189,7 @@ export default function ProductEditor({
   discounts,
   priceHistory,
   isOwner,
+  storefrontUrl,
 }: Props) {
   const t = useTranslations("ProductEditor");
   const tProducts = useTranslations("Products");
@@ -152,6 +197,7 @@ export default function ProductEditor({
   const format = useFormatter();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const fieldId = useId();
 
   const [productName, setProductName] = useState(product.productName);
   const [brand, setBrand] = useState(product.brand);
@@ -172,6 +218,7 @@ export default function ProductEditor({
   const [priceInput, setPriceInput] = useState(String(product.price));
 
   const [newImageUrl, setNewImageUrl] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
   const [discountScope, setDiscountScope] = useState<"product" | "category" | "global">(
@@ -181,8 +228,85 @@ export default function ProductEditor({
   const [discountCode, setDiscountCode] = useState("");
 
   const availableChildren = childCategories.filter((c) => c.parentId === categoryId);
+  const isDeleted = product.deletedAt !== null;
 
-  function run(fn: () => Promise<unknown>, successMsg: string) {
+  const details = useMemo(
+    () => ({
+      productName,
+      brand,
+      isActive,
+      featured,
+      categoryId,
+      lightingtypeId,
+      productColor,
+      productIp,
+      productChandLamp,
+      maxIP,
+      hNumber,
+      chandelierLightingType,
+      specSheetUrl,
+    }),
+    [
+      productName,
+      brand,
+      isActive,
+      featured,
+      categoryId,
+      lightingtypeId,
+      productColor,
+      productIp,
+      productChandLamp,
+      maxIP,
+      hNumber,
+      chandelierLightingType,
+      specSheetUrl,
+    ]
+  );
+
+  const savedDetails = useMemo(
+    () => ({
+      productName: product.productName,
+      brand: product.brand,
+      isActive: product.isActive,
+      featured: product.featured,
+      categoryId: product.categoryId,
+      lightingtypeId: product.lightingtypeId,
+      productColor: product.productColor,
+      productIp: product.productIp,
+      productChandLamp: product.productChandLamp,
+      maxIP: product.maxIP?.toString() ?? "",
+      hNumber: product.hNumber?.toString() ?? "",
+      chandelierLightingType: product.chandelierLightingType ?? "",
+      specSheetUrl: product.specSheetUrl ?? "",
+    }),
+    [product]
+  );
+
+  const isDirty = useMemo(
+    () =>
+      (Object.keys(savedDetails) as (keyof typeof savedDetails)[]).some(
+        (key) => details[key] !== savedDetails[key]
+      ),
+    [details, savedDetails]
+  );
+
+  function discardDetails() {
+    setProductName(savedDetails.productName);
+    setBrand(savedDetails.brand);
+    setIsActive(savedDetails.isActive);
+    setFeatured(savedDetails.featured);
+    setCategoryId(savedDetails.categoryId);
+    setLightingtypeId(savedDetails.lightingtypeId);
+    setProductColor(savedDetails.productColor);
+    setProductIp(savedDetails.productIp);
+    setProductChandLamp(savedDetails.productChandLamp);
+    setMaxIP(savedDetails.maxIP);
+    setHNumber(savedDetails.hNumber);
+    setChandelierLightingType(savedDetails.chandelierLightingType);
+    setSpecSheetUrl(savedDetails.specSheetUrl);
+  }
+
+  const run: Run = (fn, successMsg) => {
     startTransition(async () => {
       try {
         await fn();
@@ -192,494 +316,475 @@ export default function ProductEditor({
         toast.error(err instanceof Error ? err.message : tCommon("genericError"));
       }
     });
+  };
+
+  function saveDetails() {
+    run(
+      () =>
+        updateProductGeneral(product.id, {
+          productName,
+          brand,
+          isActive,
+          featured,
+          categoryId,
+          lightingtypeId,
+          productColor: productColor as never,
+          productIp: productIp as never,
+          productChandLamp: productChandLamp as never,
+          maxIP: maxIP ? Number(maxIP) : null,
+          hNumber: hNumber ? Number(hNumber) : null,
+          chandelierLightingType: chandelierLightingType || null,
+          specSheetUrl: specSheetUrl || null,
+        }),
+      tCommon("saved")
+    );
   }
 
+  const defaultVariant = product.variants.find((v) => v.isDefault) ?? product.variants[0];
+
   return (
-    <Container>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">{product.productName}</h1>
-          <p className="text-sm text-muted-foreground">{product.productId}</p>
+    <PageShell>
+      <PageHeader
+        title={product.productName}
+        description={
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-xs" dir="ltr">
+              {product.productId}
+            </span>
+            <StatusBadge tone={product.isActive ? "success" : "neutral"}>
+              {product.isActive ? tCommon("active") : tCommon("inactive")}
+            </StatusBadge>
+            {product.featured && <StatusBadge tone="info">{tProducts("featured")}</StatusBadge>}
+            {isDeleted && <StatusBadge tone="danger">{t("deleted")}</StatusBadge>}
+          </span>
+        }
+        actions={
+          <>
+            {storefrontUrl && (
+              <Button asChild variant="outline" size="sm">
+                <a href={storefrontUrl} target="_blank" rel="noreferrer">
+                  <ExternalLinkIcon className="size-4 rtl:-scale-x-100" aria-hidden />
+                  {t("viewOnStorefront")}
+                </a>
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isPending}
+              onClick={() => run(() => duplicateProduct(product.id), t("toasts.duplicated"))}
+            >
+              {t("duplicate")}
+            </Button>
+            {isDeleted ? (
+              <Button
+                size="sm"
+                disabled={isPending}
+                onClick={() => run(() => restoreProduct(product.id), t("toasts.restored"))}
+              >
+                {t("restore")}
+              </Button>
+            ) : (
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={isPending}
+                onClick={() => setConfirmDelete(true)}
+              >
+                {tCommon("delete")}
+              </Button>
+            )}
+          </>
+        }
+      />
+
+      {isDeleted && (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3">
+          <p className="text-sm font-medium text-destructive">{t("deletedBanner.title")}</p>
+          <p className="text-sm text-muted-foreground">{t("deletedBanner.description")}</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="rounded-xl" asChild>
-            <a href={`/api/products/${product.id}/datasheet?format=pptx`}>
-              <Download className="h-4 w-4" /> PPTX
-            </a>
-          </Button>
-          <Button variant="outline" className="rounded-xl" asChild>
-            <a href={`/api/products/${product.id}/datasheet?format=pdf`}>
-              <Download className="h-4 w-4" /> PDF
-            </a>
-          </Button>
-          <Button
-            variant="outline"
-            className="rounded-xl"
-            disabled={isPending}
-            onClick={() => run(() => duplicateProduct(product.id), t("toasts.duplicated"))}
-          >
-            {t("duplicate")}
-          </Button>
-          <Button
-            variant="destructive"
-            className="rounded-xl"
-            disabled={isPending}
-            onClick={() => run(() => softDeleteProduct(product.id), t("toasts.deleted"))}
-          >
-            {tCommon("delete")}
-          </Button>
-        </div>
-      </div>
+      )}
 
-      <Tabs defaultValue="general">
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="general">{t("tabs.general")}</TabsTrigger>
-          <TabsTrigger value="translations">{t("tabs.translations")}</TabsTrigger>
-          <TabsTrigger value="specifications">{t("tabs.specifications")}</TabsTrigger>
-          <TabsTrigger value="images">
-            {t("tabs.images", { count: product.images.length })}
-          </TabsTrigger>
-          <TabsTrigger value="variants">{t("tabs.variants")}</TabsTrigger>
-          <TabsTrigger value="pricing">{t("tabs.pricing")}</TabsTrigger>
-          <TabsTrigger value="discounts">{t("tabs.discounts")}</TabsTrigger>
-        </TabsList>
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_23rem]">
+        {/* ── Main column ─────────────────────────────────────── */}
+        <div className="min-w-0 space-y-4">
+          <Section title={t("general.title")} description={t("general.description")}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                id={`${fieldId}-name`}
+                className="sm:col-span-2"
+                label={t("general.productName")}
+                value={productName}
+                onChange={setProductName}
+              />
 
-        {/* ── General ─────────────────────────────────────────── */}
-        <TabsContent value="general">
-          <Card className="glass-surface rounded-2xl">
-            <CardHeader>
-              <CardTitle>{t("general.title")}</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-2">
-                <Label>{t("general.productName")}</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor={`${fieldId}-sku`}>{t("general.sku")}</Label>
                 <Input
-                  className="rounded-xl"
-                  value={productName}
-                  onChange={(e) => setProductName(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t("general.brand")}</Label>
-                <Select value={brand} onValueChange={setBrand}>
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BRANDS.map((b) => (
-                      <SelectItem key={b.value} value={b.value}>
-                        {b.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t("general.category")}</Label>
-                <Select
-                  value={categoryId}
-                  onValueChange={(v) => {
-                    setCategoryId(v);
-                    const firstChild = childCategories.find((c) => c.parentId === v);
-                    if (firstChild) setLightingtypeId(firstChild.id);
-                  }}
-                >
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {topCategories.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t("general.subcategory")}</Label>
-                <Select value={lightingtypeId} onValueChange={setLightingtypeId}>
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableChildren.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t("general.colorTemperature")}</Label>
-                <Select value={productColor} onValueChange={setProductColor}>
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PRODUCT_COLORS.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {tProducts(`colorTemp.${c}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t("general.baseIp")}</Label>
-                <Select value={productIp} onValueChange={setProductIp}>
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PRODUCT_IPS.map((ip) => (
-                      <SelectItem key={ip} value={ip}>
-                        {ip}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t("general.maxIp")}</Label>
-                <Input
-                  className="rounded-xl"
-                  type="number"
-                  placeholder={t("general.maxIpPlaceholder")}
-                  value={maxIP}
-                  onChange={(e) => setMaxIP(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t("general.chandLamp")}</Label>
-                <Select value={productChandLamp} onValueChange={setProductChandLamp}>
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PRODUCT_CHAND_LAMPS.map((l) => (
-                      <SelectItem key={l} value={l}>
-                        {tProducts(`chandLamp.${l}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t("general.chandLightingType")}</Label>
-                <Input
-                  className="rounded-xl"
-                  placeholder={t("general.chandLightingTypePlaceholder")}
-                  value={chandelierLightingType}
-                  onChange={(e) => setChandelierLightingType(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t("general.heads")}</Label>
-                <Input
-                  className="rounded-xl"
-                  type="number"
-                  value={hNumber}
-                  onChange={(e) => setHNumber(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2 sm:col-span-2">
-                <Label className="flex items-center gap-1.5">
-                  <FileText className="h-3.5 w-3.5" /> {t("general.datasheetUrl")}
-                </Label>
-                <Input
-                  className="rounded-xl"
+                  id={`${fieldId}-sku`}
                   dir="ltr"
-                  placeholder={t("general.datasheetUrlPlaceholder")}
-                  value={specSheetUrl}
-                  onChange={(e) => setSpecSheetUrl(e.target.value)}
+                  value={product.productId}
+                  readOnly
+                  aria-describedby={`${fieldId}-sku-hint`}
+                  className="font-mono text-xs"
                 />
-                <p className="text-xs text-muted-foreground">
-                  {t("general.datasheetUrlHint")}
+                <p id={`${fieldId}-sku-hint`} className="text-xs text-muted-foreground">
+                  {t("general.skuHint")}
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 sm:col-span-2">
-                <Button
-                  type="button"
-                  variant={isActive ? "default" : "outline"}
-                  className="rounded-xl"
-                  onClick={() => setIsActive((v) => !v)}
-                >
-                  {isActive ? tCommon("active") : tCommon("inactive")}
-                </Button>
-                <Button
-                  type="button"
-                  variant={featured ? "default" : "outline"}
-                  className="rounded-xl"
-                  onClick={() => setFeatured((v) => !v)}
-                >
-                  {featured ? t("general.featured") : t("general.notFeatured")}
-                </Button>
-              </div>
-
-              <Button
-                className="rounded-xl sm:col-span-2 sm:w-fit"
-                disabled={isPending}
-                onClick={() =>
-                  run(
-                    () =>
-                      updateProductGeneral(product.id, {
-                        productName,
-                        brand,
-                        isActive,
-                        featured,
-                        categoryId,
-                        lightingtypeId,
-                        productColor: productColor as never,
-                        productIp: productIp as never,
-                        productChandLamp: productChandLamp as never,
-                        maxIP: maxIP ? Number(maxIP) : null,
-                        hNumber: hNumber ? Number(hNumber) : null,
-                        chandelierLightingType: chandelierLightingType || null,
-                        specSheetUrl: specSheetUrl || null,
-                      }),
-                    tCommon("saved")
-                  )
-                }
-              >
-                {t("general.saveChanges")}
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ── Translations ────────────────────────────────────── */}
-        <TabsContent value="translations">
-          <Card className="glass-surface rounded-2xl">
-            <CardHeader>
-              <CardTitle>{t("translations.title")}</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {t("translations.description")}
-              </p>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="en">
-                <TabsList>
-                  {LANGUAGES.map((l) => (
-                    <TabsTrigger key={l.value} value={l.value}>
-                      {l.label}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                {LANGUAGES.map((l) => (
-                  <TabsContent key={l.value} value={l.value}>
-                    <TranslationForm
-                      language={l.value}
-                      productCuid={product.id}
-                      productSku={product.productId}
-                      initial={product.translations.find((t) => t.language === l.value)}
-                      isPending={isPending}
-                      run={run}
-                    />
-                  </TabsContent>
-                ))}
-              </Tabs>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ── Specifications ──────────────────────────────────── */}
-        <TabsContent value="specifications">
-          <Card className="glass-surface rounded-2xl">
-            <CardHeader>
-              <CardTitle>{t("specifications.title")}</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {t("specifications.description")}
-              </p>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="en">
-                <TabsList>
-                  {LANGUAGES.map((l) => (
-                    <TabsTrigger key={l.value} value={l.value}>
-                      {l.label}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                {LANGUAGES.map((l) => (
-                  <TabsContent key={l.value} value={l.value}>
-                    <SpecificationForm
-                      language={l.value}
-                      productCuid={product.id}
-                      productSku={product.productId}
-                      initial={product.specifications.find((s) => s.language === l.value)}
-                      isPending={isPending}
-                      run={run}
-                    />
-                  </TabsContent>
-                ))}
-              </Tabs>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ── Images ──────────────────────────────────────────── */}
-        <TabsContent value="images">
-          <Card className="glass-surface rounded-2xl">
-            <CardHeader>
-              <CardTitle>{t("images.title")}</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {t("images.description")}
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <ImageUploadDropzone
-                productId={product.id}
-                productSku={product.productId}
-                isPending={isPending}
-                run={run}
+              <SelectField
+                id={`${fieldId}-brand`}
+                label={t("general.brand")}
+                value={brand}
+                onValueChange={setBrand}
+                options={BRANDS}
               />
 
-              <div className="flex max-w-xl gap-2">
-                <Input
-                  className="rounded-xl"
-                  placeholder={t("images.urlPlaceholder")}
-                  value={newImageUrl}
-                  onChange={(e) => setNewImageUrl(e.target.value)}
-                />
-                <Button
-                  className="rounded-xl"
-                  variant="outline"
-                  disabled={isPending || !newImageUrl}
-                  onClick={() =>
-                    run(async () => {
-                      await addProductImage(product.id, newImageUrl, product.productName);
-                      setNewImageUrl("");
-                    }, t("images.added"))
-                  }
-                >
-                  {t("images.addUrl")}
-                </Button>
-              </div>
+              <SelectField
+                id={`${fieldId}-category`}
+                label={t("general.category")}
+                value={categoryId}
+                onValueChange={(v) => {
+                  setCategoryId(v);
+                  const firstChild = childCategories.find((c) => c.parentId === v);
+                  if (firstChild) setLightingtypeId(firstChild.id);
+                }}
+                options={topCategories.map((c) => ({ value: c.id, label: c.name }))}
+              />
 
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                {product.images.map((img, index) => (
-                  <div key={img.id} className="space-y-2 rounded-xl border border-border p-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={img.url}
-                      alt={img.altText ?? ""}
-                      className="h-32 w-full rounded-lg object-cover"
-                    />
-                    <div className="flex items-center justify-between">
-                      {img.isPrimary ? (
-                        <Badge>{t("images.primary")}</Badge>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-lg"
-                          disabled={isPending}
-                          onClick={() =>
-                            run(() => setPrimaryImage(img.id, product.id), t("images.primarySet"))
-                          }
-                        >
-                          {t("images.setPrimary")}
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="rounded-lg"
-                        disabled={isPending}
-                        onClick={() =>
-                          run(() => removeProductImage(img.id, product.id), t("images.removed"))
-                        }
-                      >
-                        {t("images.remove")}
-                      </Button>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-lg"
-                        disabled={isPending || index === 0}
-                        onClick={() => {
-                          const order = product.images.map((i) => i.id);
-                          [order[index - 1], order[index]] = [order[index], order[index - 1]];
-                          run(() => reorderProductImages(product.id, order), t("images.reordered"));
-                        }}
-                      >
-                        {t("images.moveUp")}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-lg"
-                        disabled={isPending || index === product.images.length - 1}
-                        onClick={() => {
-                          const order = product.images.map((i) => i.id);
-                          [order[index + 1], order[index]] = [order[index], order[index + 1]];
-                          run(() => reorderProductImages(product.id, order), t("images.reordered"));
-                        }}
-                      >
-                        {t("images.moveDown")}
-                      </Button>
-                    </div>
-                  </div>
+              <SelectField
+                id={`${fieldId}-subcategory`}
+                label={t("general.subcategory")}
+                value={lightingtypeId}
+                onValueChange={setLightingtypeId}
+                options={availableChildren.map((c) => ({ value: c.id, label: c.name }))}
+              />
+
+              <SelectField
+                id={`${fieldId}-color`}
+                label={t("general.colorTemperature")}
+                value={productColor}
+                onValueChange={setProductColor}
+                options={PRODUCT_COLORS.map((c) => ({
+                  value: c,
+                  label: tProducts(`colorTemp.${c}`),
+                }))}
+              />
+
+              <SelectField
+                id={`${fieldId}-ip`}
+                label={t("general.baseIp")}
+                value={productIp}
+                onValueChange={setProductIp}
+                options={PRODUCT_IPS.map((ip) => ({ value: ip, label: ip }))}
+              />
+
+              <TextField
+                id={`${fieldId}-maxip`}
+                label={t("general.maxIp")}
+                type="number"
+                dir="ltr"
+                placeholder={t("general.maxIpPlaceholder")}
+                value={maxIP}
+                onChange={setMaxIP}
+              />
+            </div>
+
+            <Separator className="my-4" />
+
+            <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              {t("general.chandelierGroup")}
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <SelectField
+                id={`${fieldId}-chandlamp`}
+                label={t("general.chandLamp")}
+                value={productChandLamp}
+                onValueChange={setProductChandLamp}
+                options={PRODUCT_CHAND_LAMPS.map((l) => ({
+                  value: l,
+                  label: tProducts(`chandLamp.${l}`),
+                }))}
+              />
+              <TextField
+                id={`${fieldId}-chandtype`}
+                label={t("general.chandLightingType")}
+                placeholder={t("general.chandLightingTypePlaceholder")}
+                value={chandelierLightingType}
+                onChange={setChandelierLightingType}
+              />
+              <TextField
+                id={`${fieldId}-heads`}
+                label={t("general.heads")}
+                type="number"
+                dir="ltr"
+                value={hNumber}
+                onChange={setHNumber}
+              />
+            </div>
+          </Section>
+
+          <Section title={t("translations.title")} description={t("translations.description")}>
+            <Tabs defaultValue="en">
+              <TabsList>
+                {LANGUAGES.map((l) => (
+                  <TabsTrigger key={l.value} value={l.value} lang={l.value}>
+                    {l.label}
+                  </TabsTrigger>
                 ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </TabsList>
+              {LANGUAGES.map((l) => (
+                <TabsContent key={l.value} value={l.value} className="pt-4">
+                  <TranslationForm
+                    language={l.value}
+                    productCuid={product.id}
+                    productSku={product.productId}
+                    initial={product.translations.find((tr) => tr.language === l.value)}
+                    isPending={isPending}
+                    run={run}
+                  />
+                </TabsContent>
+              ))}
+            </Tabs>
+          </Section>
 
-        {/* ── Variants / stock ────────────────────────────────── */}
-        <TabsContent value="variants">
-          <Card className="glass-surface rounded-2xl">
-            <CardHeader>
-              <CardTitle>{t("variants.title")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {product.variants.map((variant) => (
-                <VariantRow
-                  key={variant.id}
-                  variant={variant}
+          <Section title={t("specifications.title")} description={t("specifications.description")}>
+            <Tabs defaultValue="en">
+              <TabsList>
+                {LANGUAGES.map((l) => (
+                  <TabsTrigger key={l.value} value={l.value} lang={l.value}>
+                    {l.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {LANGUAGES.map((l) => (
+                <TabsContent key={l.value} value={l.value} className="pt-4">
+                  <SpecificationForm
+                    language={l.value}
+                    productCuid={product.id}
+                    productSku={product.productId}
+                    initial={product.specifications.find((s) => s.language === l.value)}
+                    isPending={isPending}
+                    run={run}
+                  />
+                </TabsContent>
+              ))}
+            </Tabs>
+          </Section>
+
+          <Section
+            title={t("images.title")}
+            description={t("images.description")}
+            action={
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {t("images.count", { count: product.images.length })}
+              </span>
+            }
+          >
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <ImageUploadDropzone
                   productId={product.id}
+                  productSku={product.productId}
                   isPending={isPending}
                   run={run}
                 />
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                <div className="space-y-1.5">
+                  <Label htmlFor={`${fieldId}-imageurl`}>{t("images.urlLabel")}</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id={`${fieldId}-imageurl`}
+                      dir="ltr"
+                      placeholder={t("images.urlPlaceholder")}
+                      value={newImageUrl}
+                      onChange={(e) => setNewImageUrl(e.target.value)}
+                    />
+                    <Button
+                      variant="outline"
+                      disabled={isPending || !newImageUrl}
+                      onClick={() =>
+                        run(async () => {
+                          await addProductImage(product.id, newImageUrl, product.productName);
+                          setNewImageUrl("");
+                        }, t("images.added"))
+                      }
+                    >
+                      {t("images.addUrl")}
+                    </Button>
+                  </div>
+                </div>
+              </div>
 
-        {/* ── Pricing ─────────────────────────────────────────── */}
-        <TabsContent value="pricing">
-          <Card className="glass-surface rounded-2xl">
-            <CardHeader>
-              <CardTitle>{t("pricing.title")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6 max-w-lg">
-              <div className="space-y-2">
-                <Label>{t("pricing.price")}</Label>
+              {product.images.length === 0 ? (
+                <div className="rounded-lg border border-dashed">
+                  <EmptyState
+                    icon={ImageIcon}
+                    title={t("images.empty")}
+                    description={t("images.emptyDescription")}
+                  />
+                </div>
+              ) : (
+                <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+                  {product.images.map((img, index) => (
+                    <li key={img.id} className="overflow-hidden rounded-lg border">
+                      {/* Arbitrary external hosts: next/image would need each
+                          one allow-listed, so a plain <img> stays correct. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={img.url}
+                        alt={img.altText ?? ""}
+                        className="h-28 w-full bg-muted object-cover"
+                      />
+                      <div className="flex items-center justify-between gap-1 border-t px-2 py-1.5">
+                        {img.isPrimary ? (
+                          <StatusBadge tone="info">{t("images.primary")}</StatusBadge>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            disabled={isPending}
+                            onClick={() =>
+                              run(
+                                () => setPrimaryImage(img.id, product.id),
+                                t("images.primarySet")
+                              )
+                            }
+                          >
+                            <StarIcon className="size-3.5" aria-hidden />
+                            {t("images.setPrimary")}
+                          </Button>
+                        )}
+                        <div className="flex items-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7"
+                            aria-label={t("images.moveUpNamed", { position: index + 1 })}
+                            disabled={isPending || index === 0}
+                            onClick={() => {
+                              const order = product.images.map((i) => i.id);
+                              [order[index - 1], order[index]] = [order[index], order[index - 1]];
+                              run(
+                                () => reorderProductImages(product.id, order),
+                                t("images.reordered")
+                              );
+                            }}
+                          >
+                            <ChevronUpIcon className="size-4" aria-hidden />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7"
+                            aria-label={t("images.moveDownNamed", { position: index + 1 })}
+                            disabled={isPending || index === product.images.length - 1}
+                            onClick={() => {
+                              const order = product.images.map((i) => i.id);
+                              [order[index + 1], order[index]] = [order[index], order[index + 1]];
+                              run(
+                                () => reorderProductImages(product.id, order),
+                                t("images.reordered")
+                              );
+                            }}
+                          >
+                            <ChevronDownIcon className="size-4" aria-hidden />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7 text-muted-foreground hover:text-destructive"
+                            aria-label={t("images.removeNamed", { position: index + 1 })}
+                            disabled={isPending}
+                            onClick={() =>
+                              run(
+                                () => removeProductImage(img.id, product.id),
+                                t("images.removed")
+                              )
+                            }
+                          >
+                            <Trash2Icon className="size-4" aria-hidden />
+                          </Button>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </Section>
+
+          <Section
+            title={t("variants.title")}
+            description={t("variants.description")}
+            action={
+              defaultVariant && (
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {t("variants.stock")}: {format.number(defaultVariant.stock)}
+                </span>
+              )
+            }
+          >
+            {product.variants.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t("variants.empty")}</p>
+            ) : (
+              <div className="space-y-3">
+                {product.variants.map((variant) => (
+                  <VariantRow
+                    key={variant.id}
+                    variant={variant}
+                    productId={product.id}
+                    isPending={isPending}
+                    run={run}
+                  />
+                ))}
+              </div>
+            )}
+          </Section>
+        </div>
+
+        {/* ── Aside ───────────────────────────────────────────── */}
+        <div className="min-w-0 space-y-4">
+          <Section title={t("visibility.title")} description={t("visibility.description")}>
+            <div className="space-y-3">
+              <ToggleRow
+                label={t("visibility.activeLabel")}
+                hint={t("visibility.activeHint")}
+                pressed={isActive}
+                onPressedChange={setIsActive}
+                onLabel={tCommon("active")}
+                offLabel={tCommon("inactive")}
+              />
+              <Separator />
+              <ToggleRow
+                label={t("visibility.featuredLabel")}
+                hint={t("visibility.featuredHint")}
+                pressed={featured}
+                onPressedChange={setFeatured}
+                onLabel={t("general.featured")}
+                offLabel={t("general.notFeatured")}
+              />
+            </div>
+          </Section>
+
+          <Section title={t("pricing.title")}>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor={`${fieldId}-price`}>{t("pricing.price")}</Label>
                 <div className="flex gap-2">
                   <Input
-                    className="rounded-xl"
+                    id={`${fieldId}-price`}
                     type="number"
+                    dir="ltr"
+                    inputMode="decimal"
+                    className="tabular-nums"
                     value={priceInput}
                     disabled={!isOwner}
+                    aria-describedby={isOwner ? undefined : `${fieldId}-price-hint`}
                     onChange={(e) => setPriceInput(e.target.value)}
                   />
                   <Button
-                    className="rounded-xl"
                     disabled={isPending || !isOwner}
                     onClick={() =>
                       run(
@@ -692,105 +797,92 @@ export default function ProductEditor({
                   </Button>
                 </div>
                 {!isOwner && (
-                  <p className="text-sm text-muted-foreground">
+                  <p id={`${fieldId}-price-hint`} className="text-xs text-muted-foreground">
                     {t("pricing.ownerOnly")}
                   </p>
                 )}
               </div>
 
               <div>
-                <Label>{t("pricing.history")}</Label>
+                <p className="text-sm font-medium">{t("pricing.history")}</p>
+                <p className="text-xs text-muted-foreground">{t("pricing.historyDescription")}</p>
                 {priceHistory.length === 0 ? (
-                  <p className="mt-1 text-sm text-muted-foreground">{t("pricing.noHistory")}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{t("pricing.noHistory")}</p>
                 ) : (
-                  <ul className="mt-2 space-y-1 text-sm">
+                  <ul className="mt-2 divide-y rounded-lg border">
                     {priceHistory.map((h) => (
-                      <li key={h.id} className="flex justify-between border-b border-border py-1">
-                        <span>
-                          {format.number(h.oldPrice, { style: "currency", currency: "EGP" })}{" "}
-                          <span className="inline-block rtl:rotate-180">→</span>{" "}
-                          {format.number(h.newPrice, { style: "currency", currency: "EGP" })}
-                        </span>
-                        <span className="text-muted-foreground">
+                      <li key={h.id} className="px-3 py-2">
+                        <p className="flex items-center gap-1.5 text-sm tabular-nums">
+                          <span className="text-muted-foreground line-through">
+                            {format.number(h.oldPrice, MONEY)}
+                          </span>
+                          <ArrowRightIcon
+                            className="size-3.5 shrink-0 text-muted-foreground rtl:-scale-x-100"
+                            aria-hidden
+                          />
+                          <span className="font-medium">{format.number(h.newPrice, MONEY)}</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
                           {format.dateTime(new Date(h.changedAt), {
                             dateStyle: "medium",
                             timeStyle: "short",
                           })}
-                        </span>
+                        </p>
                       </li>
                     ))}
                   </ul>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+          </Section>
 
-        {/* ── Discounts ───────────────────────────────────────── */}
-        <TabsContent value="discounts">
-          <Card className="glass-surface rounded-2xl">
-            <CardHeader>
-              <CardTitle>{t("discounts.title")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
+          <Section title={t("discounts.title")}>
+            <div className="space-y-4">
               {!isOwner ? (
-                <p className="text-sm text-muted-foreground">
-                  {t("discounts.ownerOnly")}
-                </p>
+                <p className="text-sm text-muted-foreground">{t("discounts.ownerOnly")}</p>
               ) : (
-                <div className="grid grid-cols-2 items-end gap-2 md:grid-cols-5 max-w-3xl">
-                  <div className="space-y-1">
-                    <Label>{t("discounts.type")}</Label>
-                    <Select
-                      value={discountType}
-                      onValueChange={(v) => setDiscountType(v as "percentage" | "fixed")}
-                    >
-                      <SelectTrigger className="rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="percentage">{t("discounts.percentage")}</SelectItem>
-                        <SelectItem value="fixed">{t("discounts.fixed")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label>{t("discounts.scope")}</Label>
-                    <Select
-                      value={discountScope}
-                      onValueChange={(v) =>
-                        setDiscountScope(v as "product" | "category" | "global")
-                      }
-                    >
-                      <SelectTrigger className="rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="product">{t("discounts.scopeProduct")}</SelectItem>
-                        <SelectItem value="category">{t("discounts.scopeCategory")}</SelectItem>
-                        <SelectItem value="global">{t("discounts.scopeGlobal")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label>{t("discounts.value")}</Label>
-                    <Input
-                      className="rounded-xl"
-                      type="number"
-                      value={discountValue}
-                      onChange={(e) => setDiscountValue(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>{t("discounts.code")}</Label>
-                    <Input
-                      className="rounded-xl"
-                      value={discountCode}
-                      onChange={(e) => setDiscountCode(e.target.value)}
-                    />
-                  </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <SelectField
+                    id={`${fieldId}-dtype`}
+                    label={t("discounts.type")}
+                    value={discountType}
+                    onValueChange={(v) => setDiscountType(v as "percentage" | "fixed")}
+                    options={[
+                      { value: "percentage", label: t("discounts.percentage") },
+                      { value: "fixed", label: t("discounts.fixed") },
+                    ]}
+                  />
+                  <SelectField
+                    id={`${fieldId}-dscope`}
+                    label={t("discounts.scope")}
+                    value={discountScope}
+                    onValueChange={(v) =>
+                      setDiscountScope(v as "product" | "category" | "global")
+                    }
+                    options={[
+                      { value: "product", label: t("discounts.scopeProduct") },
+                      { value: "category", label: t("discounts.scopeCategory") },
+                      { value: "global", label: t("discounts.scopeGlobal") },
+                    ]}
+                  />
+                  <TextField
+                    id={`${fieldId}-dvalue`}
+                    label={t("discounts.value")}
+                    type="number"
+                    dir="ltr"
+                    inputClassName="tabular-nums"
+                    value={discountValue}
+                    onChange={setDiscountValue}
+                  />
+                  <TextField
+                    id={`${fieldId}-dcode`}
+                    label={t("discounts.code")}
+                    dir="ltr"
+                    value={discountCode}
+                    onChange={setDiscountCode}
+                  />
                   <Button
-                    className="rounded-xl"
+                    className="sm:col-span-2"
                     disabled={isPending || !discountValue}
                     onClick={() =>
                       run(
@@ -813,46 +905,274 @@ export default function ProductEditor({
               )}
 
               <div className="space-y-2">
+                <p className="text-sm font-medium">{t("discounts.activeTitle")}</p>
                 {discounts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    {t("discounts.none")}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{t("discounts.none")}</p>
                 ) : (
-                  discounts.map((d) => (
-                    <div
-                      key={d.id}
-                      className="flex items-center justify-between rounded-xl border border-border p-2"
-                    >
-                      <span>
-                        {d.type === "percentage"
-                          ? t("discounts.percentOff", { value: d.value })
-                          : t("discounts.amountOff", {
-                              amount: format.number(d.value, { style: "currency", currency: "EGP" }),
-                            })}
-                        {d.code ? ` — ${t("discounts.withCode", { code: d.code })}` : ""}
-                      </span>
-                      {isOwner && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="rounded-lg"
-                          disabled={isPending}
-                          onClick={() =>
-                            run(() => deactivateDiscount(d.id), t("discounts.deactivated"))
-                          }
-                        >
-                          {t("discounts.deactivate")}
-                        </Button>
-                      )}
-                    </div>
-                  ))
+                  <ul className="divide-y rounded-lg border">
+                    {discounts.map((d) => (
+                      <li key={d.id} className="flex items-center justify-between gap-2 px-3 py-2">
+                        <span className="min-w-0 text-sm">
+                          {d.type === "percentage"
+                            ? t("discounts.percentOff", { value: d.value })
+                            : t("discounts.amountOff", {
+                                amount: format.number(d.value, MONEY),
+                              })}
+                          {d.code ? ` — ${t("discounts.withCode", { code: d.code })}` : ""}
+                        </span>
+                        {isOwner && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 shrink-0 px-2 text-xs"
+                            disabled={isPending}
+                            onClick={() =>
+                              run(() => deactivateDiscount(d.id), t("discounts.deactivated"))
+                            }
+                          >
+                            {t("discounts.deactivate")}
+                          </Button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </Container>
+            </div>
+          </Section>
+
+          <Section title={t("datasheet.title")} description={t("datasheet.description")}>
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                <Button asChild variant="outline" size="sm">
+                  <a href={`/api/products/${product.id}/datasheet?format=pptx`}>
+                    <DownloadIcon className="size-4" aria-hidden />
+                    {t("datasheet.downloadPptx")}
+                  </a>
+                </Button>
+                <Button asChild variant="outline" size="sm">
+                  <a href={`/api/products/${product.id}/datasheet?format=pdf`}>
+                    <DownloadIcon className="size-4" aria-hidden />
+                    {t("datasheet.downloadPdf")}
+                  </a>
+                </Button>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor={`${fieldId}-specsheet`}>{t("general.datasheetUrl")}</Label>
+                <Input
+                  id={`${fieldId}-specsheet`}
+                  dir="ltr"
+                  placeholder={t("general.datasheetUrlPlaceholder")}
+                  aria-describedby={`${fieldId}-specsheet-hint`}
+                  value={specSheetUrl}
+                  onChange={(e) => setSpecSheetUrl(e.target.value)}
+                />
+                <p id={`${fieldId}-specsheet-hint`} className="text-xs text-muted-foreground">
+                  {t("general.datasheetUrlHint")}
+                </p>
+              </div>
+            </div>
+          </Section>
+        </div>
+      </div>
+
+      {/* ── Sticky save bar ───────────────────────────────────── */}
+      <div className="sticky bottom-0 z-10 -mx-4 -mb-4 border-t bg-background px-4 py-3 md:-mx-6 md:-mb-6 md:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p
+            aria-live="polite"
+            className={cn("text-sm", isDirty ? "text-foreground" : "text-muted-foreground")}
+          >
+            {isDirty ? t("saveBar.unsaved") : t("saveBar.saved")}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!isDirty || isPending}
+              onClick={discardDetails}
+            >
+              {t("saveBar.discard")}
+            </Button>
+            <Button size="sm" disabled={!isDirty || isPending} onClick={saveDetails}>
+              {isPending && <Loader2Icon className="size-4 animate-spin" aria-hidden />}
+              {isPending ? tCommon("saving") : t("general.saveChanges")}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("deleteDialog.title")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("deleteDialog.description")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => run(() => softDeleteProduct(product.id), t("toasts.deleted"))}
+            >
+              {t("deleteDialog.confirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </PageShell>
+  );
+}
+
+/** Bordered record section: heading strip and body. */
+function Section({
+  title,
+  description,
+  action,
+  children,
+}: {
+  title: string;
+  description?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card className="gap-0 overflow-hidden py-0 shadow-none">
+      <div className="flex items-start justify-between gap-3 border-b bg-muted/40 px-4 py-2.5">
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold">{title}</h2>
+          {description && (
+            <p className="text-xs text-muted-foreground text-pretty">{description}</p>
+          )}
+        </div>
+        {action && <div className="shrink-0">{action}</div>}
+      </div>
+      <div className="p-4">{children}</div>
+    </Card>
+  );
+}
+
+function TextField({
+  id,
+  label,
+  value,
+  onChange,
+  type,
+  dir,
+  placeholder,
+  hint,
+  className,
+  inputClassName,
+  disabled,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  dir?: "ltr";
+  placeholder?: string;
+  hint?: string;
+  className?: string;
+  inputClassName?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <div className={cn("space-y-1.5", className)}>
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        id={id}
+        type={type}
+        dir={dir}
+        disabled={disabled}
+        placeholder={placeholder}
+        aria-describedby={hint ? `${id}-hint` : undefined}
+        className={cn(type === "number" && "tabular-nums", inputClassName)}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      {hint && (
+        <p id={`${id}-hint`} className="text-xs text-muted-foreground">
+          {hint}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function SelectField({
+  id,
+  label,
+  value,
+  onValueChange,
+  options,
+  placeholder,
+  className,
+  disabled,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onValueChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  className?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <div className={cn("space-y-1.5", className)}>
+      <Label htmlFor={id}>{label}</Label>
+      <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+        <SelectTrigger id={id} className="w-full">
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+/**
+ * Two-state switch rendered as a button pair, so the state is readable
+ * without colour and the label stays associated with the control.
+ */
+function ToggleRow({
+  label,
+  hint,
+  pressed,
+  onPressedChange,
+  onLabel,
+  offLabel,
+}: {
+  label: string;
+  hint: string;
+  pressed: boolean;
+  onPressedChange: (next: boolean) => void;
+  onLabel: string;
+  offLabel: string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs text-muted-foreground text-pretty">{hint}</p>
+      </div>
+      <Button
+        type="button"
+        size="sm"
+        variant={pressed ? "default" : "outline"}
+        aria-pressed={pressed}
+        className="shrink-0"
+        onClick={() => onPressedChange(!pressed)}
+      >
+        {pressed ? onLabel : offLabel}
+      </Button>
+    </div>
   );
 }
 
@@ -869,43 +1189,56 @@ function TranslationForm({
   productSku: string;
   initial: Translation | undefined;
   isPending: boolean;
-  run: (fn: () => Promise<unknown>, msg: string) => void;
+  run: Run;
 }) {
   const t = useTranslations("ProductEditor.translations");
+  const tCommon = useTranslations("Common");
+  const fieldId = useId();
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
 
   return (
-    <div className="max-w-xl space-y-4 pt-4">
-      <div className="space-y-2">
-        <Label>{t("name", { language })}</Label>
-        <Input className="rounded-xl" value={name} onChange={(e) => setName(e.target.value)} />
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        <Label htmlFor={`${fieldId}-name`}>{t("name", { language })}</Label>
+        <Input
+          id={`${fieldId}-name`}
+          lang={language}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
       </div>
-      <div className="space-y-2">
-        <Label>{t("descriptionLabel", { language })}</Label>
+      <div className="space-y-1.5">
+        <Label htmlFor={`${fieldId}-description`}>{t("descriptionLabel", { language })}</Label>
         <Textarea
-          className="rounded-xl"
+          id={`${fieldId}-description`}
+          lang={language}
           rows={4}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
       </div>
-      <Button
-        className="rounded-xl"
-        disabled={isPending || !name}
-        onClick={() =>
-          run(
-            () =>
-              upsertProductTranslation(productCuid, productSku, language as "en" | "ar", {
-                name,
-                description: description || null,
-              }),
-            t("saved", { language: language.toUpperCase() })
-          )
-        }
-      >
-        {t("save", { language: language.toUpperCase() })}
-      </Button>
+      <div className="flex items-center justify-between gap-2">
+        {!initial && <p className="text-xs text-muted-foreground">{t("missing")}</p>}
+        <Button
+          size="sm"
+          className="ms-auto"
+          disabled={isPending || !name}
+          onClick={() =>
+            run(
+              () =>
+                upsertProductTranslation(productCuid, productSku, language as "en" | "ar", {
+                  name,
+                  description: description || null,
+                }),
+              t("saved", { language: language.toUpperCase() })
+            )
+          }
+        >
+          {isPending && <Loader2Icon className="size-4 animate-spin" aria-hidden />}
+          {isPending ? tCommon("saving") : t("save", { language: language.toUpperCase() })}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -923,9 +1256,11 @@ function SpecificationForm({
   productSku: string;
   initial: Specification | undefined;
   isPending: boolean;
-  run: (fn: () => Promise<unknown>, msg: string) => void;
+  run: Run;
 }) {
   const t = useTranslations("ProductEditor");
+  const tCommon = useTranslations("Common");
+  const fieldId = useId();
   const [values, setValues] = useState<ProductSpecificationInput>(() => {
     const v: ProductSpecificationInput = {};
     for (const { key } of SPEC_FIELDS) {
@@ -939,52 +1274,58 @@ function SpecificationForm({
   }
 
   return (
-    <div className="space-y-4 pt-4">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {SPEC_FIELDS.map(({ key }) => (
-          <div key={key} className="space-y-2">
-            <Label>{t(`specFields.${key}`)}</Label>
+          <div key={key} className="space-y-1.5">
+            <Label htmlFor={`${fieldId}-${key}`}>{t(`specFields.${key}`)}</Label>
             <Input
-              className="rounded-xl"
+              id={`${fieldId}-${key}`}
+              lang={language}
               value={values[key] ?? ""}
               onChange={(e) => setField(key, e.target.value)}
             />
           </div>
         ))}
       </div>
-      <Button
-        className="rounded-xl"
-        disabled={isPending}
-        onClick={() =>
-          run(
-            () =>
-              upsertProductSpecification(productCuid, productSku, language as "en" | "ar", {
-                ...values,
-                input: values.input || null,
-                maximumWattage: values.maximumWattage || null,
-                brandOfLed: values.brandOfLed || null,
-                luminousFlux: values.luminousFlux || null,
-                mainMaterial: values.mainMaterial || null,
-                cri: values.cri || null,
-                beamAngle: values.beamAngle || null,
-                workingTemperature: values.workingTemperature || null,
-                fixtureDimmable: values.fixtureDimmable || null,
-                electrical: values.electrical || null,
-                powerFactor: values.powerFactor || null,
-                colorTemperature: values.colorTemperature || null,
-                ip: values.ip || null,
-                energySaving: values.energySaving || null,
-                lifeTime: values.lifeTime || null,
-                finish: values.finish || null,
-                lampBase: values.lampBase || null,
-                bulb: values.bulb || null,
-              }),
-            t("specifications.saved", { language: language.toUpperCase() })
-          )
-        }
-      >
-        {t("specifications.save", { language: language.toUpperCase() })}
-      </Button>
+      <div className="flex justify-end">
+        <Button
+          size="sm"
+          disabled={isPending}
+          onClick={() =>
+            run(
+              () =>
+                upsertProductSpecification(productCuid, productSku, language as "en" | "ar", {
+                  ...values,
+                  input: values.input || null,
+                  maximumWattage: values.maximumWattage || null,
+                  brandOfLed: values.brandOfLed || null,
+                  luminousFlux: values.luminousFlux || null,
+                  mainMaterial: values.mainMaterial || null,
+                  cri: values.cri || null,
+                  beamAngle: values.beamAngle || null,
+                  workingTemperature: values.workingTemperature || null,
+                  fixtureDimmable: values.fixtureDimmable || null,
+                  electrical: values.electrical || null,
+                  powerFactor: values.powerFactor || null,
+                  colorTemperature: values.colorTemperature || null,
+                  ip: values.ip || null,
+                  energySaving: values.energySaving || null,
+                  lifeTime: values.lifeTime || null,
+                  finish: values.finish || null,
+                  lampBase: values.lampBase || null,
+                  bulb: values.bulb || null,
+                }),
+              t("specifications.saved", { language: language.toUpperCase() })
+            )
+          }
+        >
+          {isPending && <Loader2Icon className="size-4 animate-spin" aria-hidden />}
+          {isPending
+            ? tCommon("saving")
+            : t("specifications.save", { language: language.toUpperCase() })}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -998,7 +1339,7 @@ function ImageUploadDropzone({
   productId: string;
   productSku: string;
   isPending: boolean;
-  run: (fn: () => Promise<unknown>, msg: string) => void;
+  run: Run;
 }) {
   const t = useTranslations("ProductEditor.images");
   const [isDragging, setIsDragging] = useState(false);
@@ -1034,27 +1375,29 @@ function ImageUploadDropzone({
         setIsDragging(false);
         uploadFiles(e.dataTransfer.files);
       }}
-      onClick={() => !busy && inputRef.current?.click()}
-      className={`flex max-w-xl cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
-        isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-      } ${busy ? "pointer-events-none opacity-60" : ""}`}
+      className={cn(
+        "flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-6 text-center transition-colors",
+        isDragging ? "border-primary bg-primary/5" : "border-input",
+        busy && "opacity-60"
+      )}
     >
       <input
         ref={inputRef}
+        id={`${productId}-image-file`}
         type="file"
         accept="image/jpeg,image/png,image/webp,image/avif"
         multiple
-        className="hidden"
+        className="sr-only"
         onChange={(e) => uploadFiles(e.target.files)}
       />
       {busy ? (
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <Loader2Icon className="size-5 animate-spin text-primary" aria-hidden />
       ) : (
-        <Upload className="h-6 w-6 text-muted-foreground" />
+        <UploadIcon className="size-5 text-muted-foreground" aria-hidden />
       )}
-      <p className="text-sm font-medium">
+      <Label htmlFor={`${productId}-image-file`} className="cursor-pointer text-sm">
         {busy ? t("uploading") : t("dropzone")}
-      </p>
+      </Label>
     </div>
   );
 }
@@ -1068,59 +1411,69 @@ function VariantRow({
   variant: Variant;
   productId: string;
   isPending: boolean;
-  run: (fn: () => Promise<unknown>, msg: string) => void;
+  run: Run;
 }) {
   const t = useTranslations("ProductEditor.variants");
+  const tCommon = useTranslations("Common");
+  const fieldId = useId();
   const [wattage, setWattage] = useState(variant.wattage ?? "");
   const [finish, setFinish] = useState(variant.finish ?? "");
   const [size, setSize] = useState(variant.size ?? "");
   const [stock, setStock] = useState(String(variant.stock));
 
   return (
-    <div className="grid grid-cols-2 items-end gap-2 rounded-xl border border-border p-3 md:grid-cols-5">
-      <div className="space-y-1">
-        <Label>{t("sku")}</Label>
-        <Input className="rounded-xl" value={variant.sku} disabled />
+    <div className="rounded-lg border">
+      <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2">
+        <span className="truncate font-mono text-xs" dir="ltr">
+          {variant.sku}
+        </span>
+        {variant.isDefault && <StatusBadge tone="info">{t("default")}</StatusBadge>}
       </div>
-      <div className="space-y-1">
-        <Label>{t("wattage")}</Label>
-        <Input className="rounded-xl" value={wattage} onChange={(e) => setWattage(e.target.value)} />
-      </div>
-      <div className="space-y-1">
-        <Label>{t("finish")}</Label>
-        <Input className="rounded-xl" value={finish} onChange={(e) => setFinish(e.target.value)} />
-      </div>
-      <div className="space-y-1">
-        <Label>{t("size")}</Label>
-        <Input className="rounded-xl" value={size} onChange={(e) => setSize(e.target.value)} />
-      </div>
-      <div className="space-y-1">
-        <Label>{t("stock")}</Label>
-        <Input
-          className="rounded-xl"
+      <div className="grid gap-3 p-3 sm:grid-cols-2 xl:grid-cols-4">
+        <TextField
+          id={`${fieldId}-wattage`}
+          label={t("wattage")}
+          value={wattage}
+          onChange={setWattage}
+        />
+        <TextField
+          id={`${fieldId}-finish`}
+          label={t("finish")}
+          value={finish}
+          onChange={setFinish}
+        />
+        <TextField id={`${fieldId}-size`} label={t("size")} value={size} onChange={setSize} />
+        <TextField
+          id={`${fieldId}-stock`}
+          label={t("stock")}
           type="number"
+          dir="ltr"
           value={stock}
-          onChange={(e) => setStock(e.target.value)}
+          onChange={setStock}
         />
       </div>
-      <Button
-        className="col-span-2 rounded-xl md:col-span-5"
-        disabled={isPending}
-        onClick={() =>
-          run(
-            () =>
-              updateVariant(variant.id, productId, {
-                wattage: wattage || null,
-                finish: finish || null,
-                size: size || null,
-                stock: Number(stock),
-              }),
-            t("updated")
-          )
-        }
-      >
-        {t("save")}
-      </Button>
+      <div className="flex justify-end border-t px-3 py-2">
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={isPending}
+          onClick={() =>
+            run(
+              () =>
+                updateVariant(variant.id, productId, {
+                  wattage: wattage || null,
+                  finish: finish || null,
+                  size: size || null,
+                  stock: Number(stock),
+                }),
+              t("updated")
+            )
+          }
+        >
+          {isPending && <Loader2Icon className="size-4 animate-spin" aria-hidden />}
+          {isPending ? tCommon("saving") : t("save")}
+        </Button>
+      </div>
     </div>
   );
 }

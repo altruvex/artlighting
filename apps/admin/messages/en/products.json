@@ -37,21 +37,31 @@
   },
   "ProductEditor": {
     "duplicate": "Duplicate",
-    "tabs": {
-      "general": "General",
-      "translations": "Translations",
-      "specifications": "Specifications",
-      "images": "Images ({count})",
-      "variants": "Stock & variant",
-      "pricing": "Pricing",
-      "discounts": "Discounts"
+    "restore": "Restore",
+    "viewOnStorefront": "View on storefront",
+    "deleted": "Deleted",
+    "deletedBanner": {
+      "title": "This product is deleted",
+      "description": "It stays hidden from the storefront until you restore it."
+    },
+    "deleteDialog": {
+      "title": "Delete this product?",
+      "description": "The product is hidden from the storefront and removed from the catalog list. You can restore it from this page afterwards.",
+      "confirm": "Delete product"
     },
     "toasts": {
       "duplicated": "Product duplicated",
-      "deleted": "Product deleted (soft)"
+      "deleted": "Product deleted (soft)",
+      "restored": "Product restored"
+    },
+    "saveBar": {
+      "unsaved": "Unsaved changes in details, visibility and datasheet",
+      "saved": "All details saved",
+      "discard": "Discard changes"
     },
     "general": {
       "title": "General",
+      "description": "Internal name, brand and classification.",
       "productName": "Product name",
       "brand": "Brand",
       "category": "Category",
@@ -69,15 +79,27 @@
       "datasheetUrlHint": "Same URL-based approach as images — paste a link once the PDF is hosted somewhere. Wiring an actual upload flow is follow-up work once a storage provider is chosen.",
       "featured": "Featured",
       "notFeatured": "Not featured",
-      "saveChanges": "Save changes"
+      "saveChanges": "Save changes",
+      "sku": "SKU",
+      "skuHint": "The SKU is set when the product is created and cannot be changed here.",
+      "chandelierGroup": "Chandelier details"
+    },
+    "visibility": {
+      "title": "Visibility",
+      "description": "Controls where the product appears on the storefront.",
+      "activeLabel": "Active",
+      "activeHint": "Inactive products are hidden from the storefront.",
+      "featuredLabel": "Featured",
+      "featuredHint": "Featured products appear in the home page selection."
     },
     "translations": {
-      "title": "Translations",
+      "title": "Localized content",
       "description": "The localized name and description shown on the storefront per language.",
       "name": "Name ({language})",
       "descriptionLabel": "Description ({language})",
       "save": "Save {language} translation",
-      "saved": "{language} translation saved"
+      "saved": "{language} translation saved",
+      "missing": "Not translated yet"
     },
     "specifications": {
       "title": "Specifications",
@@ -108,6 +130,7 @@
     "images": {
       "title": "Images",
       "description": "Upload files directly, or paste a URL for an image already hosted elsewhere. JPEG/PNG/WEBP/AVIF, up to 8MB.",
+      "urlLabel": "Image URL",
       "urlPlaceholder": "or paste an existing image URL",
       "addUrl": "Add URL",
       "added": "Image added",
@@ -115,23 +138,32 @@
       "setPrimary": "Set primary",
       "primarySet": "Primary image set",
       "remove": "Remove",
+      "removeNamed": "Remove image {position}",
       "removed": "Image removed",
-      "moveUp": "← Move up",
-      "moveDown": "Move down →",
+      "moveUp": "Move earlier",
+      "moveDown": "Move later",
+      "moveUpNamed": "Move image {position} earlier",
+      "moveDownNamed": "Move image {position} later",
       "reordered": "Reordered",
       "uploading": "Uploading...",
       "dropzone": "Drag images here, or click to browse",
-      "uploaded": "{count, plural, one {Image uploaded} other {# images uploaded}}"
+      "uploaded": "{count, plural, one {Image uploaded} other {# images uploaded}}",
+      "count": "{count, plural, =0 {No images} one {# image} other {# images}}",
+      "empty": "No images yet",
+      "emptyDescription": "Upload at least one image — the first one becomes the primary image on the storefront."
     },
     "variants": {
-      "title": "Stock & variant",
+      "title": "Stock & variants",
+      "description": "Stock is tracked per variant. The default variant also drives the quantity shown on the storefront.",
       "sku": "SKU",
       "wattage": "Wattage",
       "finish": "Finish",
       "size": "Size",
       "stock": "Stock",
       "save": "Save variant",
-      "updated": "Variant updated"
+      "updated": "Variant updated",
+      "default": "Default",
+      "empty": "No variants on this product yet."
     },
     "pricing": {
       "title": "Pricing",
@@ -140,7 +172,10 @@
       "updated": "Price updated",
       "ownerOnly": "Only owners can change price.",
       "history": "Price history",
-      "noHistory": "No changes recorded yet."
+      "historyDescription": "The last 10 recorded changes.",
+      "noHistory": "No changes recorded yet.",
+      "current": "Current price",
+      "changeLabel": "{from} changed to {to}"
     },
     "discounts": {
       "title": "Discounts",
@@ -161,26 +196,54 @@
       "amountOff": "{amount} off",
       "withCode": "code {code}",
       "deactivate": "Deactivate",
-      "deactivated": "Discount deactivated"
+      "deactivated": "Discount deactivated",
+      "activeTitle": "Active discounts"
+    },
+    "datasheet": {
+      "title": "Datasheet",
+      "description": "Generate the spec sheet for this product from its current data.",
+      "downloadPptx": "Download PPTX",
+      "downloadPdf": "Download PDF"
     }
   },
   "NewProduct": {
     "title": "New product",
+    "subtitle": "Create the catalog record. Images, translations and specs are added on the next screen.",
     "sku": "Product ID / SKU",
     "skuPlaceholder": "e.g. jy-999-15w",
+    "skuHint": "Used in the storefront URL and on every datasheet. It cannot be changed later.",
     "productName": "Product name",
+    "productNameHint": "The internal name. Localized names are added after creation.",
     "brand": "Brand",
     "category": "Category",
     "subcategory": "Subcategory (lighting type)",
     "subcategoryPlaceholder": "Select a subcategory",
     "price": "Price (EGP)",
     "initialStock": "Initial stock",
+    "initialStockHint": "Sets the stock of the default variant.",
     "create": "Create product",
+    "creating": "Creating…",
     "created": "Product created",
+    "sections": {
+      "identity": "Identity",
+      "identityDescription": "How the product is identified across the catalog.",
+      "classification": "Classification",
+      "classificationDescription": "Where the product sits in the storefront navigation.",
+      "pricing": "Pricing & stock",
+      "pricingDescription": "Price in EGP and the opening stock level."
+    },
     "errors": {
       "missingFields": "Fill in product ID, name, price, and category/subcategory",
       "invalidCategory": "Invalid category selection",
-      "createFailed": "Failed to create product"
+      "createFailed": "Failed to create product",
+      "skuRequired": "Enter a product ID / SKU",
+      "nameRequired": "Enter a product name",
+      "priceRequired": "Enter a price",
+      "priceInvalid": "Price must be a number of 0 or more",
+      "stockInvalid": "Stock must be a whole number of 0 or more",
+      "categoryRequired": "Select a category",
+      "subcategoryRequired": "Select a subcategory",
+      "summary": "{count, plural, one {Fix # field before creating the product} other {Fix # fields before creating the product}}"
     }
   },
   "ProductActions": {
@@ -205,13 +268,20 @@
     "status": {
       "done": "Done",
       "failed": "Failed",
-      "generating": "Generating…"
+      "generating": "Generating…",
+      "queued": "Queued",
+      "label": "Status"
     },
     "skipped": "{count} skipped:",
+    "skippedTitle": "Skipped products",
     "download": "Download",
     "startAnother": "Start another",
     "starting": "Starting…",
     "start": "Start",
+    "progressLabel": "Generation progress",
+    "progressCount": "{completed} of {total}",
+    "settingsTitle": "What to generate",
+    "settingsLocked": "Settings are locked while a job is running.",
     "errors": {
       "unauthorized": "Unauthorized",
       "invalidScope": "Scope must be 'all' or 'category'",
@@ -224,7 +294,8 @@
       "unreachable": "Bulk generation service unreachable",
       "unexpectedResponse": "Bulk generation service returned an unexpected response",
       "startFailed": "Failed to start job",
-      "downloadFailed": "Download failed"
+      "downloadFailed": "Download failed",
+      "title": "Generation failed"
     }
   },
   "Datasheet": {

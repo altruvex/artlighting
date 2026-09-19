@@ -37,21 +37,31 @@
   },
   "ProductEditor": {
     "duplicate": "نسخ",
-    "tabs": {
-      "general": "عام",
-      "translations": "الترجمات",
-      "specifications": "المواصفات",
-      "images": "الصور ({count})",
-      "variants": "المخزون والنسخة",
-      "pricing": "التسعير",
-      "discounts": "الخصومات"
+    "restore": "استعادة",
+    "viewOnStorefront": "عرض في المتجر",
+    "deleted": "محذوف",
+    "deletedBanner": {
+      "title": "هذا المنتج محذوف",
+      "description": "يظل مخفيًا عن المتجر إلى أن تستعيده."
+    },
+    "deleteDialog": {
+      "title": "حذف هذا المنتج؟",
+      "description": "سيُخفى المنتج عن المتجر ويُزال من قائمة الكتالوج. يمكنك استعادته من هذه الصفحة لاحقًا.",
+      "confirm": "حذف المنتج"
     },
     "toasts": {
       "duplicated": "تم نسخ المنتج",
-      "deleted": "تم حذف المنتج (حذف مؤقت)"
+      "deleted": "تم حذف المنتج (حذف مؤقت)",
+      "restored": "تمت استعادة المنتج"
+    },
+    "saveBar": {
+      "unsaved": "تغييرات غير محفوظة في البيانات والظهور ورابط ورقة البيانات",
+      "saved": "كل البيانات محفوظة",
+      "discard": "تجاهل التغييرات"
     },
     "general": {
       "title": "عام",
+      "description": "الاسم الداخلي والعلامة التجارية والتصنيف.",
       "productName": "اسم المنتج",
       "brand": "العلامة التجارية",
       "category": "الفئة",
@@ -69,15 +79,27 @@
       "datasheetUrlHint": "نفس طريقة الصور المعتمدة على الروابط — الصق الرابط بعد رفع ملف PDF على أي استضافة. ربط الرفع المباشر سيُنفّذ لاحقًا بعد اختيار مزوّد التخزين.",
       "featured": "مميز",
       "notFeatured": "غير مميز",
-      "saveChanges": "حفظ التغييرات"
+      "saveChanges": "حفظ التغييرات",
+      "sku": "رمز المنتج (SKU)",
+      "skuHint": "يُحدَّد رمز المنتج عند إنشائه ولا يمكن تغييره من هنا.",
+      "chandelierGroup": "بيانات النجف"
+    },
+    "visibility": {
+      "title": "الظهور",
+      "description": "يتحكم في مكان ظهور المنتج داخل المتجر.",
+      "activeLabel": "نشط",
+      "activeHint": "المنتجات غير النشطة مخفية عن المتجر.",
+      "featuredLabel": "مميز",
+      "featuredHint": "المنتجات المميزة تظهر ضمن مختارات الصفحة الرئيسية."
     },
     "translations": {
-      "title": "الترجمات",
+      "title": "المحتوى المترجم",
       "description": "الاسم والوصف المترجمان المعروضان في المتجر لكل لغة.",
       "name": "الاسم ({language})",
       "descriptionLabel": "الوصف ({language})",
       "save": "حفظ ترجمة {language}",
-      "saved": "تم حفظ ترجمة {language}"
+      "saved": "تم حفظ ترجمة {language}",
+      "missing": "لم تُترجم بعد"
     },
     "specifications": {
       "title": "المواصفات",
@@ -108,6 +130,7 @@
     "images": {
       "title": "الصور",
       "description": "ارفع الملفات مباشرة، أو الصق رابط صورة مستضافة في مكان آخر. JPEG/PNG/WEBP/AVIF، بحد أقصى 8MB.",
+      "urlLabel": "رابط الصورة",
       "urlPlaceholder": "أو الصق رابط صورة موجودة",
       "addUrl": "إضافة الرابط",
       "added": "تمت إضافة الصورة",
@@ -115,23 +138,32 @@
       "setPrimary": "تعيين كرئيسية",
       "primarySet": "تم تعيين الصورة الرئيسية",
       "remove": "إزالة",
+      "removeNamed": "إزالة الصورة رقم {position}",
       "removed": "تمت إزالة الصورة",
-      "moveUp": "→ تقديم",
-      "moveDown": "تأخير ←",
+      "moveUp": "تقديم",
+      "moveDown": "تأخير",
+      "moveUpNamed": "تقديم الصورة رقم {position}",
+      "moveDownNamed": "تأخير الصورة رقم {position}",
       "reordered": "تم تغيير الترتيب",
       "uploading": "جارٍ الرفع...",
       "dropzone": "اسحب الصور هنا، أو انقر للتصفح",
-      "uploaded": "{count, plural, zero {لم تُرفع أي صورة} one {تم رفع الصورة} two {تم رفع صورتين} few {تم رفع # صور} many {تم رفع # صورة} other {تم رفع # صورة}}"
+      "uploaded": "{count, plural, zero {لم تُرفع أي صورة} one {تم رفع الصورة} two {تم رفع صورتين} few {تم رفع # صور} many {تم رفع # صورة} other {تم رفع # صورة}}",
+      "count": "{count, plural, =0 {لا توجد صور} one {صورة واحدة} two {صورتان} few {# صور} many {# صورة} other {# صورة}}",
+      "empty": "لا توجد صور بعد",
+      "emptyDescription": "ارفع صورة واحدة على الأقل — تصبح الأولى هي الصورة الرئيسية في المتجر."
     },
     "variants": {
-      "title": "المخزون والنسخة",
+      "title": "المخزون والنسخ",
+      "description": "يُحتسب المخزون لكل نسخة. والنسخة الافتراضية هي التي تحدد الكمية المعروضة في المتجر.",
       "sku": "SKU",
       "wattage": "القدرة",
       "finish": "التشطيب",
       "size": "المقاس",
       "stock": "المخزون",
       "save": "حفظ النسخة",
-      "updated": "تم تحديث النسخة"
+      "updated": "تم تحديث النسخة",
+      "default": "افتراضية",
+      "empty": "لا توجد نسخ لهذا المنتج بعد."
     },
     "pricing": {
       "title": "التسعير",
@@ -140,7 +172,10 @@
       "updated": "تم تحديث السعر",
       "ownerOnly": "تغيير السعر متاح للمالكين فقط.",
       "history": "سجل الأسعار",
-      "noHistory": "لا توجد تغييرات مسجلة بعد."
+      "historyDescription": "آخر ١٠ تغييرات مسجّلة.",
+      "noHistory": "لا توجد تغييرات مسجلة بعد.",
+      "current": "السعر الحالي",
+      "changeLabel": "تغيّر من {from} إلى {to}"
     },
     "discounts": {
       "title": "الخصومات",
@@ -161,26 +196,54 @@
       "amountOff": "خصم {amount}",
       "withCode": "الكود {code}",
       "deactivate": "إيقاف",
-      "deactivated": "تم إيقاف الخصم"
+      "deactivated": "تم إيقاف الخصم",
+      "activeTitle": "الخصومات النشطة"
+    },
+    "datasheet": {
+      "title": "ورقة البيانات",
+      "description": "أنشئ ورقة المواصفات لهذا المنتج من بياناته الحالية.",
+      "downloadPptx": "تنزيل PPTX",
+      "downloadPdf": "تنزيل PDF"
     }
   },
   "NewProduct": {
     "title": "منتج جديد",
+    "subtitle": "أنشئ سجل الكتالوج. تُضاف الصور والترجمات والمواصفات في الشاشة التالية.",
     "sku": "رقم المنتج / SKU",
     "skuPlaceholder": "مثال: jy-999-15w",
+    "skuHint": "يُستخدم في رابط المنتج داخل المتجر وفي كل ورقة بيانات، ولا يمكن تغييره لاحقًا.",
     "productName": "اسم المنتج",
+    "productNameHint": "الاسم الداخلي. تُضاف الأسماء المترجمة بعد الإنشاء.",
     "brand": "العلامة التجارية",
     "category": "الفئة",
     "subcategory": "الفئة الفرعية (نوع الإضاءة)",
     "subcategoryPlaceholder": "اختر فئة فرعية",
     "price": "السعر (EGP)",
     "initialStock": "المخزون المبدئي",
+    "initialStockHint": "يحدد مخزون النسخة الافتراضية.",
     "create": "إنشاء المنتج",
+    "creating": "جارٍ الإنشاء…",
     "created": "تم إنشاء المنتج",
+    "sections": {
+      "identity": "التعريف",
+      "identityDescription": "كيف يُعرَّف المنتج داخل الكتالوج.",
+      "classification": "التصنيف",
+      "classificationDescription": "موضع المنتج داخل تصنيفات المتجر.",
+      "pricing": "السعر والمخزون",
+      "pricingDescription": "السعر بالجنيه المصري ومستوى المخزون المبدئي."
+    },
     "errors": {
       "missingFields": "أدخل رقم المنتج والاسم والسعر والفئة/الفئة الفرعية",
       "invalidCategory": "اختيار الفئة غير صالح",
-      "createFailed": "تعذّر إنشاء المنتج"
+      "createFailed": "تعذّر إنشاء المنتج",
+      "skuRequired": "أدخل رقم المنتج / SKU",
+      "nameRequired": "أدخل اسم المنتج",
+      "priceRequired": "أدخل السعر",
+      "priceInvalid": "يجب أن يكون السعر رقمًا لا يقل عن صفر",
+      "stockInvalid": "يجب أن يكون المخزون عددًا صحيحًا لا يقل عن صفر",
+      "categoryRequired": "اختر فئة",
+      "subcategoryRequired": "اختر فئة فرعية",
+      "summary": "{count, plural, zero {صحّح الحقول قبل إنشاء المنتج} one {صحّح حقلًا واحدًا قبل إنشاء المنتج} two {صحّح حقلين قبل إنشاء المنتج} few {صحّح # حقول قبل إنشاء المنتج} many {صحّح # حقلًا قبل إنشاء المنتج} other {صحّح # حقل قبل إنشاء المنتج}}"
     }
   },
   "ProductActions": {
@@ -205,13 +268,20 @@
     "status": {
       "done": "اكتمل",
       "failed": "فشل",
-      "generating": "جارٍ الإنشاء…"
+      "generating": "جارٍ الإنشاء…",
+      "queued": "في الانتظار",
+      "label": "الحالة"
     },
     "skipped": "تم تخطي {count}:",
+    "skippedTitle": "منتجات تم تخطيها",
     "download": "تنزيل",
     "startAnother": "بدء عملية أخرى",
     "starting": "جارٍ البدء…",
     "start": "ابدأ",
+    "progressLabel": "تقدم الإنشاء",
+    "progressCount": "‏{completed} من {total}",
+    "settingsTitle": "ما الذي سيُنشأ",
+    "settingsLocked": "الإعدادات مقفلة أثناء تشغيل العملية.",
     "errors": {
       "unauthorized": "غير مصرح",
       "invalidScope": "يجب أن يكون النطاق 'all' أو 'category'",
@@ -224,7 +294,8 @@
       "unreachable": "تعذّر الوصول إلى خدمة الإنشاء الجماعي",
       "unexpectedResponse": "أعادت خدمة الإنشاء الجماعي استجابة غير متوقعة",
       "startFailed": "تعذّر بدء العملية",
-      "downloadFailed": "فشل التنزيل"
+      "downloadFailed": "فشل التنزيل",
+      "title": "فشل الإنشاء"
     }
   },
   "Datasheet": {

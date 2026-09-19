@@ -1,8 +1,23 @@
-import DashboardHeader from "@/components/dashboard-header";
 import { requireAdmin, AdminAuthError } from "@/lib/auth";
 import { prisma } from "@repo/database";
 import { notFound } from "next/navigation";
 import ProductEditor from "./product-editor";
+
+/**
+ * Builds the public product URL, mirroring the storefront route
+ * /category/[brand]/[subCategory]/[lightingType]/[ProductId]. Returns null
+ * when a piece is missing, so the header simply drops the link.
+ */
+function storefrontUrlFor(product: {
+  brand: string;
+  sectionType: string | null;
+  spotlightType: string | null;
+  productId: string;
+}) {
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://artlighting-eg.com";
+  if (!product.brand || !product.sectionType || !product.spotlightType) return null;
+  return `${base.replace(/\/$/, "")}/category/${product.brand}/${product.sectionType}/${product.spotlightType.toLowerCase()}/${product.productId.toLowerCase()}`;
+}
 
 const ProductDetailPage = async ({
   params,
@@ -49,19 +64,15 @@ const ProductDetailPage = async ({
   const childCategories = categories.filter((c) => c.parentId !== null);
 
   return (
-    <div className="flex flex-col min-h-screen pb-10">
-      <DashboardHeader Route={product.productName} />
-      <div className="mt-8">
-        <ProductEditor
-          product={product}
-          topCategories={topCategories}
-          childCategories={childCategories}
-          discounts={discounts}
-          priceHistory={priceHistory}
-          isOwner={admin.role === "owner"}
-        />
-      </div>
-    </div>
+    <ProductEditor
+      product={product}
+      topCategories={topCategories}
+      childCategories={childCategories}
+      discounts={discounts}
+      priceHistory={priceHistory}
+      isOwner={admin.role === "owner"}
+      storefrontUrl={storefrontUrlFor(product)}
+    />
   );
 };
 

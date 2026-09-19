@@ -1,7 +1,7 @@
 {
   "OrderStatus": {
-    "awaiting_shipment": "Awaiting Shipment",
-    "processing": "Processing Shipment",
+    "awaiting_shipment": "Awaiting shipment",
+    "processing": "Processing",
     "shipped": "Shipped",
     "delivered": "Delivered",
     "fulfilled": "Fulfilled",
@@ -9,62 +9,54 @@
     "refunded": "Refunded"
   },
   "Summary": {
-    "totalSales": "Total Sales",
-    "totalSalesDescription": "Completed orders, after cancellations",
+    "totalSales": "Total sales",
+    "totalSalesDescription": "Completed orders, excluding cancelled and refunded",
     "customers": "Customers",
     "customersDescription": "Registered accounts",
     "orders": "Orders",
-    "ordersDescription": "Completed orders"
+    "ordersDescription": "Completed orders",
+    "averageOrder": "Average order value",
+    "averageOrderDescription": "Sales divided by counted orders"
   },
   "Dashboard": {
-    "recentOrders": "Recent Orders",
-    "recentOrdersDescription": "Overview of recent orders placed on the website.",
+    "subtitle": "Sales at a glance: totals, the latest orders and where they stand.",
+    "recentOrders": "Recent orders",
+    "recentOrdersDescription": "The ten most recent completed orders.",
+    "viewAllOrders": "View all orders",
+    "statusBreakdown": "Orders by status",
+    "statusBreakdownDescription": "Completed orders grouped by their current status.",
+    "statusEmpty": "No orders to group yet.",
+    "searchPlaceholder": "Search recent orders",
     "columns": {
-      "orderId": "# Order ID",
+      "orderId": "Order #",
       "customer": "Customer",
-      "productId": "Product ID",
-      "productPrice": "Product Price",
-      "discount": "Discount",
-      "qty": "Qty",
-      "shippingFee": "Shipping Fee",
-      "total": "Total",
-      "date": "Date",
-      "status": "Status",
-      "action": "Action"
+      "product": "Product"
     },
-    "noDiscount": "No discount",
-    "viewOrder": "View Order",
-    "customerDetails": "Customer Details"
+    "unknownCustomer": "No name on file",
+    "empty": {
+      "title": "No orders yet",
+      "description": "Completed orders show up here as soon as customers check out."
+    }
   },
   "Orders": {
-    "searchPlaceholder": "Search orders",
-    "allOrders": "All Orders",
+    "title": "Orders",
+    "subtitle": "Every completed order, searchable by number or customer.",
+    "searchPlaceholder": "Search by order number or customer",
+    "changeStatus": "Change status",
+    "unknownCustomer": "No name on file",
     "columns": {
       "orderNumber": "Order #",
-      "customerName": "Customer Name",
+      "customerName": "Customer",
       "product": "Product",
-      "colorTemp": "Product Color Temp",
-      "ipRating": "IP Rating",
-      "lampWattage": "Lamp Wattage",
-      "productPrice": "Product Price",
-      "discount": "Discount",
-      "priceAfterDiscount": "Product Price After Discount",
       "qty": "Qty",
-      "shippingFee": "Shipping Fee",
-      "total": "Total",
-      "customer": "Customer",
-      "phoneNumber": "Phone Number",
-      "date": "Date",
-      "estimatedOrderDate": "Estimated Order Date",
-      "status": "Status"
+      "shippingFee": "Shipping",
+      "phoneNumber": "Phone",
+      "estimatedOrderDate": "Expected delivery"
     },
-    "noOrders": "No Orders Found",
-    "filterError": "Error filtering orders.",
-    "productImageAlt": "Product Image",
-    "noIp": "No IP",
-    "noLamp": "No Lamp",
-    "noDiscount": "No discount",
-    "noDiscountOnProduct": "No Discount On This Product",
+    "empty": {
+      "title": "No orders found",
+      "description": "No order matches the current search or filters."
+    },
     "values": {
       "colorTemp": {
         "warm": "Warm",
@@ -83,30 +75,37 @@
   },
   "OrderDetail": {
     "title": "Order #{id}",
-    "placedOn": "Placed on {date}",
-    "lastUpdated": "Last updated: {date}",
-    "progress": {
-      "ordered": "Ordered",
-      "processing": "Processing",
-      "fulfilled": "Fulfilled"
+    "meta": "Placed {placed} · Updated {updated}",
+    "backToOrders": "Back to orders",
+    "lineItems": "Line items",
+    "lineItemsDescription": "Products in this order.",
+    "columns": {
+      "product": "Product",
+      "unitPrice": "Unit price",
+      "qty": "Qty",
+      "lineTotal": "Line total"
     },
-    "productInformation": "Product Information",
-    "colorTemperature": "Color Temperature",
-    "ipRating": "IP Rating",
-    "lampType": "Lamp Type",
+    "colorTemperature": "Colour temperature",
+    "ipRating": "IP rating",
+    "lampType": "Lamp type",
     "brand": "Brand",
-    "lightingType": "Lighting Type",
-    "priceBreakdown": "Price Breakdown",
-    "productPrice": "Product Price",
+    "lightingType": "Lighting type",
+    "customer": "Customer",
+    "customerDescription": "Who ordered and where it ships.",
+    "viewCustomer": "View customer",
+    "shippingAddress": "Shipping address",
+    "estimatedDelivery": "Expected delivery {date}",
+    "noShippingInfo": "No shipping information on this order.",
+    "totals": "Totals",
+    "subtotal": "Subtotal",
     "discountWithRate": "Discount ({rate})",
-    "priceIncrease": "Price Increase",
-    "shipping": "Shipping",
-    "shippingInformation": "Shipping Information",
-    "estimatedDelivery": "Estimated Delivery: {date}",
-    "noShippingInfo": "No shipping information available"
+    "priceIncrease": "Price increase",
+    "shipping": "Shipping"
   },
   "Notifications": {
     "title": "Notifications",
-    "placeholder": "Not built yet — there’s no transactional email or in-app notification system wired up in this project. This page is a placeholder until that’s scoped."
+    "subtitle": "Alerts about orders, stock and customers will land here.",
+    "emptyTitle": "Nothing to show",
+    "placeholder": "Not built yet — there is no transactional email or in-app notification system wired up in this project. This page is a placeholder until that work is scoped."
   }
 }

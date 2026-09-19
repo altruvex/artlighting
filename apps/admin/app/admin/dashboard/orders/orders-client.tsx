@@ -1,264 +1,213 @@
 "use client";
 
-import DashboardHeader from "@/components/dashboard-header";
-import DiscountPrice from "@/components/discount-price";
-import NormalPrice from "@/components/normal-price";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import type { Prisma } from "@repo/database";
-import { SearchIcon } from "lucide-react";
+import { type AdminColumn, ServerDataTable, type TableParams } from "@/components/data-table";
+import { EmptyState } from "@/components/empty-state";
+import { StatusBadge } from "@/components/status-badge";
+import type { OrderStatus } from "@repo/database";
+import { PackageIcon, ShoppingBagIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo } from "react";
+import { ORDER_STATUSES, orderStatusTone } from "../order-status";
 import StatusDropdown from "../status-dropdown-menu";
 
-type OrderWithShipping = Prisma.OrderGetPayload<{
-  include: { shippingAddress: true; product: true; configuration: true };
-}>;
-
-interface OrdersClientProps {
-  orders: OrderWithShipping[];
+export interface OrderRow extends Record<string, unknown> {
+  id: number;
+  userId: string;
+  customer: string | null;
+  phone: string | null;
+  productName: string;
+  imageUrl: string | null;
+  quantity: number;
+  shippingPrice: number;
+  total: number;
+  /** Epoch milliseconds: sorts as a number, formats as a date. */
+  createdAt: number;
+  expectedAt: number | null;
+  status: OrderStatus;
 }
 
-const OrdersClient: React.FC<OrdersClientProps> = ({ orders }) => {
+export default function OrdersClient({
+  orders,
+  total,
+  params,
+}: {
+  orders: OrderRow[];
+  total: number;
+  params: TableParams;
+}) {
   const t = useTranslations("Orders");
   const tCommon = useTranslations("Common");
-  const tNav = useTranslations("Nav");
+  const tStatus = useTranslations("OrderStatus");
   const format = useFormatter();
-  const formatMoney = (value: number) =>
-    format.number(value, { style: "currency", currency: "EGP" });
-  // Free-text DB values: translate known ones, show anything else as stored.
-  const valueLabel = (group: "colorTemp" | "lamp" | "lightingType", value: string) => {
-    const key = `values.${group}.${value.toLowerCase()}`;
-    return t.has(key as never) ? t(key as never) : value;
-  };
-  const [searchItem, setSearchItem] = useState<string>("");
-  const [filteredOrders, setFilteredOrders] =
-    useState<OrderWithShipping[]>(orders);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const searchValue = e.target.value;
-    setSearchItem(searchValue);
-    setLoading(true);
-    setError(null);
-    try {
-      const searchId = Number(searchValue);
-      const newFilteredOrders = orders.filter(
-        (order) =>
-          order.id === searchId ||
-          order.productName.toLowerCase().includes(searchValue.toLowerCase()) ||
-          order.shippingAddress?.fullName
-            .toLowerCase()
-            .includes(searchValue.toLowerCase()),
-      );
-      setFilteredOrders(newFilteredOrders);
-    } catch (error) {
-      setError(t("filterError"));
-    } finally {
-      setLoading(false);
-    }
-  };
-  return (
-    <div className="flex flex-col min-h-screen pb-10">
-      <DashboardHeader Route={tNav("orders")}>
-        <div className="flex items-center gap-4 md:ms-auto">
-          <form className="ms-auto flex-1 sm:flex-initial">
-            <div className="relative">
-              <SearchIcon className="absolute start-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={searchItem}
-                onChange={handleInputChange}
-                type="text"
-                placeholder={t("searchPlaceholder")}
-                className="ps-8 w-full sm:w-[300px] md:w-[200px] lg:w-[300px]"
-              />
-            </div>
-          </form>
-        </div>
-      </DashboardHeader>
-      <div className="mt-10 px-6">
-        <h2 className="text-xl font-semibold mb-7">{t("allOrders")}</h2>
-        <div className="overflow-x-auto border rounded-lg shadow custom-scrollbar">
-          <div className="flex items-center">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-nowrap">{t("columns.orderNumber")}</TableHead>
-                  <TableHead className="text-nowrap">{t("columns.customerName")}</TableHead>
-                  <TableHead>{t("columns.product")}</TableHead>
-                  <TableHead className="text-nowrap ps-4">
-                    {t("columns.colorTemp")}
-                  </TableHead>
-                  <TableHead className="text-nowrap ">{t("columns.ipRating")}</TableHead>
-                  <TableHead className="text-nowrap ">{t("columns.lampWattage")}</TableHead>
-                  <TableHead className="text-nowrap">{t("columns.productPrice")}</TableHead>
-                  <TableHead>{t("columns.discount")}</TableHead>
-                  <TableHead className="text-nowrap">
-                    {t("columns.priceAfterDiscount")}
-                  </TableHead>
-                  <TableHead>{t("columns.qty")}</TableHead>
-                  <TableHead className="text-nowrap">{t("columns.shippingFee")}</TableHead>
-                  <TableHead>{t("columns.total")}</TableHead>
-                  <TableHead className="text-nowrap">{t("columns.customer")}</TableHead>
-                  <TableHead className="text-nowrap">{t("columns.phoneNumber")}</TableHead>
-                  <TableHead>{t("columns.date")}</TableHead>
-                  <TableHead className="text-nowrap">
-                    {t("columns.estimatedOrderDate")}
-                  </TableHead>
-                  <TableHead>{t("columns.status")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading && (
-                  <TableRow>
-                    <TableCell colSpan={12} className="text-center">
-                      {tCommon("loading")}
-                    </TableCell>
-                  </TableRow>
-                )}
-                {error && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={12}
-                      className="text-center text-destructive"
-                    >
-                      {error}
-                    </TableCell>
-                  </TableRow>
-                )}
-                {!loading && !error && filteredOrders.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={12} className="text-center">
-                      {t("noOrders")}
-                    </TableCell>
-                  </TableRow>
-                )}
-                {!loading &&
-                  !error &&
-                  filteredOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="px-4 py-2">
-                        <Link
-                          href={`/admin/dashboard/orders/${order.id}`}
-                          className="hover:text-primary hover:underline"
-                          dir="ltr"
-                        >
-                          # {order.id}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="px-4 py-2 text-nowrap">
-                        {order.shippingAddress?.fullName}
-                      </TableCell>
-                      <TableCell className="flex w-[250px] items-center">
-                        {order.productImages &&
-                          order.productImages.length > 0 && (
-                            <Image
-                              src={order.productImages[0]}
-                              alt={t("productImageAlt")}
-                              width={40}
-                              height={40}
-                              className="rounded-md object-cover"
-                            />
-                          )}
-                        <p className="ms-2 uppercase text-nowrap font-medium">
-                          {order.productName}
-                        </p>
-                      </TableCell>
-                      <TableCell className="capitalize font-medium ps-6">
-                        {valueLabel("colorTemp", order.productColorTemp)}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {order && order.brand === "balcom"
-                          ? order.configuration?.productIp
-                          : t("noIp")}
-                      </TableCell>
-                      <TableCell>
-                        {order &&
-                          order.brand === "mister-led" &&
-                          order.product?.chandelierLightingType === "lamp"
-                          ? valueLabel("lamp", order.productChandLamp)
-                          : t("noLamp")}
-                      </TableCell>
-                      <TableCell className="px-4 py-2 font-medium">
-                        <NormalPrice price={order.configPrice} />
-                      </TableCell>
-                      <TableCell className="text-nowrap px-4 py-2">
-                        {order.discountRate && order.discountRate > 0 ? (
-                          format.number(order.discountRate, {
-                            style: "percent",
-                            maximumFractionDigits: 2,
-                          })
-                        ) : (
-                          <span>{t("noDiscount")}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {order.discountRate && order.discountRate > 0 ? (
-                          <DiscountPrice
-                            price={order.configPrice}
-                            discount={order.discountRate}
-                          />
-                        ) : (
-                          <span>{t("noDiscountOnProduct")}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>{format.number(order.quantity)}</TableCell>
-                      <TableCell>{formatMoney(order.shippingPrice)}</TableCell>
-                      <TableCell>
-                        {order.discountRate && order.discountRate > 0 ? (
-                          <DiscountPrice
-                            price={order.configPrice}
-                            discount={order.discountRate}
-                            quantity={order.quantity}
-                            shippingPrice={order.shippingPrice}
-                          />
-                        ) : (
-                          <NormalPrice
-                            price={order.configPrice}
-                            shippingPrice={order.shippingPrice}
-                            quantity={order.quantity}
-                          />
-                        )}
-                      </TableCell>
-                      <TableCell className="text-nowrap">
-                        {order.shippingAddress?.fullName}
-                      </TableCell>
-                      <TableCell>
-                        <span dir="ltr">{order.shippingAddress?.phoneNumber}</span>
-                      </TableCell>
-                      <TableCell>
-                        {format.dateTime(order.createdAt, { dateStyle: "medium" })}
-                      </TableCell>
-                      <TableCell className="text-nowrap">
-                        {order.orderTimeReceived &&
-                          format.dateTime(order.orderTimeReceived, {
-                            dateStyle: "medium",
-                          })}
-                      </TableCell>
-                      <TableCell>
-                        <StatusDropdown
-                          id={order.id}
-                          orderStatus={order.status}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
-export default OrdersClient;
+  const columns = useMemo<AdminColumn<OrderRow>[]>(
+    () => [
+      {
+        id: "order",
+        accessorFn: (row) => `${row.id} ${row.customer ?? ""}`,
+        filterFn: "includesString",
+        header: t("columns.orderNumber"),
+        cell: ({ row }) => (
+          <Link
+            href={`/admin/dashboard/orders/${row.original.id}`}
+            className="font-medium tabular-nums hover:underline"
+            dir="ltr"
+          >
+            #{row.original.id}
+          </Link>
+        ),
+      },
+      {
+        id: "customer",
+        accessorFn: (row) => row.customer ?? "",
+        header: t("columns.customerName"),
+        cell: ({ row }) => (
+          <span className="grid min-w-0 leading-tight">
+            {row.original.customer ? (
+              <Link
+                href={`/admin/dashboard/users/${row.original.userId}`}
+                className="truncate font-medium hover:underline"
+              >
+                {row.original.customer}
+              </Link>
+            ) : (
+              <span className="truncate text-muted-foreground">{t("unknownCustomer")}</span>
+            )}
+            {row.original.phone && (
+              <span className="truncate text-xs text-muted-foreground tabular-nums" dir="ltr">
+                {row.original.phone}
+              </span>
+            )}
+          </span>
+        ),
+      },
+      {
+        id: "product",
+        accessorFn: (row) => row.productName,
+        header: t("columns.product"),
+        cell: ({ row }) => (
+          <div className="flex items-center gap-3">
+            {row.original.imageUrl ? (
+              <Image
+                src={row.original.imageUrl}
+                alt=""
+                width={36}
+                height={36}
+                className="size-9 shrink-0 rounded-md object-cover"
+              />
+            ) : (
+              <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
+                <PackageIcon className="size-4 text-muted-foreground" />
+              </span>
+            )}
+            <span className="block max-w-[16rem] truncate">{row.original.productName}</span>
+          </div>
+        ),
+      },
+      {
+        id: "quantity",
+        accessorFn: (row) => row.quantity,
+        header: t("columns.qty"),
+        cell: ({ row }) => <span className="tabular-nums">{format.number(row.original.quantity)}</span>,
+      },
+      {
+        id: "shipping",
+        accessorFn: (row) => row.shippingPrice,
+        header: t("columns.shippingFee"),
+        cell: ({ row }) => (
+          <span className="tabular-nums">
+            {format.number(row.original.shippingPrice, { style: "currency", currency: "EGP" })}
+          </span>
+        ),
+      },
+      {
+        id: "total",
+        accessorFn: (row) => row.total,
+        header: tCommon("total"),
+        cell: ({ row }) => (
+          <span className="font-medium tabular-nums">
+            {format.number(row.original.total, { style: "currency", currency: "EGP" })}
+          </span>
+        ),
+      },
+      {
+        id: "date",
+        accessorFn: (row) => row.createdAt,
+        header: tCommon("date"),
+        cell: ({ row }) => (
+          <span className="whitespace-nowrap tabular-nums">
+            {format.dateTime(new Date(row.original.createdAt), { dateStyle: "medium" })}
+          </span>
+        ),
+      },
+      {
+        id: "expected",
+        accessorFn: (row) => row.expectedAt ?? 0,
+        header: t("columns.estimatedOrderDate"),
+        cell: ({ row }) =>
+          row.original.expectedAt ? (
+            <span className="whitespace-nowrap tabular-nums">
+              {format.dateTime(new Date(row.original.expectedAt), { dateStyle: "medium" })}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">{tCommon("none")}</span>
+          ),
+      },
+      {
+        id: "status",
+        accessorFn: (row) => row.status,
+        filterFn: "arrIncludesSome",
+        enableSorting: false,
+        header: tCommon("status"),
+        cell: ({ row }) => (
+          <StatusBadge tone={orderStatusTone(row.original.status)}>
+            {tStatus(row.original.status)}
+          </StatusBadge>
+        ),
+      },
+      {
+        id: "actions",
+        enableHiding: false,
+        enableSorting: false,
+        header: () => <span className="sr-only">{tCommon("actions")}</span>,
+        cell: ({ row }) => (
+          <div className="flex justify-end">
+            <StatusDropdown
+              id={row.original.id}
+              orderStatus={row.original.status}
+              label={t("changeStatus")}
+              className="h-7 w-auto gap-1 px-2 text-xs font-normal"
+            />
+          </div>
+        ),
+      },
+    ],
+    [t, tCommon, tStatus, format],
+  );
+
+  return (
+    <ServerDataTable
+      columns={columns}
+      data={orders}
+      total={total}
+      params={params}
+      searchPlaceholder={t("searchPlaceholder")}
+      facets={[
+        {
+          key: "status",
+          title: tCommon("status"),
+          options: ORDER_STATUSES.map((status) => ({ value: status, label: tStatus(status) })),
+        },
+      ]}
+      emptyState={
+        <EmptyState
+          icon={ShoppingBagIcon}
+          title={t("empty.title")}
+          description={t("empty.description")}
+        />
+      }
+    />
+  );
+}

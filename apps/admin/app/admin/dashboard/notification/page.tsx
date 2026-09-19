@@ -1,37 +1,22 @@
-import DashboardHeader from "@/components/dashboard-header";
+import { EmptyState } from "@/components/empty-state";
+import { PageHeader, PageShell } from "@/components/page-header";
+import { Card, CardContent } from "@/components/ui/card";
 import { requireAdminOrRedirect } from "@/lib/auth";
-import { Container } from "@/components/container";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BellDot } from "lucide-react";
+import { BellIcon } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
-const NotificationPage = async () => {
+export default async function NotificationPage() {
   await requireAdminOrRedirect();
   const t = await getTranslations("Notifications");
-  const tNav = await getTranslations("Nav");
 
   return (
-    <div className="flex flex-col min-h-screen pb-10">
-      <DashboardHeader Route={tNav("notifications")} />
-      <div className="mt-8">
-        <Container>
-          <Card className="glass-surface rounded-2xl max-w-lg">
-            <CardHeader>
-              <CardTitle>{t("title")}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <BellDot className="h-5 w-5" />
-              </div>
-              <p className="text-sm text-muted-foreground max-w-xs">
-                {t("placeholder")}
-              </p>
-            </CardContent>
-          </Card>
-        </Container>
-      </div>
-    </div>
+    <PageShell>
+      <PageHeader title={t("title")} description={t("subtitle")} />
+      <Card className="py-0">
+        <CardContent className="px-0">
+          <EmptyState icon={BellIcon} title={t("emptyTitle")} description={t("placeholder")} />
+        </CardContent>
+      </Card>
+    </PageShell>
   );
-};
-
-export default NotificationPage;
+}

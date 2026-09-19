@@ -1,7 +1,7 @@
 {
   "OrderStatus": {
     "awaiting_shipment": "بانتظار الشحن",
-    "processing": "جارٍ تجهيز الشحنة",
+    "processing": "قيد التجهيز",
     "shipped": "تم الشحن",
     "delivered": "تم التسليم",
     "fulfilled": "مكتمل",
@@ -10,61 +10,53 @@
   },
   "Summary": {
     "totalSales": "إجمالي المبيعات",
-    "totalSalesDescription": "الطلبات المكتملة بعد خصم الإلغاءات",
+    "totalSalesDescription": "الطلبات المكتملة باستثناء الملغاة والمستردة",
     "customers": "العملاء",
     "customersDescription": "الحسابات المسجّلة",
     "orders": "الطلبات",
-    "ordersDescription": "الطلبات المكتملة"
+    "ordersDescription": "الطلبات المكتملة",
+    "averageOrder": "متوسط قيمة الطلب",
+    "averageOrderDescription": "إجمالي المبيعات مقسومًا على عدد الطلبات المحتسبة"
   },
   "Dashboard": {
+    "subtitle": "نظرة سريعة على المبيعات: الإجماليات وأحدث الطلبات وحالتها.",
     "recentOrders": "أحدث الطلبات",
-    "recentOrdersDescription": "نظرة عامة على أحدث الطلبات المقدّمة عبر الموقع.",
+    "recentOrdersDescription": "آخر عشرة طلبات مكتملة.",
+    "viewAllOrders": "عرض كل الطلبات",
+    "statusBreakdown": "الطلبات حسب الحالة",
+    "statusBreakdownDescription": "الطلبات المكتملة مُجمّعة حسب حالتها الحالية.",
+    "statusEmpty": "لا توجد طلبات لتجميعها بعد.",
+    "searchPlaceholder": "ابحث في أحدث الطلبات",
     "columns": {
       "orderId": "رقم الطلب",
       "customer": "العميل",
-      "productId": "المنتج",
-      "productPrice": "سعر المنتج",
-      "discount": "الخصم",
-      "qty": "الكمية",
-      "shippingFee": "رسوم الشحن",
-      "total": "الإجمالي",
-      "date": "التاريخ",
-      "status": "الحالة",
-      "action": "إجراء"
+      "product": "المنتج"
     },
-    "noDiscount": "بدون خصم",
-    "viewOrder": "عرض الطلب",
-    "customerDetails": "بيانات العميل"
+    "unknownCustomer": "لا يوجد اسم مسجّل",
+    "empty": {
+      "title": "لا توجد طلبات بعد",
+      "description": "ستظهر الطلبات المكتملة هنا فور إتمام العملاء عملية الشراء."
+    }
   },
   "Orders": {
-    "searchPlaceholder": "ابحث في الطلبات",
-    "allOrders": "كل الطلبات",
+    "title": "الطلبات",
+    "subtitle": "كل الطلبات المكتملة، مع البحث برقم الطلب أو اسم العميل.",
+    "searchPlaceholder": "ابحث برقم الطلب أو اسم العميل",
+    "changeStatus": "تغيير الحالة",
+    "unknownCustomer": "لا يوجد اسم مسجّل",
     "columns": {
       "orderNumber": "رقم الطلب",
-      "customerName": "اسم العميل",
+      "customerName": "العميل",
       "product": "المنتج",
-      "colorTemp": "درجة لون الإضاءة",
-      "ipRating": "درجة الحماية IP",
-      "lampWattage": "قدرة اللمبة",
-      "productPrice": "سعر المنتج",
-      "discount": "الخصم",
-      "priceAfterDiscount": "سعر المنتج بعد الخصم",
       "qty": "الكمية",
-      "shippingFee": "رسوم الشحن",
-      "total": "الإجمالي",
-      "customer": "العميل",
-      "phoneNumber": "رقم الهاتف",
-      "date": "التاريخ",
-      "estimatedOrderDate": "التاريخ المتوقع للطلب",
-      "status": "الحالة"
+      "shippingFee": "الشحن",
+      "phoneNumber": "الهاتف",
+      "estimatedOrderDate": "موعد التسليم المتوقع"
     },
-    "noOrders": "لا توجد طلبات",
-    "filterError": "حدث خطأ أثناء تصفية الطلبات.",
-    "productImageAlt": "صورة المنتج",
-    "noIp": "بدون IP",
-    "noLamp": "بدون لمبة",
-    "noDiscount": "بدون خصم",
-    "noDiscountOnProduct": "لا يوجد خصم على هذا المنتج",
+    "empty": {
+      "title": "لا توجد طلبات",
+      "description": "لا يوجد طلب مطابق لعملية البحث أو عوامل التصفية الحالية."
+    },
     "values": {
       "colorTemp": {
         "warm": "دافئ",
@@ -72,41 +64,48 @@
         "white": "أبيض"
       },
       "lamp": {
-        "lamp9w": "لمبة 9W",
-        "lamp12w": "لمبة 12W"
+        "lamp9w": "لمبة 9 واط",
+        "lamp12w": "لمبة 12 واط"
       },
       "lightingType": {
         "lamp": "لمبة",
-        "led": "LED"
+        "led": "ليد"
       }
     }
   },
   "OrderDetail": {
     "title": "الطلب رقم {id}",
-    "placedOn": "تاريخ الطلب: {date}",
-    "lastUpdated": "آخر تحديث: {date}",
-    "progress": {
-      "ordered": "تم الطلب",
-      "processing": "قيد التجهيز",
-      "fulfilled": "مكتمل"
+    "meta": "تاريخ الطلب {placed} · آخر تحديث {updated}",
+    "backToOrders": "العودة إلى الطلبات",
+    "lineItems": "بنود الطلب",
+    "lineItemsDescription": "المنتجات المدرجة في هذا الطلب.",
+    "columns": {
+      "product": "المنتج",
+      "unitPrice": "سعر الوحدة",
+      "qty": "الكمية",
+      "lineTotal": "إجمالي البند"
     },
-    "productInformation": "بيانات المنتج",
     "colorTemperature": "درجة لون الإضاءة",
     "ipRating": "درجة الحماية IP",
     "lampType": "نوع اللمبة",
     "brand": "العلامة التجارية",
     "lightingType": "نوع الإضاءة",
-    "priceBreakdown": "تفاصيل السعر",
-    "productPrice": "سعر المنتج",
+    "customer": "العميل",
+    "customerDescription": "بيانات مقدّم الطلب وعنوان الشحن.",
+    "viewCustomer": "عرض بيانات العميل",
+    "shippingAddress": "عنوان الشحن",
+    "estimatedDelivery": "موعد التسليم المتوقع {date}",
+    "noShippingInfo": "لا توجد بيانات شحن لهذا الطلب.",
+    "totals": "الإجماليات",
+    "subtotal": "المجموع الفرعي",
     "discountWithRate": "الخصم ({rate})",
     "priceIncrease": "زيادة السعر",
-    "shipping": "الشحن",
-    "shippingInformation": "بيانات الشحن",
-    "estimatedDelivery": "موعد التسليم المتوقع: {date}",
-    "noShippingInfo": "لا توجد بيانات شحن"
+    "shipping": "الشحن"
   },
   "Notifications": {
     "title": "الإشعارات",
-    "placeholder": "لم تُنفَّذ بعد — لا يوجد حاليًا نظام بريد إلكتروني للمعاملات أو إشعارات داخل التطبيق في هذا المشروع. هذه الصفحة مؤقتة إلى أن يُحدَّد نطاق العمل."
+    "subtitle": "ستصلك هنا التنبيهات الخاصة بالطلبات والمخزون والعملاء.",
+    "emptyTitle": "لا يوجد ما يُعرض",
+    "placeholder": "لم تُنفَّذ بعد — لا يوجد في هذا المشروع نظام بريد إلكتروني للمعاملات أو إشعارات داخل التطبيق. هذه الصفحة مؤقتة إلى أن يُحدَّد نطاق العمل."
   }
 }

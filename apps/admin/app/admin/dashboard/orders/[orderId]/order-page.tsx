@@ -1,289 +1,271 @@
 "use client";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import type { Configuration, Order, Product, ShippingAddress, User } from "@repo/database";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
+import { PageHeader, PageShell } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Box, Calendar, MapPin, Truck } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import type { OrderStatus } from "@repo/database";
+import { ArrowLeftIcon, CalendarIcon, MailIcon, MapPinIcon, PackageIcon, PhoneIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
-import React from "react";
+import type { ReactNode } from "react";
+import { orderStatusTone } from "../../order-status";
 import StatusDropdown from "../../status-dropdown-menu";
-import { Container } from "@/components/container";
 
-interface OrderPageProps {
-  order: Order & {
-    shippingAddress: ShippingAddress | null;
-    product: Product;
-    user: User;
-    configuration: Configuration
-  };
+export interface OrderDetailData {
+  id: number;
+  status: OrderStatus;
+  /** Epoch milliseconds. */
+  createdAt: number;
+  updatedAt: number;
+  expectedAt: number | null;
+  productName: string;
+  productImage: string | null;
+  quantity: number;
+  unitPrice: number;
+  discountRate: number;
+  priceIncrease: number;
+  shippingPrice: number;
+  total: number;
+  colorTemp: string | null;
+  ipRating: string | null;
+  lamp: string | null;
+  brand: string | null;
+  lightingType: string | null;
+  customer: { id: string; email: string };
+  shipping: {
+    fullName: string;
+    phoneNumber: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  } | null;
 }
 
-export default function OrderPage({ order }: OrderPageProps) {
+export default function OrderPage({ order }: { order: OrderDetailData }) {
   const t = useTranslations("OrderDetail");
   const tOrders = useTranslations("Orders");
+  const tStatus = useTranslations("OrderStatus");
   const tCommon = useTranslations("Common");
   const format = useFormatter();
-  const orderProgress = getOrderProgress(order.status);
-  const formatMoney = (value: number) =>
-    format.number(value, { style: "currency", currency: "EGP" });
-  const formatDate = (date: Date) => format.dateTime(date, { dateStyle: "long" });
+
+  const money = (value: number) => format.number(value, { style: "currency", currency: "EGP" });
+  const date = (value: number) => format.dateTime(new Date(value), { dateStyle: "medium" });
   // Free-text DB values: translate known ones, show anything else as stored.
   const valueLabel = (group: "colorTemp" | "lamp" | "lightingType", value: string) => {
     const key = `values.${group}.${value.toLowerCase()}`;
     return tOrders.has(key as never) ? tOrders(key as never) : value;
   };
 
+  const subtotal = order.unitPrice * order.quantity;
+  const discountAmount = order.discountRate > 0 ? subtotal * order.discountRate : 0;
+
+  const specs = [
+    order.colorTemp && { label: t("colorTemperature"), value: valueLabel("colorTemp", order.colorTemp) },
+    order.ipRating && { label: t("ipRating"), value: order.ipRating },
+    order.lamp && { label: t("lampType"), value: valueLabel("lamp", order.lamp) },
+    order.lightingType && { label: t("lightingType"), value: valueLabel("lightingType", order.lightingType) },
+    order.brand && { label: t("brand"), value: order.brand },
+  ].filter((spec): spec is { label: string; value: string } => Boolean(spec));
+
   return (
-    <div className="py-8">
-      <Container>
-        <Card className="mb-8 overflow-hidden glass-surface rounded-2xl">
-          <CardHeader className="p-6 bg-primary text-primary-foreground ">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <CardTitle className="text-2xl sm:text-3xl mb-2">
-                  {t("title", { id: order.id })}
-                </CardTitle>
-                <CardDescription className="text-primary-foreground/80 mt-5">
-                  {t("placedOn", { date: formatDate(order.createdAt) })}
-                </CardDescription>
-              </div>
-              <StatusDropdown id={order.id} orderStatus={order.status} />
-            </div>
+    <PageShell>
+      <PageHeader
+        title={
+          <span className="flex flex-wrap items-center gap-2">
+            <span dir="ltr">{t("title", { id: String(order.id) })}</span>
+            <StatusBadge tone={orderStatusTone(order.status)}>{tStatus(order.status)}</StatusBadge>
+          </span>
+        }
+        description={t("meta", { placed: date(order.createdAt), updated: date(order.updatedAt) })}
+        actions={
+          <>
+            <Button asChild variant="ghost" size="sm" className="gap-1.5">
+              <Link href="/admin/dashboard/orders">
+                <ArrowLeftIcon aria-hidden className="size-4 rtl:-scale-x-100" />
+                {t("backToOrders")}
+              </Link>
+            </Button>
+            <StatusDropdown id={order.id} orderStatus={order.status} />
+          </>
+        }
+      />
+
+      <div className="grid gap-3 lg:grid-cols-3">
+        <Card className="gap-0 py-4 lg:col-span-2">
+          <CardHeader className="px-4 pb-3">
+            <CardTitle className="text-sm">{t("lineItems")}</CardTitle>
+            <CardDescription className="text-xs">{t("lineItemsDescription")}</CardDescription>
           </CardHeader>
-          <CardContent className="overflow-x-auto custom-scrollbar">
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-              <span>{t("lastUpdated", { date: formatDate(order.updatedAt) })}</span>
-            </div>
-            <Progress value={orderProgress} className="w-full h-3 mb-2" />
-            <div className="flex justify-between text-xs sm:text-sm font-medium">
-              <span>{t("progress.ordered")}</span>
-              <span>{t("progress.processing")}</span>
-              <span>{t("progress.fulfilled")}</span>
+          <CardContent className="px-0">
+            <div className="overflow-x-auto border-t">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="h-9 ps-4">{t("columns.product")}</TableHead>
+                    <TableHead className="h-9 text-end">{t("columns.unitPrice")}</TableHead>
+                    <TableHead className="h-9 text-end">{t("columns.qty")}</TableHead>
+                    <TableHead className="h-9 pe-4 text-end">{t("columns.lineTotal")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell className="py-3 ps-4">
+                      <div className="flex items-start gap-3">
+                        {order.productImage ? (
+                          <Image
+                            src={order.productImage}
+                            alt=""
+                            width={48}
+                            height={48}
+                            className="size-12 shrink-0 rounded-md object-cover"
+                          />
+                        ) : (
+                          <span
+                            aria-hidden
+                            className="flex size-12 shrink-0 items-center justify-center rounded-md bg-muted"
+                          >
+                            <PackageIcon className="size-5 text-muted-foreground" />
+                          </span>
+                        )}
+                        <div className="min-w-0 space-y-1">
+                          <p className="font-medium">{order.productName}</p>
+                          {specs.length > 0 && (
+                            <dl className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                              {specs.map((spec) => (
+                                <div key={spec.label} className="flex gap-1">
+                                  <dt>{spec.label}:</dt>
+                                  <dd className="text-foreground">{spec.value}</dd>
+                                </div>
+                              ))}
+                            </dl>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-3 text-end tabular-nums">{money(order.unitPrice)}</TableCell>
+                    <TableCell className="py-3 text-end tabular-nums">
+                      {format.number(order.quantity)}
+                    </TableCell>
+                    <TableCell className="py-3 pe-4 text-end font-medium tabular-nums">
+                      {money(subtotal)}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
           </CardContent>
         </Card>
-        <div className="grid gap-8 md:grid-cols-3 grid-cols-1">
-          <Card className="md:col-span-2 glass-surface rounded-2xl">
-            <CardHeader>
-              <CardTitle className="flex items-center text-xl sm:text-2xl">
-                <Box className="me-2" /> {t("productInformation")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="overflow-x-auto custom-scrollbar">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:gap-6">
-                {order.productImages?.[0] && (
-                  <Image
-                    width={192}
-                    height={192}
-                    src={order.productImages[0]}
-                    alt={order.productName}
-                    className="w-full sm:w-48 sm:h-48 object-cover rounded-md shadow-md mb-4 sm:mb-0"
-                  />
-                )}
-                <div className="flex-1 space-y-4">
-                  <h3 className="text-lg sm:text-xl font-semibold">
-                    {order.productName}
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <ProductDetail label={tCommon("quantity")} value={format.number(order.quantity)} />
-                    <ProductDetail
-                      label={t("colorTemperature")}
-                      value={valueLabel("colorTemp", order.productColorTemp)}
-                    />
-                    <ProductDetail label={t("ipRating")} value={order.configuration.productIp ?? ""} />
-                    {order.chandelierLightingType && (
-                      <ProductDetail
-                        label={t("lampType")}
-                        value={valueLabel("lamp", order.productChandLamp)}
-                      />
-                    )}
-                    {order.brand && (
-                      <ProductDetail label={t("brand")} value={order.brand} />
-                    )}
-                    {order.chandelierLightingType && (
-                      <ProductDetail
-                        label={t("lightingType")}
-                        value={valueLabel("lightingType", order.chandelierLightingType)}
-                      />
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="overflow-hidden glass-surface rounded-2xl">
-            <CardHeader>
-              <CardTitle className="flex items-center text-xl sm:text-2xl">
-                {t("priceBreakdown")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="overflow-x-auto custom-scrollbar">
-              <div className="space-y-4">
-                <PriceDetail
-                  label={t("productPrice")}
-                  value={formatMoney(order.configPrice)}
-                />
-                {order.discountRate > 0 && (
-                  <PriceDetail
-                    label={t("discountWithRate", {
-                      rate: format.number(order.discountRate, { style: "percent" }),
-                    })}
-                    value={formatMoney(-((order.productPrice - (order.discountedPrice || 0)) * order.quantity))}
-                    className="text-green-600"
-                  />
-                )}
-                {order.priceIncrease > 0 && (
-                  <PriceDetail
-                    label={t("priceIncrease")}
-                    value={formatMoney(order.priceIncrease)}
-                  />
-                )}
-                <PriceDetail
-                  label={t("shipping")}
-                  value={formatMoney(order.shippingPrice)}
-                />
-                <Separator className="my-2" />
-                <PriceDetail
-                  label={tCommon("total")}
-                  value={formatMoney(order.totalPrice)}
-                  className="font-bold text-lg"
-                />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="md:col-span-3 glass-surface rounded-2xl">
-            <CardHeader>
-              <CardTitle className="flex items-center text-xl sm:text-2xl">
-                <Truck className="me-2" /> {t("shippingInformation")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="overflow-x-auto custom-scrollbar">
-              {order.shippingAddress ? (
-                <div className="grid sm:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-7 w-7 me-1.5">
-                        <AvatarFallback>
-                          {order.user.email
-                            ?.split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()
-                            .slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold">
-                          {order.shippingAddress.fullName}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          <span dir="ltr">{order.shippingAddress.phoneNumber}</span>
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {order.user.email}
-                        </p>
-                        <Link
-                          href={`/admin/dashboard/users/${order.user.id}`}
-                          className="font-semibold"
-                        >
-                          {order.user.id}
-                        </Link>
-                      </div>
-                    </div>
-                    <ShippingDetail
-                      icon={MapPin}
-                      value={`${order.shippingAddress.address}, ${order.shippingAddress.city}, ${order.shippingAddress.state} ${order.shippingAddress.zipCode}, ${order.shippingAddress.country}`}
-                    />
-                  </div>
-                  <div className="space-y-4">
-                    {order.orderTimeReceived && (
-                      <ShippingDetail
-                        icon={Calendar}
-                        value={t("estimatedDelivery", {
-                          date: formatDate(order.orderTimeReceived),
-                        })}
-                      />
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-muted-foreground">
-                  {t("noShippingInfo")}
-                </p>
+
+        <Card className="h-fit gap-0 py-4">
+          <CardHeader className="px-4 pb-3">
+            <CardTitle className="text-sm">{t("totals")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 px-4 text-sm">
+            <TotalRow label={t("subtotal")} value={money(subtotal)} />
+            {discountAmount > 0 && (
+              <TotalRow
+                label={t("discountWithRate", {
+                  rate: format.number(order.discountRate, { style: "percent", maximumFractionDigits: 2 }),
+                })}
+                value={money(-discountAmount)}
+                valueClassName="text-success"
+              />
+            )}
+            {order.priceIncrease > 0 && (
+              <TotalRow label={t("priceIncrease")} value={money(order.priceIncrease)} />
+            )}
+            <TotalRow label={t("shipping")} value={money(order.shippingPrice)} />
+            <Separator className="my-1" />
+            <TotalRow
+              label={tCommon("total")}
+              value={money(order.total)}
+              className="text-base font-semibold"
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="gap-0 py-4 lg:col-span-3">
+          <CardHeader className="px-4 pb-3">
+            <CardTitle className="text-sm">{t("customer")}</CardTitle>
+            <CardDescription className="text-xs">{t("customerDescription")}</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 px-4 sm:grid-cols-2">
+            <div className="space-y-2 text-sm">
+              <p className="font-medium">{order.shipping?.fullName ?? tOrders("unknownCustomer")}</p>
+              <DetailLine icon={MailIcon}>{order.customer.email}</DetailLine>
+              {order.shipping && (
+                <DetailLine icon={PhoneIcon}>
+                  <span dir="ltr" className="tabular-nums">
+                    {order.shipping.phoneNumber}
+                  </span>
+                </DetailLine>
               )}
-            </CardContent>
-          </Card>
-        </div>
-      </Container>
-    </div>
-  );
-}
-function ProductDetail({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div className="flex flex-col space-y-1">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <Badge variant="secondary" className="w-fit">
-        {value}
-      </Badge>
-    </div>
-  );
-}
-
-function PriceDetail({
-  label,
-  value,
-  className = "",
-}: {
-  label: string;
-  value: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={`flex justify-between items-center ${className}`}>
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium">{value}</span>
-    </div>
+              <Button asChild variant="outline" size="sm" className="h-7">
+                <Link href={`/admin/dashboard/users/${order.customer.id}`}>{t("viewCustomer")}</Link>
+              </Button>
+            </div>
+            <div className="space-y-2 text-sm">
+              <p className="font-medium">{t("shippingAddress")}</p>
+              {order.shipping ? (
+                <>
+                  <DetailLine icon={MapPinIcon}>
+                    {`${order.shipping.address}, ${order.shipping.city}, ${order.shipping.state} ${order.shipping.zipCode}, ${order.shipping.country}`}
+                  </DetailLine>
+                  {order.expectedAt !== null && (
+                    <DetailLine icon={CalendarIcon}>
+                      {t("estimatedDelivery", { date: date(order.expectedAt) })}
+                    </DetailLine>
+                  )}
+                </>
+              ) : (
+                <p className="text-muted-foreground">{t("noShippingInfo")}</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </PageShell>
   );
 }
 
-function ShippingDetail({
-  icon: Icon,
+function TotalRow({
+  label,
   value,
+  className,
+  valueClassName,
 }: {
-  icon: React.ElementType;
+  label: string;
   value: string;
+  className?: string;
+  valueClassName?: string;
 }) {
   return (
-    <div className="flex items-start gap-2">
-      <Icon className="h-5 w-5 text-muted-foreground mt-0.5" />
-      <span className="text-sm">{value}</span>
+    <div className={cn("flex items-center justify-between gap-3", className)}>
+      <span className="text-muted-foreground">{label}</span>
+      <span className={cn("font-medium tabular-nums", valueClassName)}>{value}</span>
     </div>
   );
 }
 
-function getOrderProgress(status: string): number {
-  switch (status.toLowerCase()) {
-    case "processing":
-      return 50;
-    case "fulfilled":
-      return 100;
-    default:
-      return 0;
-  }
+function DetailLine({ icon: Icon, children }: { icon: typeof MailIcon; children: ReactNode }) {
+  return (
+    <p className="flex items-start gap-2 text-muted-foreground">
+      <Icon aria-hidden className="mt-0.5 size-4 shrink-0" />
+      <span className="min-w-0 break-words text-foreground">{children}</span>
+    </p>
+  );
 }

@@ -12,6 +12,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { activeNavItem, NAV_GROUPS } from "@/constant";
+import { can } from "@/lib/permissions";
 import type { CurrentAdmin } from "@/lib/auth";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
@@ -47,7 +48,7 @@ export function AppSidebar({ admin }: { admin: Pick<CurrentAdmin, "name" | "emai
 
       <SidebarContent>
         {NAV_GROUPS.map((group) => {
-          const items = group.items.filter((item) => !item.ownerOnly || admin.role === "owner");
+          const items = group.items.filter((item) => !item.adminOnly || can(admin.role, "staff:manage"));
           if (items.length === 0) return null;
           return (
             <SidebarGroup key={group.key}>

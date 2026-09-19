@@ -1,6 +1,7 @@
 import { PageHeader, PageShell } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { requireAdminOrRedirect } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { prisma } from "@repo/database";
 import { CalendarClockIcon, PercentIcon, TicketIcon } from "lucide-react";
 import { getTranslations } from "next-intl/server";
@@ -75,7 +76,7 @@ const DiscountsPage = async () => {
       <DiscountsManager
         discounts={rows}
         categories={categories}
-        isOwner={admin.role === "owner"}
+        isOwner={can(admin.role, "discount:write")}
       />
     </PageShell>
   );

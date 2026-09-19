@@ -1,4 +1,5 @@
 import { requireAdmin, AdminAuthError } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { prisma } from "@repo/database";
 import { notFound } from "next/navigation";
 import ProductEditor from "./product-editor";
@@ -70,7 +71,7 @@ const ProductDetailPage = async ({
       childCategories={childCategories}
       discounts={discounts}
       priceHistory={priceHistory}
-      isOwner={admin.role === "owner"}
+      isOwner={can(admin.role, "price:write")}
       storefrontUrl={storefrontUrlFor(product)}
     />
   );

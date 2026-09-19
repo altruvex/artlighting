@@ -2,6 +2,8 @@ import "server-only";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import type { AdminRole } from "@repo/database";
+import { can, type Permission } from "./permissions";
 import { auth as authInstance } from "./auth-server";
 
 export interface CurrentAdmin {
@@ -9,7 +11,7 @@ export interface CurrentAdmin {
   email: string;
   name: string;
   image: string | null;
-  role: "owner" | "staff";
+  role: AdminRole;
 }
 
 /**
@@ -35,21 +37,26 @@ export async function requireAdmin(): Promise<CurrentAdmin> {
   return admin;
 }
 
-/** Same as requireAdmin, but also requires the owner role (price/discount authority). */
-export async function requireOwner(): Promise<CurrentAdmin> {
+/**
+ * Resolves the current Admin and checks one capability (see
+ * lib/permissions.ts). Server actions and route handlers call this: a role
+ * comparison spread across call sites is how a new action ends up
+ * unprotected.
+ */
+export async function requirePermission(permission: Permission): Promise<CurrentAdmin> {
   const admin = await requireAdmin();
-  if (admin.role !== "owner") {
-    throw new AdminAuthError("not_owner", await authErrorMessage("not_owner"));
+  if (!can(admin.role, permission)) {
+    throw new AdminAuthError("forbidden", await authErrorMessage("forbidden"));
   }
   return admin;
 }
 
-type AdminAuthReason = "unauthenticated" | "not_admin" | "not_owner";
+type AdminAuthReason = "unauthenticated" | "not_admin" | "forbidden";
 
 const AUTH_ERROR_KEYS = {
   unauthenticated: "errors.unauthenticated",
   not_admin: "errors.notAdmin",
-  not_owner: "errors.notOwner",
+  forbidden: "errors.forbidden",
 } as const;
 
 /** Localized, user-facing text for an auth failure (the reason code stays the stable identifier). */
@@ -81,9 +88,9 @@ export async function requireAdminOrRedirect(): Promise<CurrentAdmin> {
 }
 
 /** Same as above, but requires the owner role. */
-export async function requireOwnerOrRedirect(): Promise<CurrentAdmin> {
+export async function requirePermissionOrRedirect(permission: Permission): Promise<CurrentAdmin> {
   try {
-    return await requireOwner();
+    return await requirePermission(permission);
   } catch (err) {
     if (err instanceof AdminAuthError) {
       redirect(err.reason === "unauthenticated" ? "/sign-in" : "/404");

@@ -82,20 +82,20 @@
     "passwordHint": "Minimum 12 characters.",
     "role": "Role",
     "roleOptions": {
-      "staff": "Staff (no price/discount access)",
-      "owner": "Owner (full access)"
+      "STAFF": "Staff (no price or discount access)",
+      "ADMIN": "Admin (full access)"
     },
     "roles": {
-      "owner": "Owner",
-      "staff": "Staff"
+      "ADMIN": "Admin",
+      "STAFF": "Staff"
     },
     "createAccount": "Create account",
     "createdNotice": "Created {email} — copy this password now, it won't be shown again:",
     "copyPassword": "Copy password",
     "searchPlaceholder": "Search team",
     "stats": {
-      "total": "Admins",
-      "owners": "Owners",
+      "total": "Accounts",
+      "admins": "Admins",
       "staff": "Staff"
     },
     "columns": {
@@ -104,7 +104,7 @@
     },
     "you": "You",
     "makeStaff": "Make staff",
-    "makeOwner": "Make owner",
+    "makeOwner": "Make admin",
     "revoke": "Revoke",
     "roleDialog": {
       "title": "Change this member's role?",
@@ -244,7 +244,7 @@
     "errors": {
       "unauthenticated": "Your session has expired. Please sign in again.",
       "notAdmin": "This account doesn't have admin access.",
-      "notOwner": "Only an owner can do this."
+      "forbidden": "Only an owner can do this."
     }
   },
   "Unauthorized": {

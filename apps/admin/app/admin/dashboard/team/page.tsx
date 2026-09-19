@@ -1,13 +1,13 @@
 import { PageHeader, PageShell } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
-import { requireOwnerOrRedirect } from "@/lib/auth";
+import { requirePermissionOrRedirect } from "@/lib/auth";
 import { prisma } from "@repo/database";
 import { ShieldCheckIcon, UserCogIcon, UsersIcon } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import TeamManager, { type TeamRow } from "./team-manager";
 
 const TeamPage = async () => {
-  const owner = await requireOwnerOrRedirect();
+  const owner = await requirePermissionOrRedirect("staff:manage");
   const t = await getTranslations("Team");
 
   const admins = await prisma.admin.findMany({
@@ -24,7 +24,7 @@ const TeamPage = async () => {
     isCurrent: admin.id === owner.id,
   }));
 
-  const ownerCount = rows.filter((row) => row.role === "owner").length;
+  const adminCount = rows.filter((row) => row.role === "ADMIN").length;
 
   return (
     <PageShell>
@@ -32,8 +32,8 @@ const TeamPage = async () => {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard label={t("stats.total")} value={rows.length} icon={UsersIcon} />
-        <StatCard label={t("stats.owners")} value={ownerCount} icon={ShieldCheckIcon} />
-        <StatCard label={t("stats.staff")} value={rows.length - ownerCount} icon={UserCogIcon} />
+        <StatCard label={t("stats.admins")} value={adminCount} icon={ShieldCheckIcon} />
+        <StatCard label={t("stats.staff")} value={rows.length - adminCount} icon={UserCogIcon} />
       </div>
 
       <TeamManager admins={rows} />

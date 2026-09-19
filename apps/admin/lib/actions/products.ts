@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@repo/database";
-import { requireAdmin, requireOwner } from "@/lib/auth";
+import { requireAdmin, requirePermission } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import type { ProductColorTemp, ProductIP, ProductChandLamp } from "@repo/database";
@@ -146,7 +146,7 @@ export async function upsertProductSpecification(
 
 /** Price changes are owner-only and always go through the audited path. */
 export async function updateProductPrice(productId: string, newPrice: number) {
-  const admin = await requireOwner();
+  const admin = await requirePermission("price:write");
   const updated = await prisma.product.updatePrice(productId, newPrice, admin.id);
   revalidatePath(`/admin/dashboard/products/${productId}`);
   return updated;

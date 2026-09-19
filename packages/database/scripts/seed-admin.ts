@@ -1,19 +1,19 @@
 /**
  * One-time bootstrap: creates the initial OWNER Admin account via Better
  * Auth's own signup (so the password is hashed exactly the way Better Auth
- * expects, not hand-rolled), then promotes it to role "owner" (signup
- * defaults everyone to "staff" — see apps/admin/lib/auth-server.ts).
+ * expects, not hand-rolled), then promotes it to role ADMIN (signup
+ * defaults everyone to STAFF — see apps/admin/lib/auth-server.ts).
  *
  * Requires, in the environment this is run with (not committed anywhere):
  *   DATABASE_URL         - already in packages/database/.env
  *   BETTER_AUTH_SECRET    - same secret apps/admin's Better Auth instance uses
- *   ADMIN_EMAIL           - email for the owner account
- *   ADMIN_PASSWORD         - password for the owner account (min 8 chars)
+ *   ADMIN_EMAIL           - email for the admin account
+ *   ADMIN_PASSWORD         - password for the admin account (min 8 chars)
  *   ADMIN_NAME             - display name (optional, defaults to "Owner")
  *
  * Run once: `pnpm --filter @repo/database seed:admin`
  * If an Admin with that email already exists, this just promotes it to
- * owner rather than erroring.
+ * ADMIN rather than erroring.
  */
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
@@ -39,7 +39,7 @@ async function main() {
     user: {
       modelName: "admin",
       additionalFields: {
-        role: { type: "string", required: false, defaultValue: "staff" },
+        role: { type: "string", required: false, defaultValue: "STAFF" },
       },
     },
     session: { modelName: "adminSession", fields: { userId: "adminId" } },
@@ -57,7 +57,7 @@ async function main() {
 
   const admin = await prisma.admin.update({
     where: { email: ADMIN_EMAIL },
-    data: { role: "owner" },
+    data: { role: "ADMIN" },
   });
 
   console.log(`Owner admin ready: ${admin.email} (id=${admin.id})`);

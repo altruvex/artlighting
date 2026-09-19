@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@repo/database";
-import { requireOwner } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import type { DiscountScope, DiscountType } from "@repo/database";
@@ -16,7 +16,7 @@ export async function createDiscount(data: {
   startsAt?: Date | null;
   endsAt?: Date | null;
 }) {
-  await requireOwner();
+  await requirePermission("discount:write");
 
   if (data.scope === "product" && !data.productId) {
     const t = await getTranslations("Discounts");
@@ -46,7 +46,7 @@ export async function createDiscount(data: {
 }
 
 export async function deactivateDiscount(discountId: string) {
-  await requireOwner();
+  await requirePermission("discount:write");
   const discount = await prisma.discount.update({
     where: { id: discountId },
     data: { isActive: false },

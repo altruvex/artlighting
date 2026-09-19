@@ -27,7 +27,6 @@ model Configuration {
   updatedAt         DateTime  @updatedAt
 
   orders     Order[]     @relation("ConfigurationToOrder")
-  users      User[]      @relation("ConfigurationToUser")
   orderItems OrderItem[]
 
   @@index([productId])
@@ -46,16 +45,13 @@ model User {
   emailVerified     Boolean  @default(false)
   image             String?
   phoneNumber       String?
+  role              UserRole @default(CUSTOMER)
   preferredLanguage String   @default("ar")
   preferredCurrency String   @default("EGP")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-  configurationId   String?
-  productId         String?
   shippingAddressId String?  @unique
 
-  configuration   Configuration?   @relation("ConfigurationToUser", fields: [configurationId], references: [id])
-  product         Product?         @relation(fields: [productId], references: [id])
   shippingAddress ShippingAddress?
   cart            Cart?
   orders          Order[]
@@ -77,6 +73,7 @@ model Session {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("sessions")
 }
 
@@ -97,6 +94,7 @@ model Account {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("accounts")
 }
 
@@ -108,6 +106,7 @@ model Verification {
   createdAt  DateTime? @default(now())
   updatedAt  DateTime? @updatedAt
 
+  @@index([identifier])
   @@map("verifications")
 }
 
@@ -269,7 +268,6 @@ model Product {
   cartItems         CartItem[]
   orders             Order[]
   orderItems         OrderItem[]
-  users              User[]
   category           Category                @relation("ProductTopCategory", fields: [categoryId], references: [id])
   lightingtype       Category                @relation("ProductSubCategory", fields: [lightingtypeId], references: [id])
   specifications     ProductSpecification[]
@@ -527,7 +525,7 @@ model Admin {
   email         String    @unique
   emailVerified Boolean   @default(false)
   image         String?
-  role          AdminRole @default(staff)
+  role          AdminRole @default(STAFF)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -549,6 +547,7 @@ model AdminSession {
 
   admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
+  @@index([adminId])
   @@map("admin_sessions")
 }
 
@@ -569,6 +568,7 @@ model AdminAccount {
 
   admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
+  @@index([adminId])
   @@map("admin_accounts")
 }
 
@@ -580,6 +580,7 @@ model AdminVerification {
   createdAt  DateTime? @default(now())
   updatedAt  DateTime? @updatedAt
 
+  @@index([identifier])
   @@map("admin_verifications")
 }
 
@@ -672,8 +673,16 @@ enum DiscountScope {
 }
 
 enum AdminRole {
-  owner
-  staff
+  ADMIN
+  STAFF
 
   @@map("AdminRole")
+}
+
+/// Customer-side role. Only CUSTOMER today; kept as an enum so tiers
+/// (wholesale, contractor) can be added without another type change.
+enum UserRole {
+  CUSTOMER
+
+  @@map("UserRole")
 }

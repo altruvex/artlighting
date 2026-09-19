@@ -2,6 +2,7 @@ import { AppSidebar } from "@/components/shell/app-sidebar";
 import { AppTopbar } from "@/components/shell/app-topbar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { requireAdminOrRedirect } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 
@@ -22,7 +23,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     <SidebarProvider defaultOpen={sidebarState !== "false"}>
       <AppSidebar admin={{ name: admin.name, email: admin.email, role: admin.role }} />
       <SidebarInset>
-        <AppTopbar isOwner={admin.role === "owner"} />
+        <AppTopbar isAdmin={can(admin.role, "staff:manage")} />
         <main id="content" tabIndex={-1} className="flex-1 outline-none">
           {children}
         </main>

@@ -60,7 +60,7 @@ export default function TeamManager({ admins }: { admins: TeamRow[] }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"owner" | "staff">("staff");
+  const [role, setRole] = useState<AdminRole>("STAFF");
   const [copied, setCopied] = useState(false);
   const [lastCreated, setLastCreated] = useState<{ email: string; password: string } | null>(null);
 
@@ -91,7 +91,7 @@ export default function TeamManager({ admins }: { admins: TeamRow[] }) {
         setName("");
         setEmail("");
         setPassword("");
-        setRole("staff");
+        setRole("STAFF");
         toast.success(t("toasts.accountCreated"));
         router.refresh();
       } catch (err) {
@@ -129,7 +129,7 @@ export default function TeamManager({ admins }: { admins: TeamRow[] }) {
         enableSorting: false,
         header: ({ column }) => <ColumnHeader column={column} title={t("role")} />,
         cell: ({ row }) => (
-          <StatusBadge tone={row.original.role === "owner" ? "success" : "neutral"}>
+          <StatusBadge tone={row.original.role === "ADMIN" ? "success" : "neutral"}>
             {t(`roles.${row.original.role}`)}
           </StatusBadge>
         ),
@@ -159,7 +159,7 @@ export default function TeamManager({ admins }: { admins: TeamRow[] }) {
                 disabled={isPending}
                 onClick={() => setPendingRole(row.original)}
               >
-                {row.original.role === "owner" ? t("makeStaff") : t("makeOwner")}
+                {row.original.role === "ADMIN" ? t("makeStaff") : t("makeOwner")}
               </Button>
               <Button
                 variant="ghost"
@@ -230,13 +230,13 @@ export default function TeamManager({ admins }: { admins: TeamRow[] }) {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="staff-role">{t("role")}</Label>
-              <Select value={role} onValueChange={(next) => setRole(next as "owner" | "staff")}>
+              <Select value={role} onValueChange={(next) => setRole(next as AdminRole)}>
                 <SelectTrigger id="staff-role" className="h-8 w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="staff">{t("roleOptions.staff")}</SelectItem>
-                  <SelectItem value="owner">{t("roleOptions.owner")}</SelectItem>
+                  <SelectItem value="STAFF">{t("roleOptions.STAFF")}</SelectItem>
+                  <SelectItem value="ADMIN">{t("roleOptions.ADMIN")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -293,8 +293,8 @@ export default function TeamManager({ admins }: { admins: TeamRow[] }) {
             columnId: "role",
             title: t("role"),
             options: [
-              { value: "owner", label: t("roles.owner") },
-              { value: "staff", label: t("roles.staff") },
+              { value: "ADMIN", label: t("roles.ADMIN") },
+              { value: "STAFF", label: t("roles.STAFF") },
             ],
           },
         ]}
@@ -315,7 +315,7 @@ export default function TeamManager({ admins }: { admins: TeamRow[] }) {
           <AlertDialogHeader>
             <AlertDialogTitle>{t("roleDialog.title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingRole?.role === "owner"
+              {pendingRole?.role === "ADMIN"
                 ? t("roleDialog.toStaff", { name: pendingRole?.name ?? "" })
                 : t("roleDialog.toOwner", { name: pendingRole?.name ?? "" })}
             </AlertDialogDescription>
@@ -328,7 +328,7 @@ export default function TeamManager({ admins }: { admins: TeamRow[] }) {
                 if (!target) return;
                 setPendingRole(null);
                 run(
-                  () => updateAdminRole(target.id, target.role === "owner" ? "staff" : "owner"),
+                  () => updateAdminRole(target.id, target.role === "ADMIN" ? "STAFF" : "ADMIN"),
                   t("toasts.roleUpdated"),
                 );
               }}

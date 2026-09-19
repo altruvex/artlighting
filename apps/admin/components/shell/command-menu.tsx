@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 /** ⌘K / Ctrl+K palette: jump to any module or start a common action. */
-export function CommandMenu({ isOwner }: { isOwner: boolean }) {
+export function CommandMenu({ isAdmin }: { isAdmin: boolean }) {
   const t = useTranslations("Shell.command");
   const tNav = useTranslations("Nav");
   const tGroups = useTranslations("Shell.groups");
@@ -67,7 +67,7 @@ export function CommandMenu({ isOwner }: { isOwner: boolean }) {
           {NAV_GROUPS.map((group) => (
             <CommandGroup key={group.key} heading={tGroups(group.key)}>
               {group.items
-                .filter((item) => !item.ownerOnly || isOwner)
+                .filter((item) => !item.adminOnly || isAdmin)
                 .map((item) => (
                   <CommandItem key={item.key} onSelect={() => go(item.url)}>
                     <item.icon />

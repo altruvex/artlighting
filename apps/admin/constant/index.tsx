@@ -25,8 +25,8 @@ export interface NavItem {
   key: NavKey;
   url: string;
   icon: LucideIcon;
-  /** Only shown to owners (the page itself also enforces it). */
-  ownerOnly?: boolean;
+  /** Only shown to admins (the page itself also enforces it). */
+  adminOnly?: boolean;
 }
 
 export interface NavGroup {
@@ -62,7 +62,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     key: "system",
     items: [
-      { key: "team", url: "/admin/dashboard/team", icon: ShieldIcon, ownerOnly: true },
+      { key: "team", url: "/admin/dashboard/team", icon: ShieldIcon, adminOnly: true },
       { key: "notifications", url: "/admin/dashboard/notification", icon: BellIcon },
     ],
   },

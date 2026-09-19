@@ -22,7 +22,7 @@ export const auth = betterAuth({
   user: {
     modelName: "admin",
     additionalFields: {
-      role: { type: "string", required: false, defaultValue: "staff" },
+      role: { type: "string", required: false, defaultValue: "STAFF" },
     },
   },
   session: {

@@ -17,7 +17,8 @@
     "db:generate": "turbo run db:generate --filter=@repo/database",
     "db:migrate": "turbo run db:migrate --filter=@repo/database",
     "db:studio": "turbo run db:studio --filter=@repo/database",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "clean": "turbo run clean && rm -rf node_modules",
+    "test": "turbo run test"
   },
   "devDependencies": {
     "prettier": "^3.9.8",

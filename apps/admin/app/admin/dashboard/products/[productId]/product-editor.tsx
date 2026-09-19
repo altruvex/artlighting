@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Upload, Loader2 } from "lucide-react";
+import { FileText, Upload, Loader2, Download } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import {
   updateProductGeneral,
@@ -197,6 +197,16 @@ export default function ProductEditor({
           <p className="text-sm text-muted-foreground">{product.productId}</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" className="rounded-xl" asChild>
+            <a href={`/api/products/${product.id}/datasheet?format=pptx`}>
+              <Download className="h-4 w-4" /> PPTX
+            </a>
+          </Button>
+          <Button variant="outline" className="rounded-xl" asChild>
+            <a href={`/api/products/${product.id}/datasheet?format=pdf`}>
+              <Download className="h-4 w-4" /> PDF
+            </a>
+          </Button>
           <Button
             variant="outline"
             className="rounded-xl"

@@ -16,6 +16,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/container";
 import { formatPrice } from "@/lib/utils";
+import BulkGenerateSheet from "./bulk-generate-sheet";
 
 const ProductsPage = async () => {
   try {
@@ -25,22 +26,28 @@ const ProductsPage = async () => {
     throw err;
   }
 
-  const products = await prisma.product.findMany({
-    where: { deletedAt: null },
-    orderBy: { createdAt: "desc" },
-    include: {
-      category: { select: { name: true } },
-      lightingtype: { select: { name: true } },
-      variants: { where: { isDefault: true }, select: { stock: true } },
-    },
-  });
+  const [products, topCategories] = await Promise.all([
+    prisma.product.findMany({
+      where: { deletedAt: null },
+      orderBy: { createdAt: "desc" },
+      include: {
+        category: { select: { name: true } },
+        lightingtype: { select: { name: true } },
+        variants: { where: { isDefault: true }, select: { stock: true } },
+      },
+    }),
+    prisma.category.findMany({ where: { parentId: null }, select: { id: true, name: true } }),
+  ]);
 
   return (
     <div className="flex flex-col min-h-screen pb-10">
       <DashboardHeader Route="Products">
-        <Button asChild size="sm">
-          <Link href="/admin/dashboard/products/new">New product</Link>
-        </Button>
+        <div className="flex gap-2">
+          <BulkGenerateSheet topCategories={topCategories} />
+          <Button asChild size="sm">
+            <Link href="/admin/dashboard/products/new">New product</Link>
+          </Button>
+        </div>
       </DashboardHeader>
       <div className="mt-8">
         <Container>

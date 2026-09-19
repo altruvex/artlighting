@@ -1,0 +1,24 @@
+# Root .dockerignore for apps/datasheet-worker's monorepo-root Docker build
+# context. The Dockerfile runs its own pnpm install inside the container, so
+# none of this needs to travel with the build upload.
+node_modules
+**/node_modules
+.git
+.next
+**/.next
+.turbo
+**/.turbo
+dist
+**/dist
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+.vs
+
+# The worker's Docker build only needs apps/datasheet-worker + the shared
+# packages it depends on — apps/web and apps/admin (with their large public/
+# marketing assets) are never read by this build.
+apps/web
+apps/admin

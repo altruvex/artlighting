@@ -24,7 +24,7 @@ export interface FacetOption {
   label: string;
 }
 
-/** Multi-select filter for one column (status, category, brand…). */
+/** Column-bound wrapper (client-side tables). */
 export function FacetedFilter<TData extends Record<string, unknown>, TValue>({
   column,
   title,
@@ -34,13 +34,37 @@ export function FacetedFilter<TData extends Record<string, unknown>, TValue>({
   title: string;
   options: FacetOption[];
 }) {
+  return (
+    <FacetFilterMenu
+      title={title}
+      options={options}
+      selected={(column?.getFilterValue() as string[]) ?? []}
+      onChange={(values) => column?.setFilterValue(values.length ? values : undefined)}
+    />
+  );
+}
+
+/** Multi-select filter menu (status, category, brand…). */
+export function FacetFilterMenu({
+  title,
+  options,
+  selected: selectedValues,
+  onChange,
+  disabled,
+}: {
+  title: string;
+  options: FacetOption[];
+  selected: string[];
+  onChange: (values: string[]) => void;
+  disabled?: boolean;
+}) {
   const t = useTranslations("DataTable");
-  const selected = new Set((column?.getFilterValue() as string[]) ?? []);
+  const selected = new Set(selectedValues);
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-8 gap-1.5 border-dashed">
+        <Button variant="outline" size="sm" className="h-8 gap-1.5 border-dashed" disabled={disabled}>
           <PlusCircleIcon className="size-3.5" />
           {title}
           {selected.size > 0 && (
@@ -68,8 +92,7 @@ export function FacetedFilter<TData extends Record<string, unknown>, TValue>({
                       const next = new Set(selected);
                       if (isSelected) next.delete(option.value);
                       else next.add(option.value);
-                      const values = [...next];
-                      column?.setFilterValue(values.length ? values : undefined);
+                      onChange([...next]);
                     }}
                   >
                     <span
@@ -89,7 +112,7 @@ export function FacetedFilter<TData extends Record<string, unknown>, TValue>({
               <>
                 <CommandSeparator />
                 <CommandGroup>
-                  <CommandItem onSelect={() => column?.setFilterValue(undefined)} className="justify-center">
+                  <CommandItem onSelect={() => onChange([])} className="justify-center">
                     {t("clearFilter")}
                   </CommandItem>
                 </CommandGroup>

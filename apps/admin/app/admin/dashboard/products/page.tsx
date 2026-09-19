@@ -70,7 +70,7 @@ export default async function ProductsPage() {
         }
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <StatCard label={t("stats.total")} value={rows.length} icon={PackageIcon} />
         <StatCard label={t("stats.active")} value={activeCount} icon={CircleCheckIcon} />
         <StatCard

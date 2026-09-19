@@ -60,6 +60,7 @@ export function ProductsTable({
             <span className="grid min-w-0 leading-tight">
               <Link
                 href={`/admin/dashboard/products/${row.original.id}`}
+                prefetch={false}
                 className="truncate font-medium hover:underline"
               >
                 {row.original.name}
@@ -127,7 +128,9 @@ export function ProductsTable({
         cell: ({ row }) => (
           <div className="flex justify-end">
             <Button asChild variant="ghost" size="sm" className="h-7">
-              <Link href={`/admin/dashboard/products/${row.original.id}`}>{tCommon("edit")}</Link>
+              <Link href={`/admin/dashboard/products/${row.original.id}`} prefetch={false}>
+                {tCommon("edit")}
+              </Link>
             </Button>
           </div>
         ),

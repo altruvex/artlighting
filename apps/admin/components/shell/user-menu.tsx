@@ -27,12 +27,10 @@ import { useTransition } from "react";
 const LANGUAGE_LABELS: Record<Locale, string> = { en: "English", ar: "العربية" };
 
 function initials(name: string, email: string) {
-  const fromName = name
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2);
+  const parts = name.split(/\s+/).filter(Boolean);
+  // Two initials from two words ("Ali Hassan" -> AH), otherwise the first
+  // two letters of the single word, so the avatar is never one lonely glyph.
+  const fromName = parts.length > 1 ? parts.map((part) => part[0]).join("").slice(0, 2) : parts[0]?.slice(0, 2);
   return (fromName || email.slice(0, 2)).toUpperCase();
 }
 

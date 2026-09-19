@@ -193,7 +193,7 @@ export function DataTable<TData extends Record<string, unknown>>({
 
       <div className="rounded-lg border">
         <div className="relative max-h-[70svh] overflow-auto">
-          <Table>
+          <Table className="min-w-[720px]">
             <TableHeader className="sticky top-0 z-10 bg-card">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="hover:bg-transparent">

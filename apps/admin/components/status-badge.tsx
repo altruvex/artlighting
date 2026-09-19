@@ -7,7 +7,7 @@ const TONE_CLASSES: Record<StatusTone, string> = {
   success: "bg-success/12 text-success",
   warning: "bg-warning/15 text-warning",
   info: "bg-info/12 text-info",
-  danger: "bg-destructive/12 text-destructive",
+  danger: "bg-danger/12 text-danger",
   neutral: "bg-muted text-muted-foreground",
 };
 

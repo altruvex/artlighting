@@ -115,6 +115,8 @@
     "showing": "Showing {from}–{to} of {total}",
     "page": "Page {page} of {pages}",
     "previous": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "rowsPerPage": "Rows per page",
+    "rowsPerPageValue": "{size} / page"
   }
 }

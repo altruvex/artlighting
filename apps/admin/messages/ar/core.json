@@ -115,6 +115,8 @@
     "showing": "عرض {from}–{to} من {total}",
     "page": "صفحة {page} من {pages}",
     "previous": "السابق",
-    "next": "التالي"
+    "next": "التالي",
+    "rowsPerPage": "عدد الصفوف في الصفحة",
+    "rowsPerPageValue": "‏{size} / صفحة"
   }
 }

@@ -99,9 +99,6 @@ importers:
       '@prisma/client':
         specifier: ^6.19.3
         version: 6.19.3(prisma@6.19.3(typescript@6.0.3))(typescript@6.0.3)
-      '@radix-ui/react-alert-dialog':
-        specifier: ^1.1.23
-        version: 1.1.23(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@radix-ui/react-avatar':
         specifier: ^1.2.6
         version: 1.2.6(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -162,9 +159,6 @@ importers:
       date-fns:
         specifier: ^4.4.0
         version: 4.4.0
-      dotenv-flow:
-        specifier: ^4.1.0
-        version: 4.1.0
       embla-carousel-react:
         specifier: ^8.6.0
         version: 8.6.0(react@19.3.0)
@@ -177,12 +171,6 @@ importers:
       next:
         specifier: 'catalog:'
         version: 16.3.5(@types/node@22.20.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-cloudinary:
-        specifier: ^6.19.3
-        version: 6.19.3(next@16.3.5(@types/node@22.20.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
-      next-config:
-        specifier: ^0.1.0
-        version: 0.1.0(config@1.31.0)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -359,12 +347,6 @@ importers:
       next:
         specifier: 'catalog:'
         version: 16.3.5(@types/node@22.20.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next-cloudinary:
-        specifier: ^6.19.3
-        version: 6.19.3(next@16.3.5(@types/node@22.20.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
-      next-config:
-        specifier: ^0.1.0
-        version: 0.1.0(config@1.31.0)
       next-intl:
         specifier: 'catalog:'
         version: 4.14.5(@swc/helpers@0.5.23)(next@16.3.5(@types/node@22.20.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
@@ -386,6 +368,9 @@ importers:
       recharts:
         specifier: ^3.10.1
         version: 3.10.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react-is@16.13.1)(react@19.3.0)(redux@5.0.1)
+      server-only:
+        specifier: ^0.0.1
+        version: 0.0.1
       sonner:
         specifier: ^2.0.8
         version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -420,12 +405,6 @@ importers:
       autoprefixer:
         specifier: ^10.6.1
         version: 10.6.1(postcss@8.5.28)
-      dotenv:
-        specifier: ^17.4.2
-        version: 17.4.2
-      dotenv-flow:
-        specifier: ^4.1.0
-        version: 4.1.0
       eslint:
         specifier: 'catalog:'
         version: 10.11.0(jiti@2.7.0)
@@ -438,9 +417,6 @@ importers:
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.3
-      tsx:
-        specifier: 'catalog:'
-        version: 4.23.13
       tw-animate-css:
         specifier: ^1.4.0
         version: 1.4.0
@@ -459,9 +435,6 @@ importers:
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
-      dotenv-flow:
-        specifier: ^4.1.0
-        version: 4.1.0
     devDependencies:
       '@repo/eslint-config':
         specifier: workspace:*
@@ -713,24 +686,6 @@ packages:
 
   '@cacheable/utils@2.5.0':
     resolution: {integrity: sha512-buipgOVDkkPXNR5+xBpDw7Zk2n1EvU7qBJCNUcL7rhQ//kfpOXPAvQ511Os0vpLYJ1pZnvudNytkQt2hst3wqA==}
-
-  '@cloudinary-util/types@1.5.10':
-    resolution: {integrity: sha512-n5lrm7SdAXhgWEbkSJKHZGnaoO9G/g4WYS6HYnq/k4nLj79sYfQZOoKjyR8hF2iyLRdLkT+qlk68RNFFv5tKew==}
-
-  '@cloudinary-util/url-loader@5.10.4':
-    resolution: {integrity: sha512-gHkdvOaV+rlcwuIT7Vqd0ts/H5bsH4+bwFten/gIZ8oRjzdTBvgIY3R6F8bbJt0pFIEfpFEQLe4rPkl0NNqEWg==}
-
-  '@cloudinary-util/util@3.3.2':
-    resolution: {integrity: sha512-Cc0iFxzfl7fcOXuznpeZFGYC885Of/vDgccRDnhTe/8Rf8YKv2PjLtezyo0VgmdA/CpeZy29NCXAsf6liokbwg==}
-
-  '@cloudinary-util/util@4.0.0':
-    resolution: {integrity: sha512-S4xcou/3A7l5o+bcKlw2VHBNgwups7/0lbVDT/cO5YmtrcEYXgj6LGmwnjvpTm/x571VPVN8x5jWdT3rLZiKJQ==}
-
-  '@cloudinary/transformation-builder-sdk@1.21.2':
-    resolution: {integrity: sha512-ehOgKUaP+Nvuf7B0TosmB8iilL0kdiVjzjl8tIK06cjvsNnwSJI3xP9nEJmKkvqNxwwFwvYXT+mxUTqnSv9JOA==}
-
-  '@cloudinary/url-gen@1.15.0':
-    resolution: {integrity: sha512-bjU67eZxLUgoRy/Plli4TQio7q6P31OYqnEgXxeN9TKXrzr6h0DeEdIUhKI9gy3HkEBWXWWJIPh7j7gkOJPnyA==}
 
   '@eloqnt/config@0.1.0':
     resolution: {integrity: sha512-SLR6ZSHxu6XdZtmOz3xRmC3gsY/sCzqtLMD1gxbW2I3XXPBbupwL5RZbkLU/NcZm74AKZrIUPfz3CtEJfxUKqQ==}
@@ -2808,10 +2763,6 @@ packages:
   confbox@0.3.1:
     resolution: {integrity: sha512-cKUSoKa8YxFZZSmraVi7onONx3amu77ngK3kGpsYHDH7drPwCRkQE1RYMPlLRrMtnciRj274XNRxcHxnKmDSnA==}
 
-  config@1.31.0:
-    resolution: {integrity: sha512-Ep/l9Rd1J9IPueztJfpbOqVzuKHQh4ZODMNt9xqTYdBBNRXbV4oTu34kCkkfdRVcDq0ohtpaeXGgb+c0LQxFRA==}
-    engines: {node: '>= 4.0.0'}
-
   consola@3.4.2:
     resolution: {integrity: sha512-5IKcdX0nnYavi6G7TtOhwkYzyjfJlatbjMjuLSfE2kYT5pMDOilZ4OvMhi637CcDICTmz3wARPoyhqyX1Y+XvA==}
     engines: {node: ^14.18.0 || >=16.10.0}
@@ -2986,10 +2937,6 @@ packages:
   doctrine@2.1.0:
     resolution: {integrity: sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw==}
     engines: {node: '>=0.10.0'}
-
-  dotenv-flow@4.1.0:
-    resolution: {integrity: sha512-0cwP9jpQBQfyHwvE0cRhraZMkdV45TQedA8AAUZMsFzvmLcQyc1HPv+oX0OOYwLFjIlvgVepQ+WuQHbqDaHJZg==}
-    engines: {node: '>= 12.0.0'}
 
   dotenv@16.0.3:
     resolution: {integrity: sha512-7GO6HghkA5fYG9TYnNxi14/7K9f5occMlp3zXAuSxn7CKCxt9xbNWG7yF8hTCSUchlfWSe3uLmlPfigevRItzQ==}
@@ -3911,17 +3858,6 @@ packages:
     resolution: {integrity: sha512-NMPBRMJgiQHjbd8phG3Vebdx4kZ1H121rbl5IkMqeOsahptB9BKo/d7oJ3zTXqTgagn2bWlNSXkh0QUGM31RYg==}
     engines: {node: '>=18'}
 
-  next-cloudinary@6.19.3:
-    resolution: {integrity: sha512-31VNjuBBeHPSYsZwpRSFdOXzY19Z9kN6yLEtodWoEr926AQBv8qwNv6MF+H1+1Sc9i3ztMRqku34bibc2CUYHg==}
-    peerDependencies:
-      next: ^12 || ^13 || ^14 || >=15.0.0-rc || ^15 || ^16
-      react: ^17 || ^18 || >=19.0.0-beta || ^19
-
-  next-config@0.1.0:
-    resolution: {integrity: sha512-qcfGnaqOC3ru0VaytxvRnuVnNq+UawXSYUolTdSKGDLBNjqwZQsMpAuW/h2gMzSVRe7U3bVYLO2fC4/gbDA0aA==}
-    peerDependencies:
-      config: ^1.30.0
-
   next-intl-swc-plugin-extractor@4.14.5:
     resolution: {integrity: sha512-dbpsjHmwbqn795z7eDI7HHL+jxyvZ5CNF40sbGx+nkjM4pCs7HdTzGQnQ84mjF/WWZa/w9pJ6M74prh+3vnbGQ==}
 
@@ -4720,9 +4656,6 @@ packages:
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
 
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
-
   zod@4.6.5:
     resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
 
@@ -4899,27 +4832,6 @@ snapshots:
     dependencies:
       hashery: 1.5.1
       keyv: 5.6.0
-
-  '@cloudinary-util/types@1.5.10': {}
-
-  '@cloudinary-util/url-loader@5.10.4':
-    dependencies:
-      '@cloudinary-util/types': 1.5.10
-      '@cloudinary-util/util': 3.3.2
-      '@cloudinary/url-gen': 1.15.0
-      zod: 3.25.76
-
-  '@cloudinary-util/util@3.3.2': {}
-
-  '@cloudinary-util/util@4.0.0': {}
-
-  '@cloudinary/transformation-builder-sdk@1.21.2':
-    dependencies:
-      '@cloudinary/url-gen': 1.15.0
-
-  '@cloudinary/url-gen@1.15.0':
-    dependencies:
-      '@cloudinary/transformation-builder-sdk': 1.21.2
 
   '@eloqnt/config@0.1.0': {}
 
@@ -6703,10 +6615,6 @@ snapshots:
 
   confbox@0.3.1: {}
 
-  config@1.31.0:
-    dependencies:
-      json5: 1.0.2
-
   consola@3.4.2: {}
 
   content-disposition@0.5.4:
@@ -6845,10 +6753,6 @@ snapshots:
   doctrine@2.1.0:
     dependencies:
       esutils: 2.0.3
-
-  dotenv-flow@4.1.0:
-    dependencies:
-      dotenv: 16.6.1
 
   dotenv@16.0.3: {}
 
@@ -7915,18 +7819,6 @@ snapshots:
     dependencies:
       content-type: 2.1.0
 
-  next-cloudinary@6.19.3(next@16.3.5(@types/node@22.20.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0):
-    dependencies:
-      '@cloudinary-util/types': 1.5.10
-      '@cloudinary-util/url-loader': 5.10.4
-      '@cloudinary-util/util': 4.0.0
-      next: 16.3.5(@types/node@22.20.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      react: 19.3.0
-
-  next-config@0.1.0(config@1.31.0):
-    dependencies:
-      config: 1.31.0
-
   next-intl-swc-plugin-extractor@4.14.5: {}
 
   next-intl@4.14.5(@swc/helpers@0.5.23)(next@16.3.5(@types/node@22.20.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0):
@@ -8921,7 +8813,5 @@ snapshots:
   zod-validation-error@4.0.2(zod@4.6.5):
     dependencies:
       zod: 4.6.5
-
-  zod@3.25.76: {}
 
   zod@4.6.5: {}

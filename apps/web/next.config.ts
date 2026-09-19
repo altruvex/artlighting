@@ -17,9 +17,6 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
-  compiler: {
-    styledComponents: true,
-  },
   experimental: {
     optimizePackageImports: ["lucide-react", "@/components/ui"],
   },

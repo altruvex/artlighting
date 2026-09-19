@@ -514,13 +514,10 @@ model PriceHistory {
 }
 
 // ─── Admin ───────────────────────────────────────────────────
-// Identity is Clerk (clerkUserId ties to the Clerk session); hashedPassword
-// is an optional secondary-verification step for the admin dashboard gate,
-// bcrypt-hashed — never compared in plaintext.
-// Doubles as Better Auth's "user" model for the admin app — a separate
-// identity pool from the customer-facing User/Session/Account/Verification
-// above (own tables via modelName mapping in apps/admin's auth config), so
-// admin and customer sessions/credentials never share a table.
+// Better Auth's "user" model for the admin app — a separate identity pool
+// from the customer-facing User/Session/Account/Verification above (own
+// tables via modelName mapping in apps/admin's auth config), so admin and
+// customer sessions/credentials never share a table.
 model Admin {
   id            String    @id @default(cuid())
   name          String    @default("")

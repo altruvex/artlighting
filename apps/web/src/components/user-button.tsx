@@ -10,7 +10,7 @@ import { useUser } from "@/lib/auth-hooks";
 import { signOut } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 
-/** Drop-in-ish replacement for Clerk's <UserButton> — avatar + sign-out dropdown. */
+/** Signed-in user's avatar with a sign-out dropdown. */
 export function UserButton({ className }: { className?: string }) {
   const { user } = useUser();
   const router = useRouter();

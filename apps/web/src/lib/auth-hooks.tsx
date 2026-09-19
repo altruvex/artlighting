@@ -4,7 +4,7 @@ import { authClient } from "./auth-client";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-/** Drop-in replacement for Clerk's `useAuth()`. */
+/** Client-side session state: `{ isLoaded, isSignedIn, userId }`. */
 export function useAuth() {
   const { data: session, isPending } = authClient.useSession();
   return {
@@ -14,7 +14,7 @@ export function useAuth() {
   };
 }
 
-/** Drop-in replacement for Clerk's `useUser()`. */
+/** Client-side current user. */
 export function useUser() {
   const { data: session, isPending } = authClient.useSession();
   return {
@@ -34,7 +34,7 @@ export function SignedOut({ children }: { children: ReactNode }) {
   return isLoaded && !isSignedIn ? <>{children}</> : null;
 }
 
-/** Drop-in-ish replacement for Clerk's <SignInButton>/<SignUpButton> — links to the app's own pages instead of opening a hosted modal. */
+/** Sign-in / sign-up buttons linking to the app's own auth pages. */
 export function SignInButton({ children }: { children: ReactNode }) {
   return (
     <Link href="/sign-in" className="contents">

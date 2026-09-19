@@ -1,36 +1,9 @@
 {
+  "extends": "@repo/typescript-config/nextjs.json",
   "compilerOptions": {
-    "target": "ES2017",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
     "paths": {
       "@/*": [
         "./src/*"
-      ],
-      "@repo/database": [
-        "../../packages/database/src"
-      ],
-      "@repo/database/*": [
-        "../../packages/database/src/*"
       ]
     }
   },
@@ -38,11 +11,8 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
+    "**/*.mts",
     ".next/types/**/*.ts",
-    "../../packages/ui/container.tsx",
-    "src/scripts/import-products.ts",
-    "src/components/new-collection.jsx",
-    "src/app/[locale]/(main)/(pages)/about.jsx",
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [

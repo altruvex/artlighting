@@ -35,14 +35,6 @@ const Users = async () => {
       },
     });
 
-    console.log(
-      "Found users:",
-      users.map((u) => ({
-        id: u.id,
-        email: u.email,
-      })),
-    );
-
     return <UsersClient users={users} />;
   } catch (error) {
     console.error("Error fetching users:", error);

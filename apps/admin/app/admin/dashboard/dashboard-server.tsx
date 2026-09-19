@@ -92,6 +92,5 @@ export const DashboardServer = async () => {
     },
   };
 
-  console.log("Dashboard data fetched:", result);
   return JSON.parse(JSON.stringify(result));
 };

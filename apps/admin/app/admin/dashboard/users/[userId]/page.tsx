@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import UserClient from "./user-client";
+import { requireAdminOrRedirect } from "@/lib/auth";
 import { prisma } from "@repo/database";
 
 const UserPage = async ({ params }: { params: Promise<{ userId: string }> }) => {
+  await requireAdminOrRedirect();
   const resolvedParams = await params;
-  console.log("Received params:", resolvedParams);
-  console.log("Searching for user with ID:", resolvedParams.userId);
 
   try {
     const user = await prisma.user.findUnique({
@@ -30,16 +30,9 @@ const UserPage = async ({ params }: { params: Promise<{ userId: string }> }) => 
         },
       },
     });
-    console.log("Database query result:", user);
     if (!user) {
-      console.log("User not found!");
       return notFound();
     }
-    console.log("Returning user data:", {
-      id: user.id,
-      email: user.email,
-      shippingAddress: user.shippingAddress,
-    });
     return <UserClient user={user} />;
   } catch (error) {
     console.error("Error fetching user:", error);

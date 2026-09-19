@@ -1,9 +1,11 @@
 
+import { requireAdminOrRedirect } from "@/lib/auth";
 import { prisma } from "@repo/database";
 import { notFound } from "next/navigation";
 import OrderPage from "./order-page";
 
 const OrderIdPage = async ({ params }: { params: Promise<{ orderId: string }> }) => {
+  await requireAdminOrRedirect();
   const resolvedParams = await params;
   const order = await prisma.order.findUnique({
     where: {

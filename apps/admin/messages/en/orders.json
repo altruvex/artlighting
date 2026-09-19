@@ -71,7 +71,8 @@
         "lamp": "Lamp",
         "led": "LED"
       }
-    }
+    },
+    "statusChanged": "Order status changed to {status}"
   },
   "OrderDetail": {
     "title": "Order #{id}",

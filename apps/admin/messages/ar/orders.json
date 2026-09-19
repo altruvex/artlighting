@@ -71,7 +71,8 @@
         "lamp": "لمبة",
         "led": "ليد"
       }
-    }
+    },
+    "statusChanged": "تم تغيير حالة الطلب إلى {status}"
   },
   "OrderDetail": {
     "title": "الطلب رقم {id}",

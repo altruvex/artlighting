@@ -295,10 +295,15 @@ export async function removeProductImage(imageId: string, productId: string) {
 
   if (image.providerId) {
     try {
-      await cloudinary.uploader.destroy(image.providerId);
-    } catch {
+      // invalidate: purge the CDN copy too, otherwise the delivery URL keeps
+      // serving a deleted image until the cached copy expires.
+      await cloudinary.uploader.destroy(image.providerId, { invalidate: true });
+    } catch (error) {
       // Best-effort — don't block removing the DB row if the asset is
       // already gone or credentials aren't configured in this environment.
+      // Logged rather than swallowed, so a failing delete leaves a trace
+      // instead of quietly leaking assets.
+      console.error("Cloudinary destroy failed", image.providerId, error);
     }
   }
 

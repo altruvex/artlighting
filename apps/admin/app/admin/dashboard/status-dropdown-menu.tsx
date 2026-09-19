@@ -16,6 +16,7 @@ import { useMutation } from "@tanstack/react-query";
 import { ChevronsUpDownIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { changeOrderStatus } from "./action";
 import { ORDER_STATUSES } from "./order-status";
 
@@ -38,10 +39,16 @@ const StatusDropdown = ({
   const t = useTranslations("OrderStatus");
   const tCommon = useTranslations("Common");
   const router = useRouter();
+  const tOrders = useTranslations("Orders");
   const { mutate, isPending } = useMutation({
     mutationKey: ["change-order-status"],
     mutationFn: changeOrderStatus,
-    onSuccess: () => router.refresh(),
+    onSuccess: (_result, variables) => {
+      toast.success(tOrders("statusChanged", { status: t(variables.newStatus) }));
+      router.refresh();
+    },
+    // Without this a failed change looked exactly like a successful one.
+    onError: () => toast.error(tCommon("genericError")),
   });
 
   return (

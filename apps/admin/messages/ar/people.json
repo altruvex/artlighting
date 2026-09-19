@@ -1,57 +1,82 @@
 {
   "Customers": {
-    "searchPlaceholder": "ابحث في العملاء",
-    "allCustomers": "كل العملاء",
-    "cardTitle": "العملاء",
-    "columns": {
-      "id": "رقم العميل",
-      "name": "اسم العميل",
-      "phone": "رقم الهاتف",
-      "shippingAddress": "عنوان الشحن"
+    "title": "العملاء",
+    "subtitle": "كل من لديه حساب على المتجر، الأحدث أولًا.",
+    "searchPlaceholder": "ابحث بالاسم أو البريد الإلكتروني أو الهاتف",
+    "stats": {
+      "total": "العملاء",
+      "withOrders": "لديهم طلبات",
+      "orders": "الطلبات المسجّلة"
     },
-    "empty": "لا يوجد عملاء",
-    "filterError": "تعذّر تصفية العملاء",
+    "columns": {
+      "customer": "العميل",
+      "phone": "الهاتف",
+      "address": "العنوان",
+      "orders": "الطلبات",
+      "joined": "تاريخ الانضمام"
+    },
+    "state": {
+      "ordered": "أتمّ طلبًا",
+      "pending": "طلب قيد التنفيذ",
+      "none": "لا توجد طلبات"
+    },
+    "completedOf": "{count} مكتملة",
+    "unnamed": "لا يوجد اسم مسجّل",
+    "view": "عرض",
+    "empty": {
+      "title": "لا يوجد عملاء بعد",
+      "description": "يظهر العميل هنا فور إنشائه حسابًا على المتجر."
+    },
     "loadError": "تعذّر تحميل العملاء"
   },
   "CustomerDetail": {
-    "accountTitle": "حساب {name}",
-    "personalInfo": "البيانات الشخصية",
-    "editPersonalInfo": "تعديل البيانات الشخصية",
+    "backToCustomers": "كل العملاء",
     "memberSince": "عضو منذ {date}",
-    "fullName": "الاسم بالكامل",
-    "shippingInfo": "بيانات الشحن",
-    "editShippingInfo": "تعديل بيانات الشحن",
-    "billingAddress": "عنوان الفاتورة",
-    "shippingAddress": "عنوان الشحن",
-    "orderHistory": "سجل الطلبات",
-    "orderHistoryDescription": "عرض الطلبات السابقة وإدارتها",
-    "productImageAlt": "صورة المنتج",
-    "tabs": {
-      "all": "كل الطلبات",
-      "awaiting": "بانتظار الشحن",
-      "processing": "قيد التجهيز",
-      "completed": "مكتملة",
-      "cancelled": "ملغاة"
+    "stats": {
+      "orders": "الطلبات",
+      "completed": "المكتملة",
+      "lifetimeValue": "إجمالي الإنفاق",
+      "lastOrder": "آخر طلب"
     },
+    "lifetimeValueHint": "الطلبات المكتملة فقط",
+    "profile": "الملف الشخصي",
+    "fullName": "الاسم بالكامل",
+    "addresses": "العناوين",
+    "shippingAddress": "عنوان الشحن",
+    "billingAddress": "عنوان الفاتورة",
+    "noAddress": "لا يوجد عنوان مسجّل",
+    "orderHistory": "سجل الطلبات",
+    "orderHistoryDescription": "جميع الطلبات التي سجّلها هذا العميل.",
+    "searchPlaceholder": "ابحث في الطلبات",
+    "productImageAlt": "صورة المنتج",
     "columns": {
       "orderNumber": "رقم الطلب",
       "product": "المنتج",
-      "colorTemp": "درجة حرارة اللون",
-      "ip": "IP",
-      "lamp": "اللمبة",
-      "discount": "الخصم",
-      "afterDiscount": "بعد الخصم",
       "qty": "الكمية",
-      "shipping": "الشحن",
-      "orderDate": "تاريخ الطلب",
-      "estDate": "التاريخ المتوقع"
+      "orderDate": "تاريخ الطلب"
     },
-    "noOrders": "لا توجد طلبات",
+    "orderStatus": {
+      "awaiting_shipment": "بانتظار الشحن",
+      "processing": "قيد التجهيز",
+      "shipped": "تم الشحن",
+      "delivered": "تم التسليم",
+      "fulfilled": "مكتمل",
+      "cancelled": "ملغى",
+      "refunded": "مسترجع"
+    },
+    "viewOrder": "عرض الطلب",
+    "empty": {
+      "title": "لا توجد طلبات بعد",
+      "description": "لم يسجّل هذا العميل أي طلب."
+    },
+    "noValue": "—",
     "loadError": "تعذّر تحميل بيانات العميل."
   },
   "Team": {
+    "title": "الفريق",
+    "subtitle": "حسابات المسؤولين وصلاحية كل حساب منها.",
     "addTitle": "إضافة عضو إلى الفريق",
-    "addDescription": "هذه هي الطريقة الوحيدة لإنشاء حساب مسؤول جديد، فلم يعد هناك تسجيل عام. شارك كلمة المرور المولَّدة معه عبر وسيلة آمنة (وتجنّب إرسالها كنص صريح عبر البريد أو المحادثات قدر الإمكان).",
+    "addDescription": "هذه هي الطريقة الوحيدة لإنشاء حساب مسؤول جديد، فلم يعد هناك تسجيل عام. شارك كلمة المرور المولَّدة عبر وسيلة آمنة.",
     "password": "كلمة المرور",
     "generate": "توليد",
     "passwordHint": "12 حرفًا على الأقل.",
@@ -67,11 +92,35 @@
     "createAccount": "إنشاء الحساب",
     "createdNotice": "تم إنشاء {email} — انسخ كلمة المرور الآن، فلن تظهر مرة أخرى:",
     "copyPassword": "نسخ كلمة المرور",
-    "adminsTitle": "المسؤولون ({count})",
-    "you": "(أنت)",
+    "searchPlaceholder": "ابحث في الفريق",
+    "stats": {
+      "total": "المسؤولون",
+      "owners": "المالكون",
+      "staff": "الموظفون"
+    },
+    "columns": {
+      "member": "العضو",
+      "added": "تاريخ الإضافة"
+    },
+    "you": "أنت",
     "makeStaff": "تحويل إلى موظف",
     "makeOwner": "تحويل إلى مالك",
     "revoke": "سحب الصلاحية",
+    "roleDialog": {
+      "title": "تغيير دور هذا العضو؟",
+      "toOwner": "سيحصل {name} على صلاحيات كاملة تشمل الأسعار والخصومات.",
+      "toStaff": "سيفقد {name} صلاحية الوصول إلى الأسعار والخصومات وإدارة الفريق.",
+      "confirm": "تغيير الدور"
+    },
+    "revokeDialog": {
+      "title": "سحب الصلاحية؟",
+      "description": "سيفقد {name} صلاحية الدخول إلى لوحة التحكم فورًا، ولن يتمكن من تسجيل الدخول مرة أخرى.",
+      "confirm": "سحب الصلاحية"
+    },
+    "empty": {
+      "title": "لا يوجد مسؤولون",
+      "description": "أضف أول عضو في الفريق من النموذج أعلاه."
+    },
     "toasts": {
       "fillRequired": "أدخل الاسم والبريد الإلكتروني وكلمة المرور",
       "accountCreated": "تم إنشاء الحساب",
@@ -87,21 +136,43 @@
     }
   },
   "Categories": {
+    "title": "الفئات",
+    "subtitle": "مستويان: قسم رئيسي، والفئات الفرعية داخله.",
     "addTitle": "إضافة فئة / فئة فرعية",
     "slug": "المعرّف (Slug)",
-    "parentLabel": "الفئة الأم (اتركها \"فئة رئيسية\" لإنشاء قسم جديد)",
+    "parentLabel": "الفئة الأم",
+    "parentHint": "اتركها فئة رئيسية لإنشاء قسم جديد.",
     "topLevel": "فئة رئيسية",
     "under": "ضمن {name}",
     "productCount": "({count, plural, zero {لا توجد منتجات} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}})",
     "moveUp": "نقل لأعلى",
     "moveDown": "نقل لأسفل",
+    "section": "قسم",
+    "subcategories": "الفئات الفرعية",
+    "noSubcategories": "لا توجد فئات فرعية في هذا القسم بعد.",
+    "edit": "تعديل {name}",
+    "editTitle": "تعديل الفئة",
+    "editDescription": "تغيير اسم الفئة ينعكس في كل موضع تظهر فيه على المتجر.",
+    "activeLabel": "ظاهرة في المتجر",
+    "stats": {
+      "sections": "الأقسام",
+      "subcategories": "الفئات الفرعية",
+      "products": "المنتجات"
+    },
+    "empty": {
+      "title": "لا توجد فئات بعد",
+      "description": "أنشئ قسمًا رئيسيًا أولًا، ثم أضف الفئات الفرعية تحته."
+    },
     "toasts": {
       "created": "تم إنشاء الفئة",
       "movedUp": "تم النقل لأعلى",
-      "movedDown": "تم النقل لأسفل"
+      "movedDown": "تم النقل لأسفل",
+      "updated": "تم تحديث الفئة"
     }
   },
   "Discounts": {
+    "title": "الخصومات",
+    "subtitle": "خصومات المتجر بالكامل وخصومات الفئات، الأحدث أولًا.",
     "newTitle": "خصم جديد على المتجر بالكامل أو على فئة",
     "newDescription": "تُنشأ خصومات المنتجات المحددة من صفحة تعديل المنتج نفسه.",
     "scopeLabel": "النطاق",
@@ -109,6 +180,8 @@
     "typeLabel": "النوع",
     "valueLabel": "القيمة",
     "codeLabel": "كود الكوبون (اختياري)",
+    "startsAtLabel": "يبدأ في (اختياري)",
+    "endsAtLabel": "ينتهي في (اختياري)",
     "scope": {
       "global": "المتجر بالكامل",
       "category": "فئة",
@@ -119,12 +192,45 @@
       "fixed": "مبلغ ثابت"
     },
     "createDiscount": "إنشاء الخصم",
-    "activeTitle": "الخصومات الفعّالة",
-    "empty": "لا توجد خصومات فعّالة.",
-    "amountOff": "خصم {amount} — {target}",
-    "storeWideTarget": "على المتجر بالكامل",
-    "codeSuffix": " — الكود {code}",
+    "searchPlaceholder": "ابحث في الخصومات",
+    "stats": {
+      "active": "سارية الآن",
+      "scheduled": "مجدولة",
+      "total": "الخصومات"
+    },
+    "columns": {
+      "target": "يسري على",
+      "type": "النوع",
+      "value": "القيمة",
+      "code": "الكود",
+      "window": "فترة السريان",
+      "created": "تاريخ الإنشاء"
+    },
+    "state": {
+      "active": "سارٍ",
+      "scheduled": "مجدول",
+      "expired": "منتهٍ",
+      "stopped": "موقوف"
+    },
+    "window": {
+      "always": "بدون حد زمني",
+      "from": "من {date}",
+      "until": "حتى {date}",
+      "range": "{from} – {to}"
+    },
+    "automatic": "تلقائي",
+    "storeWideTarget": "المتجر بالكامل",
     "deactivate": "إيقاف",
+    "deactivateDialog": {
+      "title": "إيقاف هذا الخصم؟",
+      "description": "سيتوقف الخصم على {target} فورًا، ولإعادته ستحتاج إلى إنشاء خصم جديد.",
+      "confirm": "إيقاف الخصم"
+    },
+    "ownerOnly": "إنشاء الخصومات وإيقافها متاح للمالك فقط.",
+    "empty": {
+      "title": "لا توجد خصومات",
+      "description": "أنشئ خصمًا على المتجر بالكامل أو على فئة ليظهر في هذه القائمة."
+    },
     "toasts": {
       "created": "تم إنشاء الخصم",
       "deactivated": "تم إيقاف الخصم"
@@ -143,7 +249,8 @@
   },
   "Unauthorized": {
     "title": "تم رفض الوصول",
-    "description": "غير مصرّح لك بالوصول إلى هذه المنطقة. هذا القسم مخصّص للمسؤولين فقط.",
+    "description": "غير مصرّح لك بفتح هذه المنطقة. لوحة التحكم مخصّصة للحسابات التي تملك صلاحيات المسؤول.",
+    "hint": "إذا كنت ترى أن هذا خطأ، سجّل الدخول بحساب مسؤول أو اطلب من المالك منحك الصلاحية.",
     "backToSignIn": "العودة إلى تسجيل الدخول"
   }
 }

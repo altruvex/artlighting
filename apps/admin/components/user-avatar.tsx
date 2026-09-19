@@ -1,36 +1,50 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+
+const SIZE_CLASSES = {
+  sm: "size-6 text-[10px]",
+  md: "size-8 text-xs",
+  lg: "size-9 text-xs",
+} as const;
 
 interface UserAvatarProps {
-  name?: string;
-  email: string;
-  imageUrl?: string;
+  name?: string | null;
+  email?: string | null;
+  imageUrl?: string | null;
   className?: string;
-  size?: "sm" | "md" | "lg";
+  size?: keyof typeof SIZE_CLASSES;
 }
 
+/**
+ * Initials tile for a customer or admin row. Decorative next to a name that
+ * is already on screen, so it is hidden from assistive tech.
+ *
+ * Initials are rendered locally: the previous dicebear.com URL sent every
+ * customer's email address to a third party (and CSP blocked the image anyway).
+ */
 export default function UserAvatar({
   name,
   email,
   imageUrl,
-  className = "",
+  className,
   size = "md",
 }: UserAvatarProps) {
-  const initials =
-    name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+  const fromName = name
+    ?.trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2);
 
-  const sizeClasses = {
-    sm: "h-6 w-6",
-    md: "h-8 w-8",
-    lg: "h-10 w-10",
-  };
+  const initials = (fromName || email?.slice(0, 2) || "?").toUpperCase();
 
   return (
-    <Avatar className={`${sizeClasses[size]} ${className}`}>
-      {/* Initials are rendered locally: the previous dicebear.com URL sent
-          every customer's email address to a third party (and CSP blocked
-          the image anyway). */}
-      {imageUrl && <AvatarImage src={imageUrl} alt={name || email} />}
-      <AvatarFallback>{initials || email.slice(0, 2).toUpperCase()}</AvatarFallback>
+    <Avatar aria-hidden className={cn("shrink-0 rounded-md", SIZE_CLASSES[size], className)}>
+      {imageUrl && <AvatarImage src={imageUrl} alt="" className="rounded-md" />}
+      <AvatarFallback className="rounded-md bg-muted font-medium text-muted-foreground">
+        {initials}
+      </AvatarFallback>
     </Avatar>
   );
-};
+}

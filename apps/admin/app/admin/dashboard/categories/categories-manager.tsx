@@ -1,15 +1,20 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { useTranslations } from "next-intl";
-import { Container } from "@/components/container";
+import { EmptyState } from "@/components/empty-state";
+import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -17,8 +22,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowUp, ArrowDown } from "lucide-react";
-import { createCategory, moveCategory } from "@/lib/actions/categories";
+import { createCategory, moveCategory, updateCategory } from "@/lib/actions/categories";
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  CornerDownRightIcon,
+  FolderTreeIcon,
+  PencilIcon,
+} from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 type CategoryWithCount = {
   id: string;
@@ -44,7 +59,12 @@ export default function CategoriesManager({
   const [slug, setSlug] = useState("");
   const [parentId, setParentId] = useState<string>("__top__");
 
-  const topCategories = categories.filter((c) => c.parentId === null);
+  const [editing, setEditing] = useState<CategoryWithCount | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editSlug, setEditSlug] = useState("");
+  const [editActive, setEditActive] = useState(true);
+
+  const sections = categories.filter((category) => category.parentId === null);
 
   function run(fn: () => Promise<unknown>, msg: string) {
     startTransition(async () => {
@@ -58,40 +78,175 @@ export default function CategoriesManager({
     });
   }
 
+  function openEditor(category: CategoryWithCount) {
+    setEditing(category);
+    setEditName(category.name);
+    setEditSlug(category.slug);
+    setEditActive(category.isActive);
+  }
+
+  /**
+   * Row controls, scoped to the row's own sibling list. A plain render
+   * function rather than a nested component: a component declared here would
+   * get a new identity every render and drop focus mid-interaction.
+   */
+  function rowControls(category: CategoryWithCount, index: number, siblings: number) {
+    return (
+      <>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-7"
+          disabled={isPending || index === 0}
+          aria-label={`${t("moveUp")} — ${category.name}`}
+          onClick={() => run(() => moveCategory(category.id, "up"), t("toasts.movedUp"))}
+        >
+          <ArrowUpIcon className="size-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-7"
+          disabled={isPending || index === siblings - 1}
+          aria-label={`${t("moveDown")} — ${category.name}`}
+          onClick={() => run(() => moveCategory(category.id, "down"), t("toasts.movedDown"))}
+        >
+          <ArrowDownIcon className="size-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-7"
+          disabled={isPending}
+          aria-label={t("edit", { name: category.name })}
+          onClick={() => openEditor(category)}
+        >
+          <PencilIcon className="size-3.5" />
+        </Button>
+      </>
+    );
+  }
+
   return (
-    <Container>
-      <Card className="max-w-lg mb-6 glass-surface rounded-2xl">
-        <CardHeader>
-          <CardTitle>{t("addTitle")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-2">
-              <Label>{tCommon("name")}</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>{t("slug")}</Label>
-              <Input dir="ltr" value={slug} onChange={(e) => setSlug(e.target.value)} />
-            </div>
+    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+      <div className="space-y-3 lg:order-1">
+        {sections.length === 0 ? (
+          <div className="rounded-lg border">
+            <EmptyState
+              icon={FolderTreeIcon}
+              title={t("empty.title")}
+              description={t("empty.description")}
+            />
           </div>
-          <div className="space-y-2">
-            <Label>{t("parentLabel")}</Label>
+        ) : (
+          sections.map((section, sectionIndex) => {
+            const children = categories
+              .filter((category) => category.parentId === section.id)
+              .sort((a, b) => a.order - b.order);
+
+            return (
+              <Card key={section.id} className="gap-0 py-0">
+                <div className="flex flex-wrap items-center gap-2 px-3 py-2.5">
+                  <span className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                    {t("section")}
+                  </span>
+                  <span className="min-w-0 truncate text-sm font-medium">{section.name}</span>
+                  <span className="truncate text-xs text-muted-foreground" dir="ltr">
+                    /{section.slug}
+                  </span>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {t("productCount", { count: section._count.products })}
+                  </span>
+                  {!section.isActive && (
+                    <StatusBadge tone="neutral">{tCommon("inactive")}</StatusBadge>
+                  )}
+                  <div className="flex items-center gap-0.5 ms-auto">
+                    {rowControls(section, sectionIndex, sections.length)}
+                  </div>
+                </div>
+
+                <div className="border-t px-3 py-2.5">
+                  {children.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">{t("noSubcategories")}</p>
+                  ) : (
+                    <ul className="space-y-1 border-s ps-3 ms-1.5">
+                      {children.map((child, index) => (
+                        <li
+                          key={child.id}
+                          className="flex flex-wrap items-center gap-2 rounded-md border px-2 py-1.5"
+                        >
+                          <CornerDownRightIcon
+                            aria-hidden
+                            className="size-3.5 shrink-0 text-muted-foreground rtl:-scale-x-100"
+                          />
+                          <span className="min-w-0 truncate text-sm">{child.name}</span>
+                          <span className="truncate text-xs text-muted-foreground" dir="ltr">
+                            /{child.slug}
+                          </span>
+                          <span className="text-xs text-muted-foreground tabular-nums">
+                            {t("productCount", { count: child._count.subProducts })}
+                          </span>
+                          {!child.isActive && (
+                            <StatusBadge tone="neutral">{tCommon("inactive")}</StatusBadge>
+                          )}
+                          <div className="flex items-center gap-0.5 ms-auto">
+                            {rowControls(child, index, children.length)}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </Card>
+            );
+          })
+        )}
+      </div>
+
+      <Card className="gap-3 py-4 lg:sticky lg:top-20 lg:order-2">
+        <CardHeader className="px-4">
+          <CardTitle className="text-sm">{t("addTitle")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 px-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="category-name">{tCommon("name")}</Label>
+            <Input
+              id="category-name"
+              className="h-8"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="category-slug">{t("slug")}</Label>
+            <Input
+              id="category-slug"
+              className="h-8"
+              dir="ltr"
+              value={slug}
+              onChange={(event) => setSlug(event.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="category-parent">{t("parentLabel")}</Label>
             <Select value={parentId} onValueChange={setParentId}>
-              <SelectTrigger>
+              <SelectTrigger id="category-parent" className="h-8 w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__top__">{t("topLevel")}</SelectItem>
-                {topCategories.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {t("under", { name: c.name })}
+                {sections.map((section) => (
+                  <SelectItem key={section.id} value={section.id}>
+                    {t("under", { name: section.name })}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">{t("parentHint")}</p>
           </div>
           <Button
+            size="sm"
+            className="w-full"
             disabled={isPending || !name || !slug}
             onClick={() =>
               run(async () => {
@@ -110,66 +265,68 @@ export default function CategoriesManager({
         </CardContent>
       </Card>
 
-      <div className="space-y-6">
-        {topCategories.map((top) => {
-          const children = categories
-            .filter((c) => c.parentId === top.id)
-            .sort((a, b) => a.order - b.order);
-
-          return (
-            <Card key={top.id} className="glass-surface rounded-2xl">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>
-                  {top.name}{" "}
-                  <span className="text-sm font-normal text-muted-foreground">
-                    {t("productCount", { count: top._count.products })}
-                  </span>
-                </CardTitle>
-                {!top.isActive && <Badge variant="secondary">{tCommon("inactive")}</Badge>}
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {children.map((child, index) => (
-                    <li
-                      key={child.id}
-                      className="flex items-center justify-between border rounded-lg p-2"
-                    >
-                      <span>
-                        {child.name}{" "}
-                        <span className="text-sm text-muted-foreground">
-                          {t("productCount", { count: child._count.subProducts })}
-                        </span>
-                      </span>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          disabled={isPending || index === 0}
-                          aria-label={t("moveUp")}
-                          onClick={() => run(() => moveCategory(child.id, "up"), t("toasts.movedUp"))}
-                        >
-                          <ArrowUp className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          disabled={isPending || index === children.length - 1}
-                          aria-label={t("moveDown")}
-                          onClick={() =>
-                            run(() => moveCategory(child.id, "down"), t("toasts.movedDown"))
-                          }
-                        >
-                          <ArrowDown className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-    </Container>
+      <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("editTitle")}</DialogTitle>
+            <DialogDescription>{t("editDescription")}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-category-name">{tCommon("name")}</Label>
+              <Input
+                id="edit-category-name"
+                className="h-8"
+                value={editName}
+                onChange={(event) => setEditName(event.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-category-slug">{t("slug")}</Label>
+              <Input
+                id="edit-category-slug"
+                className="h-8"
+                dir="ltr"
+                value={editSlug}
+                onChange={(event) => setEditSlug(event.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="edit-category-active"
+                checked={editActive}
+                onCheckedChange={(value) => setEditActive(Boolean(value))}
+              />
+              <Label htmlFor="edit-category-active" className="font-normal">
+                {t("activeLabel")}
+              </Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setEditing(null)}>
+              {tCommon("cancel")}
+            </Button>
+            <Button
+              size="sm"
+              disabled={isPending || !editName || !editSlug}
+              onClick={() => {
+                const target = editing;
+                if (!target) return;
+                run(async () => {
+                  await updateCategory(target.id, {
+                    name: editName,
+                    slug: editSlug,
+                    isActive: editActive,
+                  });
+                  setEditing(null);
+                }, t("toasts.updated"));
+              }}
+            >
+              {tCommon("save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

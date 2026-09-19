@@ -1,164 +1,172 @@
 "use client";
 
-import DashboardHeader from "@/components/dashboard-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { type AdminColumn, ServerDataTable, type TableParams } from "@/components/data-table";
+import { EmptyState } from "@/components/empty-state";
+import { StatusBadge, type StatusTone } from "@/components/status-badge";
+import { Button } from "@/components/ui/button";
 import UserAvatar from "@/components/user-avatar";
-import { SearchIcon } from "lucide-react";
-import Link from "next/link";
+import { UsersIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
-import { useState } from "react";
+import Link from "next/link";
+import { useMemo } from "react";
 
-type UserWithShipping = {
+export type CustomerState = "ordered" | "pending" | "none";
+
+export interface CustomerRow extends Record<string, unknown> {
   id: string;
+  name: string | null;
   email: string | null;
+  phone: string | null;
+  address: string | null;
+  ordersCount: number;
+  completedCount: number;
+  state: CustomerState;
   createdAt: Date;
-  shippingAddress: {
-    fullName: string;
-    phoneNumber: string;
-    address: string;
-  } | null;
-  orders: {
-    isCompleted: boolean;
-  }[];
+}
+
+const STATE_TONES: Record<CustomerState, StatusTone> = {
+  ordered: "success",
+  pending: "warning",
+  none: "neutral",
 };
 
-const UsersClient = ({ users }: { users: UserWithShipping[] }) => {
-  const [searchItem, setSearchItem] = useState<string>("");
-  const [filteredUsers, setFilteredUsers] = useState<UserWithShipping[]>(users);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+export function UsersClient({
+  customers,
+  total,
+  params,
+}: {
+  customers: CustomerRow[];
+  total: number;
+  params: TableParams;
+}) {
   const t = useTranslations("Customers");
   const tCommon = useTranslations("Common");
-  const tNav = useTranslations("Nav");
   const format = useFormatter();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const searchValue = e.target.value;
-    setSearchItem(searchValue);
-    setLoading(true);
-    setError(null);
-    try {
-      const searchOnNumber = searchValue;
-      const filteredItems = users.filter(
-        (user: UserWithShipping) =>
-          user.shippingAddress?.phoneNumber?.includes(searchOnNumber) ||
-          user.shippingAddress?.fullName
-            .toLowerCase()
-            .includes(searchValue.toLowerCase()) ||
-          user.shippingAddress?.address
-            .toLowerCase()
-            .includes(searchValue.toLowerCase()),
-      );
-      setFilteredUsers(filteredItems);
-    } catch (error) {
-      setError(t("filterError"));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const columns = useMemo<AdminColumn<CustomerRow>[]>(
+    () => [
+      {
+        id: "customer",
+        accessorFn: (row) => [row.name, row.email, row.phone].filter(Boolean).join(" "),
+        filterFn: "includesString",
+        header: t("columns.customer"),
+        cell: ({ row }) => (
+          <div className="flex items-center gap-3">
+            <UserAvatar name={row.original.name} email={row.original.email} />
+            <span className="grid min-w-0 leading-tight">
+              <Link
+                href={`/admin/dashboard/users/${row.original.id}`}
+                className="truncate font-medium hover:underline"
+              >
+                {row.original.name ?? t("unnamed")}
+              </Link>
+              <span className="truncate text-xs text-muted-foreground" dir="ltr">
+                {row.original.email ?? "—"}
+              </span>
+            </span>
+          </div>
+        ),
+      },
+      {
+        id: "phone",
+        accessorFn: (row) => row.phone ?? "",
+        enableSorting: false,
+        header: t("columns.phone"),
+        cell: ({ row }) =>
+          row.original.phone ? (
+            <span className="tabular-nums" dir="ltr">
+              {row.original.phone}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          ),
+      },
+      {
+        id: "address",
+        accessorFn: (row) => row.address ?? "",
+        enableSorting: false,
+        header: t("columns.address"),
+        cell: ({ row }) => (
+          <span className="block max-w-[22ch] truncate text-sm text-muted-foreground">
+            {row.original.address ?? "—"}
+          </span>
+        ),
+      },
+      {
+        id: "orders",
+        accessorFn: (row) => row.ordersCount,
+        header: t("columns.orders"),
+        cell: ({ row }) => (
+          <span className="grid leading-tight">
+            <span className="tabular-nums">{row.original.ordersCount}</span>
+            {row.original.completedCount > 0 && (
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {t("completedOf", { count: row.original.completedCount })}
+              </span>
+            )}
+          </span>
+        ),
+      },
+      {
+        id: "status",
+        accessorFn: (row) => row.state,
+        filterFn: "arrIncludesSome",
+        enableSorting: false,
+        header: tCommon("status"),
+        cell: ({ row }) => (
+          <StatusBadge tone={STATE_TONES[row.original.state]}>
+            {t(`state.${row.original.state}`)}
+          </StatusBadge>
+        ),
+      },
+      {
+        id: "joined",
+        accessorFn: (row) => row.createdAt.getTime(),
+        header: t("columns.joined"),
+        cell: ({ row }) => (
+          <span className="tabular-nums whitespace-nowrap">
+            {format.dateTime(row.original.createdAt, { dateStyle: "medium" })}
+          </span>
+        ),
+      },
+      {
+        id: "actions",
+        enableHiding: false,
+        enableSorting: false,
+        header: () => <span className="sr-only">{tCommon("actions")}</span>,
+        cell: ({ row }) => (
+          <div className="flex justify-end">
+            <Button asChild variant="ghost" size="sm" className="h-7">
+              <Link href={`/admin/dashboard/users/${row.original.id}`}>{t("view")}</Link>
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [t, tCommon, format],
+  );
 
   return (
-    <div className="flex flex-col min-h-screen pb-10">
-      <DashboardHeader Route={tNav("customers")}>
-        <div className="flex items-center gap-4 md:ms-auto">
-          <form className="ms-auto flex-1 sm:flex-initial">
-            <div className="relative">
-              <SearchIcon className="absolute start-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={searchItem}
-                onChange={handleInputChange}
-                type="text"
-                placeholder={t("searchPlaceholder")}
-                className="ps-8 w-full sm:w-[300px] md:w-[200px] lg:w-[300px]"
-              />
-            </div>
-          </form>
-        </div>
-      </DashboardHeader>
-      <div className="mt-10 px-6">
-        <h2 className="text-xl font-semibold mb-4">{t("allCustomers")}</h2>
-        <Card className="overflow-hidden glass-surface rounded-2xl">
-          <CardHeader className="px-4 py-3">
-            <CardTitle className="text-lg sm:text-xl">{t("cardTitle")}</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 p-0">
-            <div className="overflow-x-auto custom-scrollbar">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("columns.id")}</TableHead>
-                    <TableHead>{t("columns.name")}</TableHead>
-                    <TableHead>{t("columns.phone")}</TableHead>
-                    <TableHead>{t("columns.shippingAddress")}</TableHead>
-                    <TableHead>{tCommon("email")}</TableHead>
-                    <TableHead>{tCommon("date")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading && (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center">
-                        {tCommon("loading")}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {error && (
-                    <TableRow>
-                      <TableCell
-                        colSpan={8}
-                        className="text-center text-red-600"
-                      >
-                        {error}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {!loading && !error && filteredUsers.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center">
-                        {t("empty")}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {!loading &&
-                    !error &&
-                    filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <Link href={`/admin/dashboard/users/${user.id}`}>
-                            {user.id}
-                          </Link>
-                        </TableCell>
-                        <TableCell className="flex items-center text-nowrap">
-                          <UserAvatar email={user.email ?? ""} className="me-1.5" />
-                          {user.shippingAddress?.fullName}
-                        </TableCell>
-                        <TableCell>
-                          <span dir="ltr">{user.shippingAddress?.phoneNumber}</span>
-                        </TableCell>
-                        <TableCell>{user.shippingAddress?.address}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          {format.dateTime(new Date(user.createdAt), { dateStyle: "medium" })}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+    <ServerDataTable
+      columns={columns}
+      data={customers}
+      total={total}
+      params={params}
+      searchPlaceholder={t("searchPlaceholder")}
+      facets={[
+        {
+          key: "state",
+          title: tCommon("status"),
+          options: [
+            { value: "ordered", label: t("state.ordered") },
+            { value: "pending", label: t("state.pending") },
+            { value: "none", label: t("state.none") },
+          ],
+        },
+      ]}
+      emptyState={
+        <EmptyState icon={UsersIcon} title={t("empty.title")} description={t("empty.description")} />
+      }
+    />
   );
-};
-
-export default UsersClient;
+}

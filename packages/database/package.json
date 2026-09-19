@@ -14,7 +14,8 @@
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
     "postinstall": "prisma generate",
     "lint": "eslint .",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "seed:dev": "tsx scripts/seed-dev.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",

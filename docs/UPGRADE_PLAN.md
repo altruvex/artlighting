@@ -1,6 +1,6 @@
 # ArtLighting: Admin → ERP-level e-commerce upgrade plan
 
-Status: **APPROVED 2026-09-19** (scope update: English-only generated output, D11). Decisions in §0; the hotfix is done and Phase 0 is in progress.
+Status: **APPROVED 2026-09-19** (scope update: English-only generated output, D11). Hotfix and Phase 0 done; Phase 1 next (needs the Neon `dev` branch first).
 Written 2026-09-19 after reading the monorepo and the Altruvex admin (`/Users/ali/altruvex`, read-only).
 
 ---
@@ -19,6 +19,7 @@ Written 2026-09-19 after reading the monorepo and the Altruvex admin (`/Users/al
 | D8 | Admin i18n (ar/en, all existing strings) | **Yes**, in **its own commit(s)**, separate from the dependency upgrades. The whole UI (storefront and admin) is ar/en. |
 | D9 | `Customer` profile with optional `userId` | **Yes.** |
 | D10 | Payments | **Cash on delivery only.** No gateway for now. |
+| D12 | Document export formats (2026-09-19) | **Every generated document offers both PowerPoint (.pptx) and PDF downloads**: quotations, datasheets, catalogues and invoices. Quotations also export to Excel (.xlsx). The pipeline builds the PPTX first and converts it to PDF, so both come from the same render and always match. Both files are stored as `GeneratedFile` rows. |
 | D11 | Generated output language (scope change, 2026-09-19) | **English only** for every generated artifact: quotation, datasheet, catalogue and invoice PDFs and Excel files, and **all emails** (one English template each, no per-customer locale). Documents use the **English** translation of product names, descriptions and specs. This overrides the brief's requirement for Arabic documents and localized emails. The UI stays ar/en (storefront **and** admin). |
 
 ### Order of work
@@ -53,6 +54,21 @@ Today all three `.env` files point at **production**. Before the first schema mi
    - Before any production migration, the `dev` branch is reset from its parent and the migration replayed, so it is tested on current production data.
 
 
+
+### Phase 0 outcome (2026-09-19)
+Commits on `main` (not pushed): datasheet baseline → lint restored (ESLint 10) → shared tsconfig + `check-types` everywhere → dependency upgrades → dead code → env contracts → **security fix (admin auth gaps)** → admin i18n → admin bug fixes → Prisma 7.
+
+Found and fixed along the way (beyond the plan):
+- **Security `82dab5a`:** `orders/[orderId]` and `users/[userId]` admin pages and the `changeOrderStatus` server action had **no auth check at all**. Order ids are sequential, so every order's customer name, phone and address was readable by anyone, and any order's status was changeable. Fixed; cherry-picks cleanly onto the deployed version. Customer PII was also being logged on every request.
+- Admin Better Auth `baseURL` fell back to the storefront's URL.
+- `pnpm.overrides` for `minimatch` / `ajv` broke ESLint; replaced with per-major patched pins.
+- Two destructive scripts (`db:reset` = `migrate reset --force`, `db:push`) were one keystroke away while every `.env` points at production; removed.
+- Avatars sent customer emails to dicebear.com; now rendered locally.
+- **Upstash is gone:** the host in the local `.env` (`ultimate-fish-7999.upstash.io`) no longer resolves. The cache falls back to Postgres and the rate limiter fails open, so the storefront works, but **there is no rate limiting**. Needs a new Upstash database (or removal in Phase 6).
+- Better Auth 1.7 wants 6 new indexes (sessions/accounts `userId`, verifications `identifier`, and the admin equivalents). They're additive and go into the first Phase 1 migration, on the Neon `dev` branch.
+- `pnpm audit`: 101 advisories → 3. Remaining: `image-size` via pptxgenjs (no patch exists; only parses our own images) and `deepmerge-ts` via Prisma's CLI config (dev-time only).
+
+## 1. Findings
 
 ### 1.1 Monorepo layout (pnpm 10.28 + Turbo 2.10.9)
 
@@ -133,7 +149,7 @@ Today all three `.env` files point at **production**. Before the first schema mi
 
 ### 1.7 Generated documents: English only (D11)
 
-- **PDF:** every PDF (quotation, datasheet, catalogue, invoice) goes pptxgenjs → LibreOffice in the Docker worker, the same pipeline Altruvex uses. **No Chromium and no dual-render spike.**
+- **PPTX + PDF (D12):** every document (quotation, datasheet, catalogue, invoice) is built as a **PowerPoint (.pptx)** with pptxgenjs and offered for download as-is **and** converted to **PDF** by LibreOffice in the Docker worker, the same pipeline Altruvex uses. **No Chromium and no dual-render spike.** Because the PPTX is editable, templates use real text boxes and tables, not flattened images.
 - **Excel:** exceljs, a left-to-right sheet and Latin fonts (Arial).
 - **Content:** product name, description and specs always come from the **English** translation (`language = "en"`). If a product has no English text, the document editor shows a warning and the line can still be edited for that document.
 - **One Arabic-capable fallback font** in the worker image, only so that free text typed in Arabic (a customer name or address) never renders as empty boxes. It is **Noto Naskh Arabic** (OFL; `fonts-noto-core` covers it, or the TTF is copied from the repo). LibreOffice falls back to it per glyph through fontconfig.

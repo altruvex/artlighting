@@ -104,10 +104,21 @@ export class OrderService {
         return order;
     }
 
-    static async completeOrder(orderId: number): Promise<Order> {
-        return prisma.order.update({
-            where: { id: orderId },
+    /**
+     * Marks the caller's own order as completed. Scoped by userId so a customer
+     * can never complete someone else's order; returns null when the order
+     * doesn't exist or belongs to another user (callers answer 404 for both,
+     * so order ids can't be probed).
+     */
+    static async completeOrder(orderId: number, userId: string): Promise<Order | null> {
+        const { count } = await prisma.order.updateMany({
+            where: { id: orderId, userId },
             data: { isCompleted: true },
+        });
+        if (count === 0) return null;
+
+        return prisma.order.findUnique({
+            where: { id: orderId },
             include: { user: true, shippingAddress: true },
         }) as any as Order;
     }

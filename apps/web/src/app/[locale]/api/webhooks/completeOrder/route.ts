@@ -1,39 +1,34 @@
-
 import { OrderService } from "@/lib/order.server";
 import { auth } from "@/lib/auth-server";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const CompleteOrderSchema = z.object({
-  orderId: z.string().transform((val) => parseInt(val, 10)),
+  orderId: z.coerce.number().int().positive(),
 });
 
 export async function POST(request: NextRequest) {
-  try {
-    const { userId } = await auth();
+  const { userId } = await auth();
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const parsed = CompleteOrderSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });
+  }
+
+  try {
+    const order = await OrderService.completeOrder(parsed.data.orderId, userId);
+
+    if (!order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    const body = await request.json();
-    const { orderId } = CompleteOrderSchema.parse(body);
-
-    const order = await OrderService.completeOrder(orderId);
-
-    return NextResponse.json(
-      { success: true, order },
-      { status: 200 }
-    );
+    return NextResponse.json({ success: true, order }, { status: 200 });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-
-    return NextResponse.json(
-      { error: "Failed to complete order", details: errorMessage },
-      { status: 500 }
-    );
+    console.error("Failed to complete order:", error);
+    return NextResponse.json({ error: "Failed to complete order" }, { status: 500 });
   }
 }

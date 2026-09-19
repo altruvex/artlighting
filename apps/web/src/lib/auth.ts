@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "@repo/database";
+import { getAuthSecret } from "./auth-secret";
 
 /**
  * Customer identity for apps/web. Uses the existing User/Session/Account/
@@ -10,7 +11,7 @@ import { prisma } from "@repo/database";
  */
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
-  secret: process.env.BETTER_AUTH_SECRET,
+  secret: getAuthSecret(),
   baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL,
   emailAndPassword: {
     enabled: true,

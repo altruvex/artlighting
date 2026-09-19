@@ -1,0 +1,530 @@
+# ArtLighting: Admin → ERP-level e-commerce upgrade plan
+
+Status: **APPROVED 2026-09-19.** Decisions in §0; the hotfix is done and Phase 0 is next.
+Written 2026-09-19 after reading the monorepo and the Altruvex admin (`/Users/ali/altruvex`, read-only).
+
+---
+
+## 0. Decisions (approved 2026-09-19)
+
+| # | Decision | Chosen |
+|---|---|---|
+| D1 | Uncommitted datasheet work | **Commit as-is** on the current branch (`main`) as the baseline. **No new branch.** Rollback point: tag `pre-erp-upgrade` (= `eb9a21c`, local tag). |
+| D2 | Identity model | **Keep two Better Auth pools**: `admins` (ADMIN/STAFF) and `users` (CUSTOMER). |
+| D3 | Money `Float` → `Decimal(12,2)` | **Yes.** The pre-check query and its result are shown before migrating. |
+| D4 | Order header + item snapshots | **Yes.** Legacy columns are made nullable, then dropped later in a separately confirmed migration. |
+| D5 | `OrderStatus` changes | **Rename in place.** The exact SQL is shown before applying. |
+| D6 | Generated-file storage | **Cloudinary raw, private + signed delivery.** At the **start of Phase 4**, verify that the Cloudinary plan allows PDF/ZIP delivery (restricted by default on free plans: *Settings → Security → "Allow delivery of PDF and ZIP files"*) and tell Ali exactly what to enable. |
+| D7 | Rendering runtime | **Separate Docker worker.** Hosting is **undecided**: it must run locally with Docker for development, as a plain host-agnostic Dockerfile configured only through env vars. **Bulk jobs must survive a restart or fail clearly and be retryable** (see Phase 4, task 2). |
+| D8 | Admin i18n (ar/en, all existing strings) | **Yes**, in **its own commit(s)**, separate from the dependency upgrades. |
+| D9 | `Customer` profile with optional `userId` | **Yes.** |
+| D10 | Payments | **Cash on delivery only.** No gateway for now. |
+
+### Order of work
+1. **Hotfix (before Phase 0), done: `ac174d7`.** `completeOrder` is scoped to the order owner, and BETTER_AUTH_SECRET is enforced in production (≥ 32 chars). It is a separate commit directly on top of `pre-erp-upgrade`, so it can be deployed alone.
+2. Phase 0, with **Prisma 6 → 7 last, in its own commit**, only after everything else builds and typechecks.
+3. Phases 1–7 in order, one phase at a time.
+4. Commits stay small, one per logical step (everything is on `main`).
+
+### Read-only DB check (2026-09-19)
+Run against the Neon endpoint in `packages/database/.env` (`ep-empty-fog-…-pooler`, eu-central-1) in a `default_transaction_read_only` session:
+- `users`: **0**; `accounts`: 0; customer sessions: 0; `orders`: **0**
+- `admins`: **1** (role `owner`, has a password)
+- The local `.backups/pre-migration-backup-*.json` also has 0 users and 0 orders (117 products).
+
+**Consequence:** as long as this is the production database, there are no customer passwords or sessions to migrate (the Phase 1 user migration is a no-op), and the D3/D4/D5 migrations touch no customer or order rows. The SQL is still shown before applying, as agreed.
+
+## 1. Findings
+
+### 1.1 Monorepo layout (pnpm 10.28 + Turbo 2.10.9)
+
+| Path | What it is |
+|---|---|
+| `apps/web` | Storefront. Next **16.0.10**, React 19.2.3, next-intl 4.8.3, Better Auth 1.6, Tailwind 4, shadcn. Upstash Redis cache. Port 3000. |
+| `apps/admin` | Admin. Next **16.1.5**, React 19.2.3, Better Auth 1.6, shadcn, Tailwind 4, react-hook-form. **No i18n.** Port 3001. |
+| `apps/datasheet-worker` | *(uncommitted)* Express 4 + tsx. `/convert` (PPTX→PDF via LibreOffice) and `/jobs` (bulk datasheets, in-memory job store, zip). Dockerfile on node:22-bookworm-slim. |
+| `packages/database` | Prisma **6.19** (`prisma-client-js`), a `globalThis` singleton, and a `$extends` `product.updatePrice` that writes `PriceHistory`. 5 migrations. |
+| `packages/datasheet` | *(uncommitted)* pptxgenjs 3.12 slide builder (A4, cover, tokens taken from the reference PPTX). Database-agnostic. |
+| `packages/datasheet-data` | *(uncommitted)* Prisma → `DatasheetProductData`, images fetched from the storefront URL. |
+| `packages/eslint-config`, `packages/typescript-config` | Flat ESLint config and tsconfig bases. **Nothing uses either.** |
+
+### 1.2 Current state vs. the brief (a lot is already partly done)
+
+| Area | Where it stands |
+|---|---|
+| Better Auth | **Already migrated from Clerk** (migration `20260808180000_replace_clerk_with_better_auth`). Admin uses separate tables (`admins`, `admin_sessions`, …) with roles `owner` / `staff`. Web uses `users`, `sessions`, `accounts`, `verifications`. Clerk is left only in `turbo.json`, in `apps/web/.env`, in comments, and in the catch-all folder names `sign-in/[[...sign-in]]`. |
+| Admin route protection | Done per page and per action (`requireAdmin`, `requireOwner`). **There is no admin `proxy.ts`**, so a new page that forgets the check is public. |
+| Product CRUD | Exists: create, general update, translations, specifications, price with history, soft delete/restore, duplicate, images. |
+| Categories | Two-level hierarchy with translations, plus a `ProductCategory` many-to-many table. |
+| Variants | `ProductVariant` exists (sku, stock, priceOverride). One default variant per product. `Product.quantity` still exists alongside it, so there are **two sources of truth for stock**. |
+| Images | `ProductImage` (url, providerId, order, isPrimary). Cloudinary upload goes through a server action as a **base64 data URI**, which hits the Server Action body limit on large photos. The brief asks for signed direct uploads. Web still reads the legacy `Product.productImages String[]`, and most of those are relative `/public` paths. |
+| Specifications | `ProductSpecification` has **fixed columns** (input, cri, beamAngle, …) plus `customSpecs Json`, one row per language. It is not grouped. |
+| Discounts | `Discount` has type (percentage/fixed), scope (product/category/global), an optional `code` and a date window. It has **no** minimum order, usage limits, per-customer limit, stacking, multi-product scope or redemption tracking. `Product.discount` (a float) is a second, older discount mechanism. |
+| Orders | Mixed model (see D4). Enum values differ from the brief. No invoice. |
+| Quotations / catalogue | None. |
+| Email | None. |
+| Settings | Generic `SystemSetting` key/value and `CurrencyRate`. No company profile. |
+| Audit | `PriceHistory` only. |
+
+### 1.3 Web app data and caching
+- Prisma is called directly from server actions, route handlers and `lib/services/*`, with **Upstash Redis** caching (`CacheService`, about 32 call sites).
+- Nothing uses Next's cache tags (`'use cache'`, `cacheTag`, `revalidateTag`). **Admin mutations never invalidate the storefront**, so Redis keeps serving stale data until its TTL expires.
+- Product pages set `dynamic = "force-dynamic"`, and one of them also defines `generateStaticParams`. The two contradict each other.
+- API routes live under `[locale]/api/*`, which is unusual and doubles the URL space.
+- There are two conflicting i18n configs: `src/i18n/routing.ts` (default `en`) and `src/lib/i18n/config.ts` (default `ar`).
+- RTL is handled correctly: `dir` is set on `<html>`, with Almarai for Arabic and Roboto for Latin.
+- Missing: an account page, order history, a real product search (it is `contains` with `take: 10`), filters, payment, quotation requests and datasheet download.
+
+### 1.4 Tooling health
+- `lint` in both apps is `next lint`, **which was removed in Next 16**, so lint currently does nothing. Running `eslint` directly **crashes before linting anything**: the root `pnpm.overrides` `minimatch >=10.2.1` breaks `@eslint/eslintrc`, which default-imports minimatch 3. Phase 0 scopes that override so it no longer hits eslint's dependencies.
+- `eslint-config-next` 15.4 is installed with Next 16.
+- Both apps have a legacy `.eslintrc.json` next to `eslint.config.mjs`, and `rules-of-hooks` is disabled.
+- There is no `check-types` in web, admin or database. The root `type-check` script points at nothing.
+- `apps/web/tsconfig.json` maps `@repo/database` to `packages/database/src`, **which does not exist**, and it includes three missing files.
+- `next.config.ts` sets `compiler.styledComponents`, but styled-components is not installed.
+- Unused dependencies: `next-cloudinary` (both apps), `next-config` (both), `dotenv-flow` (web).
+- `db:seed` points to a missing `seed.ts`, and `import:products` points to a missing, gitignored script.
+- **There is no `.env.example` anywhere.** `turbo.json` `build.env` lists the Clerk variables and is missing `BETTER_AUTH_*`, `CLOUD_*`, `UPSTASH_*` and `DATASHEET_*`, so Turbo's cache keys are wrong.
+- The Neon datasource has only `url`: no `directUrl`, no driver adapter, no `prisma.config.ts`.
+- The README is the stock Turborepo starter.
+
+### 1.5 Security findings to fix early (Phase 1)
+1. **`POST [locale]/api/webhooks/completeOrder`**: any signed-in customer can mark **any** order completed. It checks that a session exists, not who owns the order, and there is no payment verification.
+2. The admin has no `proxy.ts` fallback guard (see 1.2).
+3. `apps/web/.env` has no `BETTER_AUTH_SECRET`. In production Better Auth would fail or fall back to an insecure default.
+4. Error responses return `details: error.message` to the client. *(Fixed for completeOrder in the hotfix; the rest are handled in Phase 1.)*
+5. `POST [locale]/api/configurations/[configId]` has **no authentication at all**: anyone can change any configuration's quantity/price fields. Fixed in Phase 1 (configurations get an owner or become per-session).
+6. `PUT /api/cart` doesn't validate `quantity` (it can be zero or negative). Fixed in Phase 1.
+
+### 1.6 Altruvex reference: how it generates documents
+
+| Aspect | What Altruvex does | What we do here |
+|---|---|---|
+| Layout engine | **pptxgenjs 4** builds A4-portrait slides with geometry measured from a reference deck (`apps/admin/lib/proposal-builder.ts`). | Same. `packages/datasheet` already follows this pattern. Upgrade pptxgenjs 3.12 → 4.0.1. |
+| PDF | `soffice --headless --convert-to pdf` with its own profile per call and a 60 s timeout (`lib/pptx-to-pdf.ts`). | Same, inside the Docker worker (D7). |
+| Preview | LibreOffice → PDF → `pdftoppm` PNG (`lib/pptx-to-images.ts`). | Same, for the quotation editor preview. |
+| Word | `docx` for contracts. | Not needed. |
+| Excel | **None.** | **New:** `exceljs` 4.4, covered in 1.7. |
+| Arabic / RTL | **None.** Fonts are plain names (Georgia, Trebuchet MS), with no `rtlMode`. | **New work**, covered in 1.7. |
+| Content model | Zod-validated `content Json` is the frozen document, and the derived totals are written once at creation. Company settings are read live, but the rendered file is stored, so it never changes. | Same snapshot idea, extended (§3.6): the snapshot also includes company/branding, and the document can be edited while it is a draft. |
+| Branding | `CompanySettings` singleton row (brand colours, contact). No logo. | `CompanySettings` with a logo (Cloudinary). |
+| Numbering | UUID only. | **New:** a sequence per document type (`Q-2026-0001`). |
+| Status | Manual transitions; ACCEPTED is locked once a contract exists. | Same idea, plus automatic expiry. |
+| Email | Resend via raw HTTP, SMTP fallback. Sends a link, not an attachment. | **Resend SDK + React Email** as you asked. Sends a link, and optionally the PDF as an attachment. |
+| Storage | R2 via S3, private presigned URLs, local fallback. | See D6. |
+
+### 1.7 Arabic in generated documents: approach
+
+Altruvex has not solved Arabic, so this is new work and it gets a **spike at the start of Phase 4, before any template is built.**
+
+- **PDF path (pptxgenjs → LibreOffice):**
+  - LibreOffice shapes Arabic with HarfBuzz and handles bidi, so the renderer doesn't need a shaping library.
+  - Arabic text runs need `rtlMode: true`, `lang: "ar-EG"` and right alignment. Tables are laid out mirrored: columns reversed, with LTR cells (SKU, numbers) kept LTR.
+  - **Fonts:** Trebuchet MS has no Arabic glyphs. I'll install an OFL font with both scripts in the worker image and reference it by name. Candidates:
+    - **Almarai**, which matches the storefront (Arabic + Latin).
+    - IBM Plex Sans Arabic.
+    - Noto Sans Arabic + Noto Sans.
+  - Fonts are copied into the image from the repo, not downloaded at build time.
+  - Latin-only documents keep the current Trebuchet look.
+- **Excel path (exceljs):**
+  - Set `worksheet.views = [{ rightToLeft: true }]` and `alignment.readingOrder = "rtl"` on Arabic sheets.
+  - Excel and LibreOffice shape the text when the file is opened. Fonts can't be embedded in xlsx, so the font is **Arial / Tahoma**, which have Arabic on every Windows/macOS machine. The brand font is reserved for the PDF.
+  - Numbers stay numeric cells with a number format, so they remain usable in formulas.
+- **Spike acceptance:**
+  - A quotation with Arabic product names, mixed Arabic/English/number lines and a 3-page line table renders correctly in PDF (checked visually and with `pdftotext`, looking for joined letter forms and correct order).
+  - The same content opens correctly in Excel, Numbers and LibreOffice.
+  - **Fallback (preferred by Ali): HTML → PDF with headless Chromium in the same worker.** Details:
+    - The worker image adds Debian's `chromium` package (pinned) and drives it with `puppeteer-core`. Fonts (Almarai / IBM Plex Sans Arabic + Noto Naskh Arabic) are installed system-wide **and** loaded with `@font-face` from local files, so layout never depends on font lookup.
+    - Templates are React components rendered to static HTML (`react-dom/server`) in `packages/documents/html`. Chromium does the shaping (HarfBuzz) and the full Unicode bidi. Styling uses `dir="rtl"`/`lang="ar"`, logical CSS properties and `@page` A4 margins.
+    - Multi-page tables use `thead { display: table-header-group }` (the header repeats on every page) and `tr { break-inside: avoid }`. Page header/footer and "page X of Y" come from Puppeteer's `headerTemplate`/`footerTemplate`.
+    - Hardening:
+      - The browser runs as a non-root user with the Chromium sandbox on (not `--no-sandbox`).
+      - Page JavaScript is disabled.
+      - Network requests are intercepted and only Cloudinary image URLs are allowed.
+      - All user content is escaped by React.
+      - One shared browser, one page per job, with a concurrency limit.
+    - Cost: about +300 MB on the image.
+  - **The spike renders the same quotation both ways.** If Chromium wins on Arabic (expected), quotations, catalogue and invoices use HTML → PDF. Datasheets stay on pptxgenjs (existing, tuned design, and the editable PPTX download is useful) unless the Arabic datasheet also fails the spike, in which case they move too. The results go to Ali before continuing.
+- **Pagination:** pptxgenjs has no automatic page flow. Long quotation and catalogue tables are split with the measuring helper `packages/datasheet/sections/_measure.ts`, and header/footer are repeated on each page.
+
+---
+
+## 2. Risks
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| Prisma 6 → 7: new `prisma-client` generator (ESM output path), mandatory `prisma.config.ts`, and driver adapters | Every import of `@repo/database` | Done in Phase 0, alone, with `check-types` across the repo before anything else changes. |
+| npm's `latest` tag for `prisma` points at **8.0.0-rc.15** (a pre-release) | Accidentally installing an RC | Pin to **7.10.0** (last stable, the same one Altruvex runs). |
+| TypeScript 7.0 (Go port) is `latest`, but typescript-eslint 8.70 supports `<6.1` | Lint breaks | Pin **TypeScript 6.0.3**. Revisit TS 7 when typescript-eslint supports it. |
+| ESLint 10 vs `eslint-config-next` plugin support | Lint config errors | Use ESLint 10 if `eslint-config-next@16.3` plus its plugins load cleanly, otherwise stay on 9.x. Verified in Phase 0. |
+| Turning lint back on (it has been silently off) | Hundreds of existing warnings/errors | Fix errors. Existing-code warnings stay warnings. Turn `rules-of-hooks` back on and fix any real hook bugs it finds. |
+| Money Float → Decimal (D3) | Type changes everywhere; values change if any are stored at > 2 dp | Pre-check query for values with > 2 decimals, shown to you before migrating. |
+| Order restructuring (D4) | Historical orders | Additive migration plus backfill first. Dropping the old columns is a later, separately confirmed migration. |
+| Web ↔ admin cache invalidation across two deployments | `revalidateTag` in admin can't reach web's cache | A signed `POST /api/revalidate` on web, called by a shared `notifyStorefront(tags)` helper in admin (HMAC secret, fails loudly in logs, never blocks the admin save). |
+| Removing Upstash Redis in favour of Next cache | Behaviour change | Removed only once cache tags cover every call site. Rate limiting keeps Upstash. |
+| Existing customer passwords | Customers might be locked out | See §4 Phase 1: I need to check what the Clerk migration actually moved. |
+| LibreOffice font substitution | Documents look different from design | Fonts come from the repo and are copied into the image. The worker's `/health` reports `fc-list` for the required fonts. |
+| In-memory job store in the worker | Bulk jobs are lost on restart | Acceptable for now (the jobs are short). I'd persist job state in Postgres only if you run more than one worker instance. |
+| Arabic in pptxgenjs tables (1.7) | Quotation PDF | Spike first, with the Chromium fallback. |
+
+---
+
+## 3. Proposed schema changes
+
+All changes are Prisma migrations (`prisma migrate dev` → committed SQL → `migrate deploy`). No `db push`, no `migrate reset`. Anything that drops or rewrites data is flagged **⚠** and needs your go-ahead before it runs.
+
+### 3.1 Phase 0: datasource only
+- Add `prisma.config.ts` with `datasource.url = env("DIRECT_URL")` for migrations.
+- The runtime client uses `@prisma/adapter-neon` with `DATABASE_URL` (pooled, `-pooler` host).
+- Generator becomes `prisma-client` with `output = "../generated/prisma"`, re-exported from `@repo/database`.
+- No table changes.
+
+### 3.2 Phase 1: auth / roles (assuming D2 = a)
+- `AdminRole`: `owner → ADMIN`, `staff → STAFF` (enum rename, data mapped, not lossy).
+- `User` gets `role UserRole @default(CUSTOMER)` (reserved for future customer tiers), plus `banned`, `banReason` and `banExpires` if we add the Better Auth `admin` plugin on the customer side.
+- Remove the stray `User.configurationId` / `User.productId` relations if they are unused (checked with a query first) **⚠**.
+
+### 3.3 Phase 2: catalog
+
+```prisma
+model Product {                         // existing, changes only
+  price          Decimal  @db.Decimal(12,2)   // ⚠ D3 type change
+  compareAtPrice Decimal? @db.Decimal(12,2)
+  cost           Decimal? @db.Decimal(12,2)
+  status         ProductStatus @default(ACTIVE)   // DRAFT | ACTIVE | ARCHIVED; backfilled from isActive/deletedAt
+  lowStockThreshold Int @default(5)
+  // quantity, productImages[], discount: deprecated, kept read-only until web moves off them, then dropped (⚠ separate migration)
+}
+model ProductVariant {                  // becomes the source of truth for SKU / stock / price
+  price          Decimal? @db.Decimal(12,2)   // replaces priceOverride
+  compareAtPrice Decimal? @db.Decimal(12,2)
+  cost           Decimal? @db.Decimal(12,2)
+  isActive Boolean @default(true)
+  position Int     @default(0)
+}
+model ProductImage { width Int?  height Int?  format String?  bytes Int? }   // added from the Cloudinary upload response
+
+// Structured, localized, grouped specifications (feeds datasheets)
+model SpecGroup {
+  id String @id @default(cuid())
+  productId String
+  position  Int @default(0)
+  translations SpecGroupTranslation[]   // (groupId, language) unique → name
+  items SpecItem[]
+}
+model SpecItem {
+  id String @id @default(cuid())
+  groupId  String
+  position Int @default(0)
+  unit     String?                       // "W", "lm", "K"; language-neutral
+  translations SpecItemTranslation[]     // (itemId, language) unique → label, value
+}
+```
+- A backfill script moves the fixed `ProductSpecification` columns into groups ("Electrical", "Optical", "Physical", "Chandelier") in both languages. The old table stays until the datasheet and web read the new one, then it is dropped **⚠**.
+- `ProductTranslation` / `ProductSpecification` foreign keys point at `Product.productId` (the SKU string). If a SKU is renamed, it cascades. New tables use `Product.id`.
+
+### 3.4 Phase 3: discounts
+
+```prisma
+model Discount {                        // extended
+  name           String
+  mode           DiscountMode           // AUTOMATIC | COUPON  (code required iff COUPON, CHECK constraint)
+  scope          DiscountScope          // PRODUCTS | CATEGORIES | CART  (product/category/global mapped)
+  value          Decimal @db.Decimal(12,2)
+  minOrderValue  Decimal? @db.Decimal(12,2)
+  usageLimit     Int?
+  perCustomerLimit Int?
+  usageCount     Int @default(0)
+  stackable      Boolean @default(false)
+  priority       Int @default(0)
+  products   DiscountProduct[]          // replaces productId (backfilled)
+  categories DiscountCategory[]         // replaces categoryId (backfilled)
+  redemptions DiscountRedemption[]
+}
+model DiscountRedemption { id, discountId, orderId, userId?, customerEmail, amount Decimal, createdAt  @@index([discountId, userId]) }
+```
+- `code` is stored upper-cased and unique (case-insensitive lookup).
+- `Product.discount` values are migrated into AUTOMATIC product-scope discounts, then the column is deprecated.
+
+### 3.5 Phase 5: orders and customers
+
+```prisma
+model Customer {                        // D9: B2B / quotation customers, optional web account
+  id String @id @default(cuid())
+  userId String? @unique
+  name String   companyName String?   email String?   phone String?   taxId String?
+  preferredLanguage String @default("ar")
+  addresses Address[]   quotations Quotation[]   orders Order[]
+  notes String?
+}
+model Address { … replaces ShippingAddress's 1-per-user limit; type SHIPPING|BILLING; isDefault }
+
+model Order {                           // header
+  number     String @unique             // "ORD-2026-00042" from DocumentSequence
+  customerId String?
+  status     OrderStatus                // pending|confirmed|processing|shipped|delivered|cancelled|refunded (⚠ D5)
+  subtotal, discountTotal, taxTotal, shippingTotal, grandTotal  Decimal
+  currency   String
+  shippingAddress Json                  // snapshot
+  billingAddress  Json?
+  discountsApplied Json                 // snapshot of the pricing engine result
+  quotationId String? @unique
+  statusHistory OrderStatusEvent[]
+  notes OrderNote[]
+  // legacy single-product columns → nullable, backfilled into OrderItem, dropped later ⚠
+}
+model OrderItem { sku, name Json (ar/en snapshot), imageUrl, unitPrice, compareAtPrice, discountAmount, taxAmount, lineTotal Decimal; variantId? }
+model OrderStatusEvent { orderId, from, to, byAdminId?, note?, createdAt }
+model OrderNote        { orderId, adminId, body, isInternal, createdAt }
+model StockMovement    { variantId, delta, reason (ORDER|CANCEL|REFUND|ADJUSTMENT|IMPORT), refId?, adminId?, createdAt }
+```
+
+### 3.6 Phase 4: documents (quotations, datasheets, catalogue)
+
+```prisma
+model Quotation {
+  id String @id @default(cuid())
+  number     String @unique             // "Q-2026-0001"
+  customerId String
+  status     QuotationStatus            // DRAFT|SENT|ACCEPTED|REJECTED|EXPIRED
+  language   String                     // document language: ar | en
+  currency   String
+  validUntil DateTime
+  subtotal, discountTotal, taxTotal, grandTotal  Decimal   // derived from lines on save, stored
+  overallDiscountType DiscountType?   overallDiscountValue Decimal?
+  taxRate    Decimal @db.Decimal(5,2)
+  terms String?   notes String?
+  companySnapshot Json                  // name, logo URL, address, tax no. at time of issue
+  lines QuotationLine[]
+  files GeneratedFile[]
+  sentAt DateTime?   respondedAt DateTime?   createdById String   orderId String?
+}
+model QuotationLine {
+  id, quotationId, position
+  productId String?  variantId String?       // nullable: custom lines allowed; SetNull on product delete
+  snapshot  Json                              // { sku, name{ar,en}, description{ar,en}, specs[...], imageUrl }
+  quantity Int   unitPrice Decimal   discountType DiscountType?   discountValue Decimal?   lineTotal Decimal
+  edits     DocumentEdit[]
+}
+model Datasheet { id, number, productId, language, snapshot Json, companySnapshot Json, files GeneratedFile[], createdById, createdAt }
+model Catalogue { id, number, title Json, language, selection Json (categoryIds/productIds), snapshot Json, files GeneratedFile[], … }
+
+model GeneratedFile { id, kind (PDF|XLSX|PPTX), url, providerId, bytes, quotationId?/datasheetId?/catalogueId?/orderId? (invoice), createdAt }
+
+// Write-back audit: one row per overridden field
+model DocumentEdit {
+  id, documentType, documentId, productId,
+  field      String       // "description.ar" | "specs" | "price"
+  before Json   after Json
+  writeBack  Boolean @default(false)   // the "also update the product" checkbox, OFF by default
+  appliedAt  DateTime?                  // set when write-back committed
+  adminId, createdAt
+}
+model DocumentSequence { type String @id  prefix String  year Int  next Int }   // row-locked increment (SELECT … FOR UPDATE) in the create transaction
+```
+
+**Snapshot rule:**
+- When a product is added to a document, its content is copied into `snapshot`, and edits change only the snapshot.
+- If `writeBack` is ticked for a field, the same transaction also updates the product through the normal product service. That means price changes still write `PriceHistory` and `AuditLog`, and storefront revalidation still fires.
+- The PDF/XLSX is rendered **only from the snapshot**. A SENT, ACCEPTED or REJECTED document is read-only, and "duplicate as new version" creates a new draft.
+
+### 3.7 Phase 7: settings and audit
+
+```prisma
+model CompanySettings { id "default", name Json (ar/en), logoUrl, logoProviderId, address Json, phone, email, website, taxNumber, commercialRegister, brandColor, defaultCurrency, defaultTaxRate Decimal, quotationValidityDays Int, … }
+model TermsTemplate   { id, kind (QUOTATION|INVOICE), name, body Json (ar/en), isDefault }
+model AuditLog        { id, actorId, actorType (ADMIN|SYSTEM), entity, entityId, action, before Json?, after Json?, createdAt  @@index([entity, entityId]) }
+```
+`PriceHistory` stays and is also mirrored into `AuditLog`. Discount create/update/deactivate always writes `AuditLog`.
+
+---
+
+## 4. Phases and tasks
+
+Each phase ends with: `pnpm check-types && pnpm lint && pnpm build` green, migrations committed, strings present in `ar` and `en`, no secrets, one commit (or a few logical commits), and a short summary to you. I stop after each phase.
+
+Admin UI work in Phases 2–7 goes through the design-master workflow, using the admin's **existing** shadcn design system (the repo's design system wins). No new visual direction.
+
+### Phase 0: Maintenance and upgrade
+Order matters. Each step is its own commit, and the repo builds after every one.
+1. **Baseline:** commit the uncommitted datasheet work as-is (D1).
+2. **Fix lint tooling:** scope the root `minimatch` override so eslint loads. Replace `next lint` with `eslint .`, delete the legacy `.eslintrc.json` files, wire both apps and all packages to `packages/eslint-config`, and turn `rules-of-hooks` back on.
+3. **Type-check wiring:** add a `check-types` script to every package, remove the root `type-check` alias, and wire both apps and packages to `packages/typescript-config`. Fix the bad `paths`/`include` entries in `apps/web/tsconfig.json`.
+4. **Dependency upgrades (everything except Prisma).** Versions are pinned through a pnpm catalog so the two apps can't drift again:
+   - next **16.3.5** in both apps (today they are on 16.0.10 and 16.1.5)
+   - react / react-dom **19.3.0**
+   - next-intl **4.14.x**
+   - turbo **2.11.x**
+   - better-auth **1.7.x**
+   - typescript **6.0.3**
+   - eslint 9 or 10 (see Risks)
+   - eslint-config-next **16.3.x**
+   - tailwindcss **4.3.x**
+   - zod **4.6.x**
+   - pptxgenjs **4.0.1**
+   - @types/node **22**
+
+   Then run the codemods (`@next/codemod`, next-intl 4 notes) and Better Auth 1.7's schema `generate` diff (if the auth tables need changes, that is a migration, shown first).
+5. **Dead code** (every deletion listed in the summary; nothing referenced is deleted):
+   - unused dependencies: `next-cloudinary`, `next-config`, `dotenv-flow`
+   - the `styledComponents` compiler flag
+   - the duplicate i18n config in web
+   - Clerk leftovers: `turbo.json` env, comments, and the catch-all route names (`sign-in/[[...sign-in]]` → `sign-in`)
+   - `tsbuildinfo` files (untracked)
+   - the dead `db:seed` / `import:products` scripts, which are either implemented or removed
+   - `add-performance-indexes.sql` is kept until Phase 6 (search)
+6. **Environment:**
+   - `.env.example` at the root, per app and for the worker, every variable commented (the web/admin auth ones exist since the hotfix)
+   - `turbo.json` `build.env` / `globalEnv` corrected
+   - zod env validation per app (`env.ts`)
+7. **Admin i18n (D8), separate commit(s):** next-intl without URL routing, locale from a cookie and the admin's preference, `ar`/`en` messages, `dir` on `<html>`, an Arabic font, and every existing admin string extracted.
+8. **Prisma 6 → 7, last, in its own commit:**
+   - `prisma.config.ts` (`DIRECT_URL` for migrations)
+   - the `prisma-client` generator with an output path
+   - `@prisma/adapter-neon` on the pooled `DATABASE_URL`
+   - an `exports` field on `@repo/database`, and every import updated
+   - the datasheet worker Dockerfile updated for the new client
+9. **Verify:**
+   - `pnpm install`, `check-types`, `lint` and `build` for web, admin, the worker and the packages
+   - the worker image builds and `/health` passes under local Docker
+   - smoke-run both apps in the browser pane (home, a product page, admin login)
+
+### Phase 1: Authentication and roles
+1. Roles ADMIN / STAFF / CUSTOMER (§3.2). Better Auth `access`/permission definitions in one shared `@repo/auth` package (roles and permission matrix: `product:write`, `price:write`, `discount:write`, `quotation:*`, `order:*`, `settings:*`, `staff:*`).
+2. Admin `proxy.ts`: an optimistic cookie check that redirects to sign-in, plus **a mandatory server-side `requirePermission()` in every server action and route handler** (the proxy is not the security boundary). Add an ESLint rule or test that fails when an action file has no guard.
+3. Web: customer sign-in/up, email verification and password reset flows (the emails themselves are wired up in Phase 5; until then Better Auth's hooks log to the console in development).
+4. Fix the security findings in §1.5, including ownership checks on every `/api/orders*` route.
+5. **Existing users migration: nothing to migrate** (0 customers, see §0). Admins: the single existing owner is mapped to `ADMIN` by the enum rename (no password reset). If the live site turns out to use a *different* database from the one checked, re-run the read-only count there before Phase 1.
+6. Move web API routes out of `[locale]/api` to `app/api` (the old paths redirect).
+
+### Phase 2: Product management
+1. Migrations from §3.3, including the Decimal change (D3; the pre-check result is shown to you first).
+2. A shared product domain service in `packages/catalog` (zod schemas and mutations), used by the admin actions, the Excel import and quotation write-back, so all three follow the same rules.
+3. Admin UI:
+   - product list with filters (status, category, brand, stock), column sorting and pagination
+   - product editor tabs: General, Pricing (price, compare-at, cost, margin), Variants (SKU/stock/price), Localized content (ar/en side by side), Specifications (grouped, drag to reorder, per-language), Images, SEO
+   - categories CRUD with translations and reordering
+4. **Images:**
+   - Signed direct uploads: the server signs the Cloudinary params and the browser uploads straight to Cloudinary (no base64 through Server Actions), with multiple files and progress.
+   - Then register `public_id`, URL and dimensions, drag-to-reorder, set primary, and delete (Cloudinary `destroy`, then DB delete; if Cloudinary fails, the row is kept and the error shown).
+   - A backfill script uploads the existing `/public` product images to Cloudinary and fills `ProductImage`.
+5. **Bulk price editing:** select products, then set / increase / decrease by % or amount (price or compare-at), with a preview diff before applying. Everything runs in one transaction and writes PriceHistory and AuditLog.
+6. **Excel import/export (exceljs):**
+   - Export uses the current filters, one sheet per language for localized fields plus a specs sheet, with an RTL sheet for Arabic.
+   - Import is upload → validate every row (zod) → preview screen showing create/update/errors per row → apply in batches. Matching is by SKU. Import never deletes.
+7. Web migrates off `Product.productImages[]` / `Product.quantity` / `Product.discount` (reads the new tables).
+
+### Phase 3: Discounts and promotions
+1. Migrations from §3.4, plus the backfill of the old discounts.
+2. **`packages/pricing`**: a pure, framework-free function that the admin and the web both use:
+   `computePricing({ lines, discounts, coupon?, customer?, now, taxRate, currency }) → { lines[{unit, compareAt, discount, total}], applied[], rejected[{code, reason}], subtotal, discountTotal, tax, grandTotal }`
+   - Uses Decimal arithmetic with no floats.
+   - Rules: active, date window, minimum order, usage limit, per-customer limit, scope match, stacking (non-stackable discounts compete by highest customer value; stackable ones apply in `priority` order), and never below zero.
+   - Comes with thorough unit tests (Vitest), including property tests for "total never negative" and "stacking order independent when all are stackable".
+3. The server validates coupons in the cart/checkout server action. Redemptions are recorded in the order transaction with a row lock on the discount (`usageCount` check-and-increment), so concurrent checkouts can't exceed the limit.
+4. Admin UI: discount list and editor (scope pickers for products and categories, rules, preview "what would this cart pay"), activate/deactivate, and redemption stats.
+
+### Phase 4: Quotations, datasheets and catalogue (Altruvex approach)
+0. **Cloudinary check (D6):** confirm the account can deliver PDF/ZIP raw files (Settings → Security → *Allow delivery of PDF and ZIP files*, off by default on free plans) with a test upload and a signed fetch. Report what to enable before building on it.
+1. **Arabic render spike** (§1.7): pptxgenjs→LibreOffice vs HTML→Chromium, side by side, plus the XLSX. Results go to Ali before continuing.
+2. Generalize the worker into `apps/document-worker`:
+   - `/convert`, `/render-html` (Chromium), `/preview` (PNG pages), and the existing bulk jobs
+   - Arabic fonts added to the image, `fc-list` + Chromium version in `/health`
+   - pptxgenjs 4
+   - still a plain, host-agnostic Dockerfile configured only by env vars, with a `docker compose` file for local development
+   - **Durable bulk jobs (D7):** jobs are stored in Postgres (`DocumentJob`: status `QUEUED | RUNNING | DONE | FAILED`, params, progress, attempts, error, result file). Output ZIP/PDF files go to Cloudinary, not local disk or memory, so downloads survive a restart. On startup the worker re-queues `QUEUED`/`RUNNING` jobs (generation is idempotent), up to 3 attempts. After that a job is `FAILED` with a clear error, and the admin shows a **Retry** button that creates a new attempt. If the worker is unreachable, the admin shows "worker offline" instead of polling forever.
+3. `packages/documents` (it grows out of `packages/datasheet`):
+   - shared tokens and branding from `CompanySettings`
+   - page header/footer, table pagination and RTL-aware primitives
+   - templates `quotation`, `datasheet`, `catalogue` and `invoice` (the invoice is used in Phase 5)
+   - `xlsx/quotation.ts` (exceljs, with a formula-live totals column)
+4. Migrations from §3.6, plus the numbering service.
+5. Quotation editor (admin):
+   - pick or create a customer, add products (search), per-line quantity, price and discount
+   - overall discount, tax, validity, terms (from a template), notes
+   - live totals come from `packages/pricing`
+   - **per-line "Edit content for this document"** drawer: description (ar/en), specs, price, each with an **"Also update the product in the database"** checkbox, off by default. The confirm dialog lists exactly which product fields will change.
+   - Preview (PNG pages), generate PDF and XLSX, stored as `GeneratedFile`
+6. Status workflow: DRAFT → SENT (when emailed or marked sent) → ACCEPTED / REJECTED, and EXPIRED by a daily job (a Vercel cron route) when `validUntil` has passed. **Convert to order** is available on ACCEPTED: it creates an order from the snapshot prices (it doesn't reprice), decrements stock and links the two records.
+7. Email the quotation: Resend with a React Email template in the customer's language, a signed link to the PDF and optionally the attachment. The send is logged. (The Resend setup lands here if Phase 5 hasn't happened yet.)
+8. Datasheets: the existing single/bulk flow now also accepts `language` (Arabic/RTL) and saves a `Datasheet` snapshot record. The same edit-and-optional-write-back drawer applies. Product specs come from the new `SpecGroup`s.
+9. Catalogue: choose categories or products, language and cover options, then generate a job on the worker: cover, table of contents by category, one product per half or full page, and a back cover with company info.
+
+### Phase 5: Orders and transactional email
+1. Migrations from §3.5 (⚠ D4/D5, shown first) and the backfill.
+2. Admin orders:
+   - list with filters (status, date, customer, total, payment) and search by number or email
+   - detail page with a timeline, notes and a status workflow with allowed transitions (a state machine in `packages/orders`)
+   - invoice PDF built from the Phase 4 templates
+3. Stock:
+   - decrement is transactional on order confirm; cancel/refund restores stock
+   - every change writes a `StockMovement`
+   - low-stock badge and filter based on `lowStockThreshold`
+4. Customers section: profile, addresses, orders, quotations and lifetime value.
+5. `packages/emails`: React Email templates with ar/en and RTL (`dir="rtl"` wrapper, Arabic web-safe font stack), sent through Resend in the customer's preferred language:
+   - order confirmation
+   - status update
+   - shipped (with tracking)
+   - quotation sent
+   - welcome
+   - email verification and password reset (wired into Better Auth's `sendVerificationEmail` / `sendResetPassword`)
+   - admin notification of a new order (to a configurable address list)
+   Emails are sent after the transaction commits, with failures logged and never blocking the order. There is a dev preview (`email dev`).
+
+### Phase 6: Storefront
+1. **Caching and revalidation:**
+   - Adopt Next 16 `cacheComponents` with `'use cache'` + `cacheTag('product:<id>', 'products', 'category:<id>', 'discounts')` on all catalogue reads, and remove the Redis catalogue cache (Upstash stays for rate limiting).
+   - Add a signed `POST /api/revalidate`. Admin `notifyStorefront(tags)` is called from every product, price, image, category and discount mutation (it lives inside the domain services, so no entry point can forget it).
+   - Remove the `force-dynamic` + `generateStaticParams` conflicts.
+2. Prices: `packages/pricing` on product cards, product pages and the cart. Struck-through compare-at price, a "-20%" badge, and the automatic discount label.
+3. Cart and checkout: coupon field, server-validated totals, stock state (in stock / low / out), and address book.
+4. Cloudinary-optimized images (`next/image` with a Cloudinary loader: `f_auto,q_auto`, responsive widths).
+5. Search and filters: Postgres full-text search (turning `add-performance-indexes.sql` into a migration, with Arabic normalization of alef/ya/ta-marbuta) plus facets for category, brand, IP, color temperature and price range.
+6. Customer account: profile, addresses, order history and detail, quotations.
+7. "Request a quotation" (from the product page or the cart): creates a DRAFT quotation in the admin and emails staff.
+8. Download-datasheet button: serves the latest generated datasheet in the page language, generating and caching it if it is missing.
+9. **Gaps found, you choose which to build:**
+   - payment gateway (D10)
+   - wishlist
+   - product reviews
+   - related products / recently viewed
+   - SEO: `sitemap.xml`, `robots`, JSON-LD Product, hreflang ar/en (partly missing)
+   - Open Graph images
+   - newsletter
+   - guest checkout
+   - shipping zones and rates
+   - order tracking page without login
+   - WhatsApp contact / order button
+   - Arabic-numeral formatting preference
+   - analytics / events
+   - cookie consent
+   - 404/500 localized pages audit
+   - performance budget (the home page loads gsap + framer-motion + 2 carousels)
+
+### Phase 7: Dashboard and finishing
+1. Dashboard: sales (a range picker, compared with the previous period), order count by status, average order value, top products, low stock, recent quotations, and quotation → order conversion rate. Charts follow the dataviz rules, in both languages.
+2. Settings (§3.7): company info and logo (used by documents and emails), tax, currency, document numbering (prefix and reset yearly), terms templates, and admin notification recipients.
+3. Audit log viewer: filter by entity, actor and date, with a before/after diff.
+4. README: architecture, setup, every environment variable, how to run web, admin, the worker (Docker) and the email preview, migrations workflow, and deploy notes.
+
+---
+
+## 5. What you'll need to configure (collected across phases)
+
+| Service | Variables (all in `.env.example`) |
+|---|---|
+| Neon | `DATABASE_URL` (pooled), `DIRECT_URL` (direct, for migrations) |
+| Better Auth | `BETTER_AUTH_SECRET` (web + admin, **different** values), `BETTER_AUTH_URL` per app |
+| Cloudinary | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` (renamed from `CLOUD_*`, old names read as a fallback for one release), `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` |
+| Resend | `RESEND_API_KEY`, `EMAIL_FROM`, `ADMIN_NOTIFY_EMAILS`, plus a verified sending domain |
+| Document worker | `DOCUMENT_WORKER_URL`, `DOCUMENT_WORKER_SECRET` (renamed from `DATASHEET_*`, with a fallback) |
+| Storefront revalidation | `STOREFRONT_URL`, `REVALIDATE_SECRET` |
+| Upstash | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` (rate limiting) |
+| Cron | `CRON_SECRET` (quotation expiry) |
+
+---
+
+## 6. Out of scope unless you say otherwise
+- Multi-warehouse inventory, purchase orders and suppliers.
+- Accounting integration (ETA e-invoicing for Egypt is a candidate for a later phase).
+- Changing the storefront's visual design (only the new features are styled, within the existing design).

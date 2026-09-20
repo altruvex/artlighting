@@ -1152,5 +1152,44 @@
             "discount": "Biggest discount",
             "newest": "Newest"
         }
+    },
+    "home": {
+        "hero": {
+            "offer": "off — our best offer right now",
+            "title": "Light that makes a room",
+            "body": "Chandeliers, spotlights and outdoor fixtures from Balcom and Mister LED — delivered in four working days, paid for on arrival.",
+            "shop": "Shop all lighting",
+            "deals": "See the offers"
+        },
+        "categories": {
+            "title": "Shop by category",
+            "all": "All products",
+            "shop": "Shop",
+            "count": "{count, plural, one{# product} other{# products}}"
+        },
+        "rails": {
+            "sale": "On sale now",
+            "saleSub": "Biggest savings first",
+            "saleLink": "All offers",
+            "featured": "Featured",
+            "featuredSub": "Picked by the showroom",
+            "featuredLink": "Shop all",
+            "newest": "New arrivals",
+            "newestLink": "Shop the newest"
+        },
+        "trust": {
+            "label": "Our promises",
+            "delivery": {
+                "title": "Delivered in 4 working days",
+                "body": "Packed securely and handled with care."
+            },
+            "cod": {
+                "title": "Cash on delivery",
+                "body": "Pay when it arrives at your door — no card needed."
+            },
+            "support": {
+                "title": "Talk to the showroom"
+            }
+        }
     }
 }

@@ -219,3 +219,47 @@ export async function searchShop(query: ShopQuery, locale: string): Promise<Shop
     },
   };
 }
+
+export interface HomeData {
+  families: { family: ProductFamily; count: number }[];
+  /** Biggest saving first — the discount the shopper keeps, not the rate. */
+  onSale: ShopCard[];
+  /** The admin's featured flag, not a list of ids written into the page. */
+  featured: ShopCard[];
+  newest: ShopCard[];
+}
+
+/**
+ * Everything the home page sells, from the same rows the shop reads.
+ *
+ * Its "bestsellers" section was a hard-coded array of product ids in the
+ * component: change what is featured in the admin and the home page did
+ * not move, and a retired product would have stayed on it. These rails
+ * come from the data — the featured flag, the live discounts, the newest
+ * rows — so the page changes when the catalogue does.
+ */
+export async function homeData(locale: string, perRail = 10): Promise<HomeData> {
+  const rows = await loadCardRows(locale);
+  const rates = await productDiscountRates(rows, prisma);
+  const all = rows.map((row) => toCard(row, locale, rates[row.id] ?? serializeRate(0)));
+
+  const saving = (card: ShopCard) => Number(card.price) - Number(card.effectivePrice);
+  const inStock = (card: ShopCard) => card.quantity > 0;
+
+  const counts = new Map<ProductFamily, number>();
+  for (const card of all) counts.set(card.sectionType as ProductFamily, (counts.get(card.sectionType as ProductFamily) ?? 0) + 1);
+
+  const featured = all.filter((card) => card.featured);
+  return {
+    families: [...counts.entries()].map(([family, count]) => ({ family, count })),
+    onSale: all
+      .filter((card) => saving(card) > 0)
+      // Something out of stock is not a deal anyone can take.
+      .sort((a, b) => Number(inStock(b)) - Number(inStock(a)) || saving(b) - saving(a))
+      .slice(0, perRail),
+    // Falls back to the newest when nothing is flagged, rather than an
+    // empty rail on a fresh catalogue.
+    featured: (featured.length ? featured : all).slice(0, perRail),
+    newest: [...all].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, perRail),
+  };
+}

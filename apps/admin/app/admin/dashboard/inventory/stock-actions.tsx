@@ -32,6 +32,8 @@ interface Movement {
   reason: string | null;
   orderId: number | null;
   actorId: string | null;
+  /** The admin's name; falls back to their id if the account is gone. */
+  actorName: string | null;
   createdAt: Date;
 }
 
@@ -170,7 +172,7 @@ export function StockActions({
                             {format.number(movement.quantity)}
                           </td>
                           <td className="p-2 text-end tabular-nums">{format.number(movement.onHandAfter)}</td>
-                          <td className="p-2 text-muted-foreground" dir="ltr">{movement.actorId ?? "—"}</td>
+                          <td className="p-2 text-muted-foreground">{movement.actorName ?? t("system")}</td>
                           <td className="p-2 text-muted-foreground">{movement.reason ?? "—"}</td>
                         </tr>
                       ))}

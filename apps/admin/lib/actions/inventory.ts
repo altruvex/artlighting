@@ -1,6 +1,7 @@
 "use server";
 
 import * as catalog from "@repo/catalog";
+import { prisma } from "@repo/database";
 import { requirePermission } from "@/lib/auth";
 import { getTranslations } from "next-intl/server";
 import { revalidatePath } from "next/cache";
@@ -63,11 +64,36 @@ export async function setCountedStock(variantId: string, countedOnHand: number, 
   });
 }
 
-/** The ledger for one variant, newest first. */
+/**
+ * The ledger for one variant, newest first, with the actor resolved to a
+ * name.
+ *
+ * `actorId` holds an admin id, which is the right thing to store — a name
+ * can change and a row must still point at the same person — but "who did
+ * this" is unanswerable if the column shows a cuid.
+ */
 export async function stockHistory(variantId: string) {
   return run(async () => {
     await requirePermission("catalog:read");
-    return catalog.movementHistory(variantId, 50);
+    const movements = await catalog.movementHistory(variantId, 50);
+
+    const adminIds = [...new Set(movements.map((m) => m.actorId).filter((id): id is string => Boolean(id) && id !== "system"))];
+    const admins = adminIds.length
+      ? await prisma.admin.findMany({ where: { id: { in: adminIds } }, select: { id: true, name: true, email: true } })
+      : [];
+    const nameById = new Map(admins.map((a) => [a.id, a.name?.trim() || a.email]));
+
+    return movements.map((movement) => ({
+      ...movement,
+      // An admin who has since been removed keeps their id rather than
+      // becoming blank: the ledger still has to account for the movement.
+      // "system" is a stored sentinel, not an admin id, so it resolves to
+      // null and the UI shows its own label for it.
+      actorName:
+        !movement.actorId || movement.actorId === "system"
+          ? null
+          : (nameById.get(movement.actorId) ?? movement.actorId),
+    }));
   });
 }
 

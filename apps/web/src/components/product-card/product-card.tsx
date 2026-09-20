@@ -11,7 +11,7 @@ import { formatPercent } from "@/lib/numbers";
 import { money, type MoneyInput } from "@repo/money";
 import { useAuth } from "@/lib/auth-hooks";
 import { useTranslations } from 'next-intl';
-import Image from "next/image";
+import { ProductImage as Image } from "@/components/product-image";
 import { useMemo, useState, useTransition } from "react";
 import { Carousel } from "react-responsive-carousel";
 import "react-responsive-carousel/lib/styles/carousel.min.css";

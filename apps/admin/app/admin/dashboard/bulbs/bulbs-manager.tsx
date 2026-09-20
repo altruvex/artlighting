@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatMoney } from "@/lib/money";
-import { bulbPriceIncrease } from "@repo/catalog";
+import { bulbPriceIncrease } from "@repo/catalog/bulb-pricing";
 import { money } from "@repo/money";
 import { LightbulbIcon, Loader2Icon, PlugZapIcon, PlusIcon, TrashIcon } from "lucide-react";
 import {

@@ -1,4 +1,5 @@
 import { constructMetadata } from "@/lib/metadata";
+import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { serializeRate } from "@repo/money";
 import { prisma } from "@repo/database";
 import { Metadata } from "next";
@@ -38,6 +39,7 @@ const Page = async ({ searchParams }: ThankYouProps) => {
               language: locale,
             },
           },
+          images: productImageSelect(),
         },
       },
       shippingAddress: true,
@@ -117,6 +119,7 @@ export async function generateMetadata({
               language: locale,
             },
           },
+          images: productImageSelect(),
         },
       },
       shippingAddress: true,
@@ -132,8 +135,9 @@ export async function generateMetadata({
   const customerName = order.shippingAddress?.fullName;
 
   let productImage: string = locale === "ar" ? "/logo-ar.png" : "/logo-en.png";
-  if (order.product?.productImages?.[0]) {
-    productImage = order.product.productImages[0];
+  const [firstImage] = imageUrls(order.product ?? {});
+  if (firstImage) {
+    productImage = firstImage;
   }
   const titles: Record<string, string> = {
     en: `Thank you, ${customerName}! Your order is confirmed`,

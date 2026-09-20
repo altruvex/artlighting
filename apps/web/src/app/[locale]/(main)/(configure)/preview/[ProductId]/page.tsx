@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth-server"
+import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { serializeRate } from "@repo/money";
 import { serializeRowMoney, toViewConfiguration } from "@/lib/serialize-money";
 import { readGuestToken } from "@/lib/guest-token"
@@ -75,6 +76,7 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
       product = await prisma.product.findUnique({
         where: { productId: ProductId },
         include: {
+          images: productImageSelect(),
           category: {
             include: {
               translations: {
@@ -124,6 +126,7 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
         product = await prisma.product.findUnique({
           where: { productId: configuration.productId },
           include: {
+            images: productImageSelect(),
             category: {
               include: {
                 translations: {
@@ -173,6 +176,8 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
       // Money leaves the server as strings; a Prisma.Decimal cannot cross
       // into a Client Component (see @repo/money).
       ...serializeRowMoney(product),
+      // The ProductImage table, not the legacy array — see lib/product-images.
+      productImages: imageUrls(product),
       productName: product.translations?.[0]?.name || product.productName,
       description: product.translations?.[0]?.description ?? undefined,
       localizedSpecs: primarySpecification,
@@ -292,7 +297,7 @@ export const generateMetadata = async ({ params }: PagePropsTypes): Promise<Meta
       en: `Preview of ${localizedName} With a high CRI ${specification?.cri || 'N/A'}, and high beam angle of ${specification?.beamAngle || 'N/A'} this spotlight provides bright, ${typeOfSpotlight}`,
       ar: `معاينة ${localizedName} بمؤشر إضاءة عالي ${specification?.cri || 'غير متاح'}، وزاوية شعاع عالية ${specification?.beamAngle || 'غير متاح'} يوفر هذا الكشاف إضاءة ساطعة، ${typeOfSpotlight}`
     } as const
-    const imageUrl = product.productImages?.[0]
+    const imageUrl = imageUrls(product)[0]
 
     return {
       title: titleTemplates[locale as keyof typeof titleTemplates] || titleTemplates.en,

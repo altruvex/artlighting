@@ -1,5 +1,6 @@
 import { prisma } from "@repo/database";
 import { parseLocalizedInt } from "@/lib/numbers";
+import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { serializeMoney, serializeRate } from "@repo/money";
 import { toViewConfiguration } from "@/lib/serialize-money";
 import type { Prisma } from "@repo/database";
@@ -129,11 +130,11 @@ export function transformToLocalizedProduct(
     price: serializeMoney(product.price),
     discount: serializeRate(product.discount ?? 0),
     priceIncrease: serializeMoney(product.priceIncrease ?? 0),
-    productImages: product.productImages ?? [],
-    images: product.productImages ?? [],
+    productImages: imageUrls(product),
+    images: imageUrls(product),
     sectionType: product.sectionType,
     spotlightType: product.spotlightType,
-    quantity: product.quantity ?? 0,
+    quantity: product.variants?.[0]?.stock ?? product.quantity ?? 0,
     isActive: product.isActive ?? true,
     featured: product.featured ?? false,
     maxIP: product.maxIP ?? null,
@@ -176,6 +177,11 @@ function buildProductInclude(language: string, withRelations = false) {
   return {
     translations: { where: { language }, take: 1 },
     specifications: { where: { language }, take: 1 },
+    // The ProductImage table, not Product.productImages[] — see lib/product-images.
+    images: productImageSelect(),
+    // Stock's source of truth is the default variant; Product.quantity is
+    // the legacy mirror (see @repo/catalog's stock module).
+    variants: { where: { isDefault: true }, select: { stock: true }, take: 1 },
     ...(withRelations && {
       category: {
         include: { translations: { where: { language }, take: 1 } },

@@ -1,4 +1,5 @@
 import { getLocaleFromParams } from "@/lib/i18n/utils"
+import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { serializeMoney, serializeRate } from "@repo/money"
 import { serializeRowMoney } from "@/lib/serialize-money"
 import { constructMetadata } from "@/lib/metadata"
@@ -35,6 +36,7 @@ const Page = async ({ searchParams }: PagePropsTypes) => {
       shippingAddress: true,
       product: {
         include: {
+          images: productImageSelect(),
           specifications: {
             where: {
               language: locale,
@@ -161,12 +163,13 @@ export async function generateMetadata({ params, searchParams }: PagePropsTypes)
     const order = await prisma.order.findUnique({
       where: { id: Number.parseInt(orderId, 10) },
       include: {
-        product: true,
+        product: { include: { images: productImageSelect() } },
       },
     })
 
-    if (order?.product?.productImages?.[0]) {
-      productImage = order.product.productImages[0]
+    const [firstImage] = imageUrls(order?.product ?? {})
+    if (firstImage) {
+      productImage = firstImage
     }
   }
 

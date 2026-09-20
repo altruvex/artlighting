@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth-server";
+import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { discountedUnitPrice, priceLine } from "@/lib/pricing";
 import { prisma } from "@repo/database";
 import { NextRequest, NextResponse } from "next/server";
@@ -27,7 +28,7 @@ export async function GET() {
       include: {
         items: {
           include: {
-            product: true,
+            product: { include: { images: productImageSelect() } },
           },
         },
       },
@@ -51,7 +52,7 @@ export async function GET() {
         quantity: item.quantity,
         discountRate: item.product.discount,
       }).total,
-      productImages: item.product.productImages,
+      productImages: imageUrls(item.product),
       discount: item.product.discount.toString(),
       sectionType: item.product.sectionType,
       spotlightType: item.product.spotlightType,
@@ -89,7 +90,7 @@ export async function PATCH(request: NextRequest) {
       include: {
         items: {
           where: { id: itemId },
-          include: { product: true }
+          include: { product: { include: { images: productImageSelect() } } }
         }
       },
     });
@@ -105,7 +106,7 @@ export async function PATCH(request: NextRequest) {
     const updatedItem = await prisma.cartItem.update({
       where: { id: itemId },
       data: { quantity },
-      include: { product: true },
+      include: { product: { include: { images: productImageSelect() } } },
     });
 
     // Calculate total price with discount
@@ -122,7 +123,7 @@ export async function PATCH(request: NextRequest) {
       quantity: updatedItem.quantity,
       price: updatedItem.product.price.toFixed(2),
       totalPrice,
-      productImages: updatedItem.product.productImages,
+      productImages: imageUrls(updatedItem.product),
       discount: updatedItem.product.discount.toString(),
       sectionType: updatedItem.product.sectionType,
       spotlightType: updatedItem.product.spotlightType,
@@ -188,7 +189,7 @@ export async function PUT(request: NextRequest) {
       quantity: updatedItem.quantity,
       price: updatedItem.product.price.toFixed(2),
       totalPrice,
-      productImages: updatedItem.product.productImages,
+      productImages: imageUrls(updatedItem.product),
       discount: updatedItem.product.discount.toString(),
       sectionType: updatedItem.product.sectionType,
       spotlightType: updatedItem.product.spotlightType,

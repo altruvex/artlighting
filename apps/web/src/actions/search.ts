@@ -1,5 +1,6 @@
 "use server";  
 import { prisma } from "@repo/database";
+import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { serializeRowMoney } from "@/lib/serialize-money";
 
 export async function searchProducts(searchItem: string) {
@@ -19,6 +20,7 @@ export async function searchProducts(searchItem: string) {
       brand: true,
       sectionType: true,
       spotlightType: true,
+      images: productImageSelect(),
       productImages: true,
       discount: true,
     },
@@ -26,5 +28,9 @@ export async function searchProducts(searchItem: string) {
   });
   // Money leaves the server as strings: a Prisma.Decimal cannot be passed
   // to a Client Component (see @repo/money).
-  return products.map(serializeRowMoney);
+  return products.map((product) => ({
+    ...serializeRowMoney(product),
+    // The ProductImage table, not the legacy array — see lib/product-images.
+    productImages: imageUrls(product),
+  }));
 }

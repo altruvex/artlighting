@@ -1,6 +1,7 @@
 "use server"
 
 import { auth } from "@/lib/auth-server"
+import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { money, roundMoney } from "@repo/money"
 import { priceLine } from "@/lib/pricing"
 import { prisma } from "@repo/database"
@@ -32,6 +33,7 @@ export async function createOrder({
 
     const product = await prisma.product.findUnique({
       where: { productId: configuration.productId },
+      include: { images: productImageSelect() },
     })
 
     if (!product) {
@@ -95,7 +97,9 @@ export async function createOrder({
         configPrice: pricing.subtotal,
         priceIncrease: priceIncrease,
         productName: product.productName,
-        productImages: product.productImages,
+        // Snapshotted on the order, from the ProductImage table — see
+        // lib/product-images.
+        productImages: imageUrls(product),
         status: "awaiting_shipment",
         shippingPrice: shippingPrice,
         shippingAddressId: shippingAddress.id,

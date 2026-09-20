@@ -1,4 +1,5 @@
 import { prisma } from "@repo/database"
+import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         productId: true,
         productName: true,
         price: true,
+        images: productImageSelect(),
         productImages: true,
         discount: true,
         sectionType: true,

@@ -1,4 +1,5 @@
 import { getLocaleFromParams } from "@/lib/i18n/utils"
+import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { constructMetadata } from "@/lib/metadata"
 import { PagePropsTypes } from "@/types"
 import { prisma } from "@repo/database"
@@ -53,12 +54,13 @@ export async function generateMetadata({ params, searchParams }: PagePropsTypes)
       where: { id: Number.parseInt(orderId, 10) },
       include: {
         configuration: true,
-        product: true,
+        product: { include: { images: productImageSelect() } },
       },
     })
 
-    if (order?.product?.productImages?.[0]) {
-      productImage = order.product.productImages[0]
+    const [firstImage] = imageUrls(order?.product ?? {})
+    if (firstImage) {
+      productImage = firstImage
     }
   }
 

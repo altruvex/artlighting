@@ -1,4 +1,5 @@
 import type { LocalizedCategory, LocalizedProduct, SectionType, SupportedLanguage } from "@/types/products";
+import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { serializeMoney, serializeRate } from "@repo/money";
 import { prisma } from "@repo/database";
 import { CacheService, CacheTTL } from "@/lib/cache/redis.service";
@@ -136,10 +137,11 @@ export class I18nService {
                         sectionType,
                         isActive: true,
                         spotlightType: { in: spotlightTypes },
-                        productImages: { isEmpty: false },
+                        OR: [{ images: { some: {} } }, { productImages: { isEmpty: false } }],
                     },
                     select: {
                         spotlightType: true,
+                        images: productImageSelect(),
                         productImages: true,
                         createdAt: true,
                     },
@@ -154,7 +156,7 @@ export class I18nService {
                 if (!firstImageBySpotlightType.has(product.spotlightType)) {
                     firstImageBySpotlightType.set(
                         product.spotlightType,
-                        product.productImages[0] || null
+                        imageUrls(product)[0] ?? null
                     );
                 }
             }
@@ -234,6 +236,12 @@ export class I18nService {
                 specifications: options?.includeSpecifications !== false ? {
                     where: { language },
                 } : false,
+                // The ProductImage table, not Product.productImages[] — see
+                // lib/product-images.
+                images: productImageSelect(),
+                // Stock's source of truth is the default variant; Product.quantity
+                // is the legacy mirror (see @repo/catalog's stock module).
+                variants: { where: { isDefault: true }, select: { stock: true }, take: 1 },
             };
 
             // OPTIMIZED: Parallel queries
@@ -265,9 +273,9 @@ export class I18nService {
                     price: serializeMoney(product.price),
                     discount: serializeRate(product.discount ?? 0),
                     priceIncrease: serializeMoney(product.priceIncrease ?? 0),
-                    quantity: product.quantity,
-                    images: product.productImages,
-                    productImages: product.productImages,
+                    quantity: product.variants?.[0]?.stock ?? product.quantity,
+                    images: imageUrls(product),
+                    productImages: imageUrls(product),
                     sectionType: product.sectionType,
                     spotlightType: product.spotlightType,
                     categoryId: product.categoryId,
@@ -372,6 +380,8 @@ export class I18nService {
                             },
                         },
                     },
+                    images: productImageSelect(),
+                    variants: { where: { isDefault: true }, select: { stock: true }, take: 1 },
                 },
             });
 
@@ -385,14 +395,14 @@ export class I18nService {
                 brand: product.brand,
                 price: serializeMoney(product.price),
                 discount: serializeRate(product.discount ?? 0),
-                images: product.productImages,
+                images: imageUrls(product),
                 specifications: product.specifications[0]
                     ? {
                         language: product.specifications[0].language,
                         ...this.formatSpecifications(product.specifications[0])
                     }
                     : undefined,
-                quantity: product.quantity,
+                quantity: product.variants?.[0]?.stock ?? product.quantity,
                 maxIP: product.maxIP || undefined,
                 spotlightType: product.spotlightType,
                 sectionType: product.sectionType,

@@ -150,7 +150,14 @@
       "uploaded": "{count, plural, zero {لم تُرفع أي صورة} one {تم رفع الصورة} two {تم رفع صورتين} few {تم رفع # صور} many {تم رفع # صورة} other {تم رفع # صورة}}",
       "count": "{count, plural, =0 {لا توجد صور} one {صورة واحدة} two {صورتان} few {# صور} many {# صورة} other {# صورة}}",
       "empty": "لا توجد صور بعد",
-      "emptyDescription": "ارفع صورة واحدة على الأقل — تصبح الأولى هي الصورة الرئيسية في المتجر."
+      "emptyDescription": "ارفع صورة واحدة على الأقل — تصبح الأولى هي الصورة الرئيسية في المتجر.",
+      "errors": {
+        "uploadNotConfigured": "رفع الصور غير مُهيأ في هذه البيئة.",
+        "uploadFailed": "فشل الرفع. حاول مرة أخرى.",
+        "invalidType": "الصيغ المقبولة هي JPEG و PNG و WEBP و AVIF فقط.",
+        "tooLarge": "حجم الصورة أكبر من ٨ ميجابايت."
+      },
+      "uploadProgress": "جارٍ رفع {done} من {total}…"
     },
     "variants": {
       "title": "المخزون والنسخ",
@@ -250,7 +257,9 @@
     "errors": {
       "noFile": "لم يتم اختيار ملف",
       "invalidType": "يُسمح فقط بصور JPEG أو PNG أو WEBP أو AVIF",
-      "tooLarge": "يجب ألا يتجاوز حجم الصورة 8MB"
+      "tooLarge": "يجب ألا يتجاوز حجم الصورة 8MB",
+      "uploadNotConfigured": "رفع الصور غير مُهيأ في هذه البيئة.",
+      "uploadFailed": "فشل الرفع. حاول مرة أخرى."
     }
   },
   "BulkDatasheet": {

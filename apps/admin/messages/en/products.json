@@ -150,7 +150,14 @@
       "uploaded": "{count, plural, one {Image uploaded} other {# images uploaded}}",
       "count": "{count, plural, =0 {No images} one {# image} other {# images}}",
       "empty": "No images yet",
-      "emptyDescription": "Upload at least one image — the first one becomes the primary image on the storefront."
+      "emptyDescription": "Upload at least one image — the first one becomes the primary image on the storefront.",
+      "errors": {
+        "uploadNotConfigured": "Image uploads are not configured on this environment.",
+        "uploadFailed": "Upload failed. Please try again.",
+        "invalidType": "Only JPEG, PNG, WEBP and AVIF images are accepted.",
+        "tooLarge": "That image is larger than 8MB."
+      },
+      "uploadProgress": "Uploading {done} of {total}…"
     },
     "variants": {
       "title": "Stock & variants",
@@ -250,7 +257,9 @@
     "errors": {
       "noFile": "No file provided",
       "invalidType": "Only JPEG, PNG, WEBP, or AVIF images are allowed",
-      "tooLarge": "Image must be under 8MB"
+      "tooLarge": "Image must be under 8MB",
+      "uploadNotConfigured": "Image uploads are not configured on this environment.",
+      "uploadFailed": "Upload failed. Please try again."
     }
   },
   "BulkDatasheet": {

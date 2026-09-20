@@ -6,6 +6,12 @@ import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import type { ProductColorTemp, ProductIP, ProductChandLamp } from "@repo/database";
 import { cloudinary } from "@/lib/cloudinary";
+import {
+  ALLOWED_IMAGE_TYPES,
+  MAX_IMAGE_BYTES,
+  productImageFolder,
+  type CloudinaryUploadResult,
+} from "@/lib/uploads.shared";
 import { ActionError, run } from "./result";
 import * as catalog from "@repo/catalog";
 import { serializeMoney } from "@repo/money";
@@ -233,9 +239,62 @@ export async function addProductImage(productId: string, url: string, altText?: 
   });
 }
 
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8MB
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
 
+/**
+ * Registers an image the browser has already uploaded straight to
+ * Cloudinary with a signature from `signProductImageUpload`.
+ *
+ * The `public_id` is re-read from Cloudinary rather than trusted from the
+ * browser: the client posts directly to Cloudinary, so nothing it sends
+ * back here has passed through the server, and a forged `secure_url` would
+ * otherwise put an arbitrary URL on the product page. The lookup also gives
+ * the real dimensions for next/image.
+ */
+export async function registerUploadedImage(
+  productId: string,
+  sku: string,
+  publicId: string,
+) {
+  return run(async () => {
+    await requirePermission("product:write");
+    const t = await getTranslations("ProductActions");
+
+    if (!publicId.startsWith(`${productImageFolder(sku)}/`)) {
+      throw new ActionError(t("errors.invalidType"));
+    }
+
+    let asset: CloudinaryUploadResult;
+    try {
+      asset = (await cloudinary.api.resource(publicId, { resource_type: "image" })) as CloudinaryUploadResult;
+    } catch {
+      throw new ActionError(t("errors.uploadFailed"));
+    }
+
+    const count = await prisma.productImage.count({ where: { productId } });
+    const image = await prisma.productImage.create({
+      data: {
+        productId,
+        url: asset.secure_url,
+        providerId: asset.public_id,
+        width: asset.width ?? null,
+        height: asset.height ?? null,
+        format: asset.format ?? null,
+        bytes: asset.bytes ?? null,
+        order: count,
+        isPrimary: count === 0,
+      },
+    });
+
+    revalidatePath(`/admin/dashboard/products/${productId}`);
+    return image;
+  });
+}
+
+/**
+ * The old server-side upload: the file arrives base64'd inside a Server
+ * Action. Kept as the fallback for when Cloudinary signing is unavailable,
+ * and for the image backfill script, which runs on the server anyway.
+ */
 export async function uploadProductImage(productId: string, sku: string, formData: FormData) {
   return run(async () => {
     await requireAdmin();
@@ -245,7 +304,7 @@ export async function uploadProductImage(productId: string, sku: string, formDat
     if (!(file instanceof File)) {
       throw new ActionError(t("errors.noFile"));
     }
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.type)) {
       throw new ActionError(t("errors.invalidType"));
     }
     if (file.size > MAX_IMAGE_BYTES) {
@@ -256,7 +315,7 @@ export async function uploadProductImage(productId: string, sku: string, formDat
     const dataUri = `data:${file.type};base64,${buffer.toString("base64")}`;
 
     const result = await cloudinary.uploader.upload(dataUri, {
-      folder: `products/${sku}`,
+      folder: productImageFolder(sku),
       resource_type: "image",
     });
 
@@ -266,6 +325,10 @@ export async function uploadProductImage(productId: string, sku: string, formDat
         productId,
         url: result.secure_url,
         providerId: result.public_id,
+        width: result.width ?? null,
+        height: result.height ?? null,
+        format: result.format ?? null,
+        bytes: result.bytes ?? null,
         order: count,
         isPrimary: count === 0,
       },

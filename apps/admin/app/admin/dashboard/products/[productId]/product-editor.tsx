@@ -45,6 +45,8 @@ import {
   UploadIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { signProductImageUpload } from "@/lib/actions/uploads";
+import { uploadToCloudinary } from "@/lib/upload-to-cloudinary";
 import {
   updateProductGeneral,
   updateProductPrice,
@@ -52,7 +54,7 @@ import {
   restoreProduct,
   duplicateProduct,
   addProductImage,
-  uploadProductImage,
+  registerUploadedImage,
   removeProductImage,
   setPrimaryImage,
   reorderProductImages,
@@ -1369,26 +1371,51 @@ function ImageUploadDropzone({
   const t = useTranslations("ProductEditor.images");
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  /**
+   * Signed direct upload: the server signs once, the browser posts each file
+   * straight to Cloudinary, and only the resulting public_id comes back here
+   * to be registered. Nothing base64's a photo through a Server Action any
+   * more, and there is real progress to show.
+   */
   function uploadFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
     const list = Array.from(files);
 
     setIsUploading(true);
+    setProgress({ done: 0, total: list.length });
     run(async () => {
+      const signed = await signProductImageUpload(productSku);
+      if (!signed.ok) return signed;
+
       // Stop at the first rejected file and hand its reason back — otherwise a
       // rejected type or oversized file uploads nothing and says nothing.
       let last: ActionResult<unknown> = { ok: true, data: undefined };
-      for (const file of list) {
-        const formData = new FormData();
-        formData.set("file", file);
-        last = await uploadProductImage(productId, productSku, formData);
+      for (const [index, file] of list.entries()) {
+        if (!signed.data.allowedTypes.includes(file.type)) {
+          return { ok: false as const, error: t("errors.invalidType") };
+        }
+        if (file.size > signed.data.maxBytes) {
+          return { ok: false as const, error: t("errors.tooLarge") };
+        }
+
+        let publicId: string;
+        try {
+          ({ publicId } = await uploadToCloudinary(file, signed.data));
+        } catch {
+          return { ok: false as const, error: t("errors.uploadFailed") };
+        }
+
+        last = await registerUploadedImage(productId, productSku, publicId);
         if (!last.ok) return last;
+        setProgress({ done: index + 1, total: list.length });
       }
       return last;
     }, t("uploaded", { count: list.length }));
     setIsUploading(false);
+    setProgress(null);
   }
 
   const busy = isPending || isUploading;
@@ -1426,7 +1453,11 @@ function ImageUploadDropzone({
         <UploadIcon className="size-5 text-muted-foreground" aria-hidden />
       )}
       <Label htmlFor={`${productId}-image-file`} className="cursor-pointer text-sm">
-        {busy ? t("uploading") : t("dropzone")}
+        {busy
+          ? progress
+            ? t("uploadProgress", { done: progress.done, total: progress.total })
+            : t("uploading")
+          : t("dropzone")}
       </Label>
     </div>
   );

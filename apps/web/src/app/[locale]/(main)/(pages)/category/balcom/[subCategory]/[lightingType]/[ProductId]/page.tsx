@@ -2,12 +2,14 @@ import Breadcrumb from "@/components/breadcrumb/custom-breadcrumb"
 import { auth } from "@/lib/auth-server";
 import { readGuestToken } from "@/lib/guest-token";
 import ProductRouter from "@/components/product-router"
+import { formatNumber } from "@/lib/numbers"
 import { getLocaleFromParams } from "@/lib/i18n/utils"
 import { constructMetadata } from "@/lib/metadata"
 import { ProductService } from "@/lib/services/product.service"
 import { PagePropsTypes } from "@/types"
 import { Metadata } from "next"
 import { familyFromSlug } from "@repo/catalog"
+import { getTranslations } from "next-intl/server"
 import { notFound } from "next/navigation"
 
 export const dynamic = "force-dynamic"
@@ -85,20 +87,31 @@ export async function generateMetadata({ params }: PagePropsTypes): Promise<Meta
     })
   }
 
+  // The URL segment is a slug; a title is copy. Interpolating the slug put
+  // a bare English "indoor" in the middle of the Arabic title.
+  const tFamily = await getTranslations("family")
+  const familyName = tFamily(family)
+
   const specs = product.localizedSpecs
-  const wattage = specs?.maximumWattage || "15"
+  // From the structured specs through the service, not the legacy
+  // per-language string: two products carry an Arabic "٠" where the English
+  // row has the real figure, and this title read the Arabic one. Absent when
+  // nothing is stored, rather than the invented "15W" that used to stand in.
+  const wattage = product.maximumWattage
+  const wattsEn = wattage ? `${formatNumber(wattage, "en")}W ` : ""
+  const wattsAr = wattage ? `${formatNumber(wattage, "ar")} وات ` : ""
   const isOutdoor = product.maxIP && product.maxIP >= 65
   const localizedCategory = product.category?.translations?.[0]?.name ?? product.category?.name ?? ""
   const localizedLightingType = product.lightingtype?.translations?.[0]?.name ?? product.lightingtype?.name ?? ""
 
   const titles = {
-    en: `${product.productName} - ${wattage}W ${subCategory} ${localizedLightingType} | ${product.brand} Lighting`,
-    ar: `${product.productName} - ${wattage} وات ${subCategory} ${localizedLightingType} | إضاءة ${product.brand}`,
+    en: `${product.productName} - ${wattsEn}${familyName} ${localizedLightingType} | Balcom Lighting`,
+    ar: `${product.productName} - ${wattsAr}${familyName} ${localizedLightingType} | إضاءة بالكوم`,
   }
 
   const descriptions = {
-    en: `Discover the ${product.productName}, a professional ${wattage}W ${subCategory} ${localizedLightingType.toLowerCase()} perfect for ${localizedCategory.toLowerCase()} applications.${isOutdoor ? ` IP${product.maxIP} rated for outdoor use.` : ""} ${specs?.colorTemperature || "Adjustable color temperature"}${specs?.cri ? `, CRI ${specs.cri}` : ""}. ${specs?.luminousFlux || "High brightness"} lumens by ${product.brand}!`,
-    ar: `اكتشف ${product.productName}، كشاف احترافي ${wattage} وات ${subCategory} ${localizedLightingType.toLowerCase()} مثالي لـ ${localizedCategory.toLowerCase()}.${isOutdoor ? ` تصنيف IP${product.maxIP} للاستخدام الخارجي.` : ""} ${specs?.colorTemperature || "درجة حرارة لون قابلة للتعديل"}. حلول إضاءة احترافية من ${product.brand}!`,
+    en: `Discover the ${product.productName}, a professional ${wattsEn}${familyName.toLowerCase()} ${localizedLightingType.toLowerCase()} perfect for ${localizedCategory.toLowerCase()} applications.${isOutdoor ? ` IP${product.maxIP} rated for outdoor use.` : ""} ${specs?.colorTemperature || "Adjustable color temperature"}${specs?.cri ? `, CRI ${specs.cri}` : ""}. ${specs?.luminousFlux || "High brightness"} lumens by Balcom!`,
+    ar: `اكتشف ${product.productName}، كشاف احترافي ${wattsAr}${familyName} ${localizedLightingType.toLowerCase()} مثالي لـ ${localizedCategory.toLowerCase()}.${isOutdoor ? ` تصنيف IP${product.maxIP} للاستخدام الخارجي.` : ""} ${specs?.colorTemperature || "درجة حرارة لون قابلة للتعديل"}. حلول إضاءة احترافية من بالكوم!`,
   }
 
   return constructMetadata({

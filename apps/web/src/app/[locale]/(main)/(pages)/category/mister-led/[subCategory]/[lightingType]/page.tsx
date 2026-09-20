@@ -1,4 +1,5 @@
 import Breadcrumb from "@/components/breadcrumb/custom-breadcrumb";
+import { attempt } from "@/lib/attempt";
 import { familyFromSlug } from "@repo/catalog";
 import { getLocaleFromParams, getServerI18n } from "@/lib/i18n/utils";
 import { constructMetadata } from "@/lib/metadata";
@@ -21,17 +22,18 @@ export default async function Page({ params }: PagePropsTypes) {
   // exist — which is what the old string column quietly allowed.
   const family = familyFromSlug(subCategory);
   if (!family) notFound();
-  try {
+  // The loading is what can fail; a lighting type that does not exist is a
+  // 404, not a failure. Keeping them apart keeps notFound() out of a catch
+  // — see lib/attempt.
+  const loaded = await attempt(async () => {
     const lightingTypes = await service.getLocalizedLightingTypes("mister-led", family, locale) as any[];
 
     const currentLightingType = lightingTypes.find(
       (lt: any) => lt.slug === lightingType || lt.localizedSlug === lightingType || lt.spotlightType === lightingType
     );
 
-    if (!currentLightingType) {
-      console.warn(`Lighting type not found: ${lightingType} in ${subCategory}`);
-      notFound();
-    }
+    if (!currentLightingType) return null;
+
     const { products, total } = await service.getLocalizedProducts(
       {
         brand: "mister-led",
@@ -49,31 +51,12 @@ export default async function Page({ params }: PagePropsTypes) {
         includeImages: true
       }
     );
-    const productsWithHNumber = products.filter(p => p.hNumber !== undefined && p.hNumber !== null);
-    const productsWithChandelierType = products.filter(p => p.chandelierLightingType);
 
-    console.log('[Page] Data validation:', {
-      totalProducts: products.length,
-      productsWithHNumber: productsWithHNumber.length,
-      productsWithChandelierType: productsWithChandelierType.length,
-      allProductsHaveSpecifications: products.every(p => p.specifications || (p.specificationsArray && p.specificationsArray.length > 0)),
-    });
+    return { displayName: currentLightingType.localizedName as string, products, total };
+  });
 
-    const displayName = currentLightingType.localizedName;
-    return (
-      <>
-        <Breadcrumb />
-        <LightingType
-          products={products}
-          subCategory={subCategory}
-          lightingType={displayName}
-          locale={locale}
-          total={total} hasMore={false}
-        />
-      </>
-    );
-  } catch (error) {
-    console.error(`[Page] Failed to load products for ${subCategory}/${lightingType}:`, error);
+  if (!loaded.ok) {
+    console.error(`[Page] Failed to load products for ${subCategory}/${lightingType}:`, loaded.error);
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -83,29 +66,65 @@ export default async function Page({ params }: PagePropsTypes) {
           <p className="text-muted-foreground">
             {t('message')}
           </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            {error instanceof Error ? error.message : t('unknown_error')}
-          </p>
         </div>
       </div>
     );
   }
+
+  if (!loaded.value) {
+    console.warn(`Lighting type not found: ${lightingType} in ${subCategory}`);
+    notFound();
+  }
+
+  const { displayName, products, total } = loaded.value;
+
+  return (
+    <>
+      <Breadcrumb />
+      <LightingType
+        products={products}
+        subCategory={subCategory}
+        lightingType={displayName}
+        locale={locale}
+        total={total} hasMore={false}
+      />
+    </>
+  );
 }
 
 export async function generateMetadata({ params }: PagePropsTypes): Promise<Metadata> {
-  const { subCategory, lightingType, locale: localeParam } = await params;
+  const { subCategory, lightingType } = await params;
   const locale = getLocaleFromParams(await params);
   if (!subCategory || !lightingType) {
     notFound();
   }
+  const family = familyFromSlug(subCategory);
+  if (!family) notFound();
+
+  // Both segments are slugs. Dropping them into a title put a bare English
+  // "chandelier" and "mc15w" in the middle of the Arabic one; the names the
+  // catalogue already stores per language are the copy.
+  const { service } = await getServerI18n(locale);
+  const tFamily = await getTranslations("family");
+  const familyName = tFamily(family);
+
+  const loaded = await attempt(
+    () => service.getLocalizedLightingTypes("mister-led", family, locale) as Promise<any[]>,
+  );
+  const lightingTypeName = loaded.ok
+    ? (loaded.value.find(
+        (lt: any) => lt.slug === lightingType || lt.localizedSlug === lightingType || lt.spotlightType === lightingType,
+      )?.localizedName ?? lightingType)
+    : lightingType;
+
   const titles = {
-    en: `Mister led ${subCategory} - ${lightingType}`,
-    ar: `مستر ليد ${subCategory} - ${lightingType}`
+    en: `Mister led ${familyName} - ${lightingTypeName}`,
+    ar: `مستر ليد ${familyName} - ${lightingTypeName}`
   };
 
   const descriptions = {
-    en: `Discover Mister led's ${subCategory} lighting solutions offering ${lightingType}`,
-    ar: `اكتشف حلول الإضاءة ${subCategory} من مستر ليد مع مجموعة ${lightingType} الأنيقة والعملية`
+    en: `Discover Mister led's ${familyName.toLowerCase()} solutions offering ${lightingTypeName}`,
+    ar: `اكتشف حلول ${familyName} من مستر ليد مع مجموعة ${lightingTypeName} الأنيقة والعملية`
   };
 
   return constructMetadata({

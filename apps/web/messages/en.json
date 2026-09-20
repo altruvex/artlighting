@@ -651,6 +651,11 @@
         "saving-success": "Lamp settings saved successfully.",
         "saving-error": "An error occurred while saving the lamp settings. Please try again."
     },
+    "family": {
+        "INDOOR": "Indoor lighting",
+        "OUTDOOR": "Outdoor lighting",
+        "CHANDELIER": "Chandelier"
+    },
     "error": {
         "title": "Error loading this page",
         "message": "Please try again later.",

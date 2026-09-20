@@ -2,7 +2,7 @@ import { prisma } from "@repo/database";
 import { parseLocalizedInt } from "@/lib/numbers";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { availableFrom, familiesMatching, inventorySelect, productDiscountRates, type ProductFamily } from "@repo/catalog";
-import { localizeSpecGroups, specGroupSelect, type LocalizedSpecGroup } from "@/lib/spec-groups";
+import { localizeSpecGroups, specGroupSelect, specNumbersByKey, type LocalizedSpecGroup } from "@/lib/spec-groups";
 import { serializeMoney, serializeRate } from "@repo/money";
 import { toViewConfiguration } from "@/lib/serialize-money";
 import type { Prisma } from "@repo/database";
@@ -126,6 +126,7 @@ export function transformToLocalizedProduct(
 ): LocalizedProductData {
   const translation = product.translations?.[0];
   const specs: LocalizedSpecsData = product.specifications?.[0] ?? {};
+  const localizedGroups = localizeSpecGroups(product.specGroups ?? [], language);
 
   const localizedName = translation?.name || product.productName;
 
@@ -145,7 +146,7 @@ export function transformToLocalizedProduct(
     images: imageUrls(product),
     // Grouped, localized and already formatted — the page no longer builds
     // this table by hand with a label written out in each language.
-    specGroups: localizeSpecGroups(product.specGroups ?? [], language),
+    specGroups: localizedGroups,
     sectionType: product.sectionType,
     spotlightType: product.spotlightType,
     quantity: availableFrom(product.variants?.[0]?.inventory),
@@ -163,7 +164,13 @@ export function transformToLocalizedProduct(
     updatedAt: product.updatedAt,
     specifications: specs,
     localizedSpecs: specs,
-    maximumWattage: parseLocalizedInt(specs.maximumWattage),
+    // The structured store is the source: the legacy ProductSpecification
+    // rows drifted per language — two products carry an Arabic "٠" where the
+    // English row has the real figure. The legacy string is only a fallback
+    // for the products the spec backfill has not reached.
+    maximumWattage:
+      specNumbersByKey(localizedGroups).maximumWattage ??
+      parseLocalizedInt(specs.maximumWattage),
     mainMaterial: specs.mainMaterial ?? undefined,
     beamAngle: specs.beamAngle ?? undefined,
     lampBase: specs.lampBase ?? undefined,

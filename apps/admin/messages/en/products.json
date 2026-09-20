@@ -252,13 +252,15 @@
       "code": "Coupon code (optional)",
       "create": "Create discount",
       "created": "Discount created",
-      "none": "No active discounts on this product.",
+      "none": "No discount covers this product.",
       "percentOff": "{value}% off",
       "amountOff": "{amount} off",
       "withCode": "code {code}",
       "deactivate": "Deactivate",
       "deactivated": "Discount deactivated",
-      "activeTitle": "Active discounts"
+      "activeTitle": "Active discounts",
+      "description": "Discounts that cover this product. Create and edit them on the discounts page.",
+      "manage": "Manage discounts"
     },
     "datasheet": {
       "title": "Datasheet",
@@ -435,5 +437,110 @@
       "belowReserved": "{reserved} units are promised to orders that have not shipped. Release those first."
     },
     "system": "System"
+  },
+  "Discounts": {
+    "title": "Discounts",
+    "subtitle": "Automatic promotions and coupon codes, and what they have cost.",
+    "stats": {
+      "active": "Running now",
+      "coupons": "Coupon codes",
+      "given": "Given away",
+      "givenHint": "{count, plural, =0 {No redemptions yet} one {across # redemption} other {across # redemptions}}"
+    },
+    "searchPlaceholder": "Search by name or code",
+    "columns": {
+      "name": "Discount",
+      "value": "Value",
+      "applies": "Applies to",
+      "usage": "Used",
+      "state": "State"
+    },
+    "scope": {
+      "PRODUCTS": "Chosen products",
+      "CATEGORIES": "Chosen categories",
+      "CART": "The whole order"
+    },
+    "type": {
+      "PERCENTAGE": "Percentage off",
+      "FIXED": "Amount off"
+    },
+    "mode": {
+      "AUTOMATIC": "Applies automatically",
+      "COUPON": "Customer types a code"
+    },
+    "state": {
+      "active": "Running",
+      "scheduled": "Scheduled",
+      "expired": "Expired",
+      "stopped": "Stopped",
+      "usedUp": "Used up"
+    },
+    "rejection": {
+      "inactive": "stopped",
+      "not_started": "has not started yet",
+      "expired": "has expired",
+      "usage_limit_reached": "has reached its usage limit",
+      "customer_limit_reached": "already used by this customer",
+      "below_minimum_order": "the order is below its minimum",
+      "no_matching_lines": "nothing in the cart matches it",
+      "not_a_coupon": "needs its code to be entered",
+      "unknown_code": "no discount uses this code",
+      "outranked": "a better discount applied instead"
+    },
+    "targetsCount": "{count} items",
+    "selectedCount": "{count, plural, =0 {Nothing selected} one {# selected} other {# selected}}",
+    "new": "New discount",
+    "newTitle": "New discount",
+    "editTitle": "Edit discount",
+    "formDescription": "Only the fields that apply to your choices are shown.",
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "Summer sale",
+      "mode": "How it applies",
+      "code": "Code",
+      "type": "Type",
+      "percent": "Percent off",
+      "amount": "Amount off (EGP)",
+      "scope": "Applies to",
+      "products": "Products",
+      "categories": "Categories",
+      "minOrder": "Minimum order (EGP)",
+      "priority": "Priority",
+      "usageLimit": "Total uses",
+      "perCustomerLimit": "Uses per customer",
+      "unlimited": "Unlimited",
+      "stackable": "Can combine with other discounts",
+      "stackableHint": "Discounts that cannot combine compete, and the best one for the customer wins."
+    },
+    "preview": {
+      "title": "What would this cart pay?",
+      "description": "Runs the real pricing engine, including the discounts that do not apply and why.",
+      "product": "Product",
+      "choose": "Choose a product",
+      "coupon": "Coupon",
+      "couponPlaceholder": "optional",
+      "run": "Price it",
+      "subtotal": "Subtotal",
+      "total": "Total"
+    },
+    "edit": "Edit",
+    "stop": "Stop",
+    "resume": "Resume",
+    "created": "Discount created",
+    "updated": "Discount saved",
+    "stopped": "Discount stopped",
+    "resumed": "Discount resumed",
+    "cancel": "Cancel",
+    "save": "Save",
+    "empty": {
+      "title": "No discounts yet",
+      "description": "Create one to run a promotion or hand out a coupon code."
+    },
+    "errors": {
+      "duplicateCode": "The code {code} is already used by another discount.",
+      "productNotFound": "That product no longer exists.",
+      "productRequired": "Choose at least one product.",
+      "categoryRequired": "Choose at least one category."
+    }
   }
 }

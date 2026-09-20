@@ -153,6 +153,9 @@ importers:
       '@repo/money':
         specifier: workspace:*
         version: link:../../packages/money
+      '@repo/pricing':
+        specifier: workspace:*
+        version: link:../../packages/pricing
       '@tanstack/react-query':
         specifier: ^5.103.1
         version: 5.103.1(react@19.3.0)

@@ -1,6 +1,6 @@
 import { requireAdmin, AdminAuthError } from "@/lib/auth";
 import { serializeRowMoney } from "@/lib/serialize-money";
-import { serializeMoney } from "@repo/money";
+import { serializeMoney, serializeRate } from "@repo/money";
 import { availableFrom, inventorySelect } from "@repo/catalog";
 import { can } from "@/lib/permissions";
 import { prisma } from "@repo/database";
@@ -51,9 +51,11 @@ const ProductDetailPage = async ({
       },
     }),
     prisma.category.findMany({ orderBy: [{ parentId: "asc" }, { order: "asc" }] }),
+    // Every discount that covers this product, through the join table.
     prisma.discount.findMany({
-      where: { productId, isActive: true },
+      where: { isActive: true, products: { some: { productId } } },
       orderBy: { createdAt: "desc" },
+      select: { id: true, name: true, type: true, rate: true, amount: true, code: true },
     }),
     prisma.priceHistory.findMany({
       where: { productId },
@@ -81,9 +83,13 @@ const ProductDetailPage = async ({
       }}
       topCategories={topCategories}
       childCategories={childCategories}
-      // `value` is money or a percent depending on `type`; it is not one of
-      // the shared money field names, so it is serialized here.
-      discounts={discounts.map((discount) => ({ ...discount, value: serializeMoney(discount.value) }))}
+      // A rate and an amount are separate columns now, each with one
+      // meaning; both are serialized at this boundary.
+      discounts={discounts.map((discount) => ({
+        ...discount,
+        rate: discount.rate == null ? null : serializeRate(discount.rate),
+        amount: discount.amount == null ? null : serializeMoney(discount.amount),
+      }))}
       priceHistory={priceHistory.map(serializeRowMoney)}
       isOwner={can(admin.role, "price:write")}
       storefrontUrl={storefrontUrlFor(product)}

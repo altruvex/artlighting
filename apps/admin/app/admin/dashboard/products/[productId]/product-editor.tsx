@@ -1,7 +1,8 @@
 "use client";
 
 import { useId, useMemo, useRef, useState, useTransition } from "react";
-import { formatMoney } from "@/lib/money";
+import Link from "next/link";
+import { formatMoney, formatRateAsPercent } from "@/lib/money";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
@@ -63,7 +64,6 @@ import {
   upsertProductSpecification,
   type ProductSpecificationInput,
 } from "@/lib/actions/products";
-import { createDiscount, deactivateDiscount } from "@/lib/actions/discounts";
 import type { ActionResult } from "@/lib/actions/result";
 
 type Category = { id: string; name: string; parentId: string | null };
@@ -89,13 +89,13 @@ type Variant = {
 };
 type Discount = {
   id: string;
-  type: string;
-  scope: string;
-  /** Serialized money (see @repo/money): a percent for "percentage", an amount for "fixed". */
-  value: string;
+  name: string;
+  type: "PERCENTAGE" | "FIXED";
+  /** A rate: "0.1300" is 13%. Null unless the type is PERCENTAGE. */
+  rate: string | null;
+  /** Serialized money. Null unless the type is FIXED. */
+  amount: string | null;
   code: string | null;
-  startsAt: Date | null;
-  endsAt: Date | null;
 };
 type PriceHistoryEntry = {
   id: string;
@@ -865,108 +865,40 @@ export default function ProductEditor({
             </div>
           </Section>
 
-          <Section title={t("discounts.title")}>
-            <div className="space-y-4">
-              {!isOwner ? (
-                <p className="text-sm text-muted-foreground">{t("discounts.ownerOnly")}</p>
+          <Section title={t("discounts.title")} description={t("discounts.description")}>
+            {/*
+              Read-only on purpose. A discount now carries a scope, targets,
+              limits, a date window and a stacking rule; a cut-down form here
+              would be a second place to get those wrong, and the two would
+              drift. Creating and editing happens on the discounts page.
+            */}
+            <div className="space-y-3">
+              {discounts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t("discounts.none")}</p>
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <SelectField
-                    id={`${fieldId}-dtype`}
-                    label={t("discounts.type")}
-                    value={discountType}
-                    onValueChange={(v) => setDiscountType(v as "percentage" | "fixed")}
-                    options={[
-                      { value: "percentage", label: t("discounts.percentage") },
-                      { value: "fixed", label: t("discounts.fixed") },
-                    ]}
-                  />
-                  <SelectField
-                    id={`${fieldId}-dscope`}
-                    label={t("discounts.scope")}
-                    value={discountScope}
-                    onValueChange={(v) =>
-                      setDiscountScope(v as "product" | "category" | "global")
-                    }
-                    options={[
-                      { value: "product", label: t("discounts.scopeProduct") },
-                      { value: "category", label: t("discounts.scopeCategory") },
-                      { value: "global", label: t("discounts.scopeGlobal") },
-                    ]}
-                  />
-                  <TextField
-                    id={`${fieldId}-dvalue`}
-                    label={t("discounts.value")}
-                    type="number"
-                    dir="ltr"
-                    inputClassName="tabular-nums"
-                    value={discountValue}
-                    onChange={setDiscountValue}
-                  />
-                  <TextField
-                    id={`${fieldId}-dcode`}
-                    label={t("discounts.code")}
-                    dir="ltr"
-                    value={discountCode}
-                    onChange={setDiscountCode}
-                  />
-                  <Button
-                    className="sm:col-span-2"
-                    disabled={isPending || !discountValue}
-                    onClick={() =>
-                      run(
-                        () =>
-                          createDiscount({
-                            type: discountType,
-                            scope: discountScope,
-                            value: Number(discountValue),
-                            code: discountCode || null,
-                            productId: discountScope === "product" ? product.id : null,
-                            categoryId: discountScope === "category" ? categoryId : null,
-                          }),
-                        t("discounts.created")
-                      )
-                    }
-                  >
-                    {t("discounts.create")}
-                  </Button>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <p className="text-sm font-medium">{t("discounts.activeTitle")}</p>
-                {discounts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">{t("discounts.none")}</p>
-                ) : (
-                  <ul className="divide-y rounded-lg border">
-                    {discounts.map((d) => (
-                      <li key={d.id} className="flex items-center justify-between gap-2 px-3 py-2">
-                        <span className="min-w-0 text-sm">
-                          {d.type === "percentage"
-                            ? t("discounts.percentOff", { value: d.value })
-                            : t("discounts.amountOff", {
-                                amount: formatMoney(d.value, { locale }),
-                              })}
-                          {d.code ? ` — ${t("discounts.withCode", { code: d.code })}` : ""}
-                        </span>
-                        {isOwner && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 shrink-0 px-2 text-xs"
-                            disabled={isPending}
-                            onClick={() =>
-                              run(() => deactivateDiscount(d.id), t("discounts.deactivated"))
-                            }
-                          >
-                            {t("discounts.deactivate")}
-                          </Button>
+                <ul className="divide-y rounded-lg border">
+                  {discounts.map((discount) => (
+                    <li key={discount.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                      <span className="min-w-0 text-sm">
+                        <span className="font-medium">{discount.name}</span>
+                        {discount.code && (
+                          <span className="ms-2 font-mono text-xs text-muted-foreground" dir="ltr">
+                            {discount.code}
+                          </span>
                         )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+                      </span>
+                      <span className="tabular-nums text-sm whitespace-nowrap">
+                        {discount.type === "PERCENTAGE"
+                          ? formatRateAsPercent(discount.rate ?? 0, { locale })
+                          : formatMoney(discount.amount ?? 0, { locale })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Button asChild variant="outline" size="sm">
+                <Link href="/admin/dashboard/discounts">{t("discounts.manage")}</Link>
+              </Button>
             </div>
           </Section>
 

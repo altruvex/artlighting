@@ -252,13 +252,15 @@
       "code": "كود الكوبون (اختياري)",
       "create": "إنشاء خصم",
       "created": "تم إنشاء الخصم",
-      "none": "لا توجد خصومات نشطة على هذا المنتج.",
+      "none": "لا يوجد خصم يغطي هذا المنتج.",
       "percentOff": "خصم {value}%",
       "amountOff": "خصم {amount}",
       "withCode": "الكود {code}",
       "deactivate": "إيقاف",
       "deactivated": "تم إيقاف الخصم",
-      "activeTitle": "الخصومات النشطة"
+      "activeTitle": "الخصومات النشطة",
+      "description": "الخصومات التي تغطي هذا المنتج. الإنشاء والتعديل من صفحة الخصومات.",
+      "manage": "إدارة الخصومات"
     },
     "datasheet": {
       "title": "ورقة البيانات",
@@ -435,5 +437,110 @@
       "belowReserved": "{reserved} وحدة محجوزة لطلبات لم تُشحن. فكّ حجزها أولاً."
     },
     "system": "النظام"
+  },
+  "Discounts": {
+    "title": "الخصومات",
+    "subtitle": "عروض تلقائية وأكواد كوبونات، وكام كلّفت.",
+    "stats": {
+      "active": "شغّالة دلوقتي",
+      "coupons": "أكواد كوبونات",
+      "given": "إجمالي الخصم",
+      "givenHint": "{count, plural, =0 {لا توجد استخدامات بعد} one {عبر استخدام واحد} other {عبر # استخدام}}"
+    },
+    "searchPlaceholder": "ابحث بالاسم أو الكود",
+    "columns": {
+      "name": "الخصم",
+      "value": "القيمة",
+      "applies": "ينطبق على",
+      "usage": "الاستخدام",
+      "state": "الحالة"
+    },
+    "scope": {
+      "PRODUCTS": "منتجات محددة",
+      "CATEGORIES": "فئات محددة",
+      "CART": "الطلب كله"
+    },
+    "type": {
+      "PERCENTAGE": "نسبة خصم",
+      "FIXED": "مبلغ خصم"
+    },
+    "mode": {
+      "AUTOMATIC": "ينطبق تلقائياً",
+      "COUPON": "العميل يكتب كود"
+    },
+    "state": {
+      "active": "شغّال",
+      "scheduled": "مجدول",
+      "expired": "منتهي",
+      "stopped": "موقوف",
+      "usedUp": "استُنفد"
+    },
+    "rejection": {
+      "inactive": "موقوف",
+      "not_started": "لم يبدأ بعد",
+      "expired": "انتهت مدته",
+      "usage_limit_reached": "وصل حد الاستخدام",
+      "customer_limit_reached": "العميل استخدمه من قبل",
+      "below_minimum_order": "الطلب أقل من الحد الأدنى",
+      "no_matching_lines": "لا يوجد في السلة ما ينطبق عليه",
+      "not_a_coupon": "يحتاج إدخال كوده",
+      "unknown_code": "لا يوجد خصم بهذا الكود",
+      "outranked": "طُبّق خصم أفضل منه"
+    },
+    "targetsCount": "{count} عنصر",
+    "selectedCount": "{count, plural, =0 {لم يتم تحديد شيء} one {عنصر واحد محدد} other {# عنصر محدد}}",
+    "new": "خصم جديد",
+    "newTitle": "خصم جديد",
+    "editTitle": "تعديل الخصم",
+    "formDescription": "تظهر الحقول التي تنطبق على اختياراتك فقط.",
+    "fields": {
+      "name": "الاسم",
+      "namePlaceholder": "عرض الصيف",
+      "mode": "طريقة التطبيق",
+      "code": "الكود",
+      "type": "النوع",
+      "percent": "نسبة الخصم",
+      "amount": "مبلغ الخصم (ج.م)",
+      "scope": "ينطبق على",
+      "products": "المنتجات",
+      "categories": "الفئات",
+      "minOrder": "الحد الأدنى للطلب (ج.م)",
+      "priority": "الأولوية",
+      "usageLimit": "إجمالي الاستخدامات",
+      "perCustomerLimit": "استخدامات لكل عميل",
+      "unlimited": "بلا حد",
+      "stackable": "يمكن دمجه مع خصومات أخرى",
+      "stackableHint": "الخصومات غير القابلة للدمج تتنافس، والأفضل للعميل هو الذي يُطبَّق."
+    },
+    "preview": {
+      "title": "السلة دي هتدفع كام؟",
+      "description": "بيشغّل محرك التسعير الحقيقي، ويوضح الخصومات اللي ما انطبقتش وليه.",
+      "product": "المنتج",
+      "choose": "اختر منتجاً",
+      "coupon": "الكوبون",
+      "couponPlaceholder": "اختياري",
+      "run": "احسب",
+      "subtotal": "المجموع",
+      "total": "الإجمالي"
+    },
+    "edit": "تعديل",
+    "stop": "إيقاف",
+    "resume": "تشغيل",
+    "created": "تم إنشاء الخصم",
+    "updated": "تم حفظ الخصم",
+    "stopped": "تم إيقاف الخصم",
+    "resumed": "تم تشغيل الخصم",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "empty": {
+      "title": "لا توجد خصومات بعد",
+      "description": "أنشئ واحداً لتشغيل عرض أو توزيع كود كوبون."
+    },
+    "errors": {
+      "duplicateCode": "الكود {code} مستخدم بالفعل في خصم آخر.",
+      "productNotFound": "هذا المنتج لم يعد موجوداً.",
+      "productRequired": "اختر منتجاً واحداً على الأقل.",
+      "categoryRequired": "اختر فئة واحدة على الأقل."
+    }
   }
 }

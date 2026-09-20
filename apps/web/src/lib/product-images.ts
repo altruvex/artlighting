@@ -1,13 +1,10 @@
 /**
  * Where a product's images come from.
  *
- * `Product.productImages[]` is the legacy array of relative `/public`
- * paths. `ProductImage` is the table that replaces it: ordered, with a
- * primary flag, a Cloudinary `public_id` and real dimensions. Both hold the
- * same URLs today, so everything reads the table and falls back to the
- * array — which means the `/public` → Cloudinary backfill changes what the
- * storefront shows without another code change, and the legacy column can
- * be dropped once Ali confirms.
+ * `ProductImage` is the only source. It replaced a `Product.productImages[]`
+ * array of relative `/public` paths, which was dropped once every reader
+ * came through here — ordered, with a primary flag, a Cloudinary
+ * `public_id` and real dimensions.
  */
 export interface ProductImageRow {
   url: string;
@@ -27,10 +24,7 @@ export function productImageSelect() {
   };
 }
 
-export function imageUrls(product: {
-  images?: ProductImageRow[] | null;
-  productImages?: string[] | null;
-}): string[] {
+export function imageUrls(product: { images?: ProductImageRow[] | null }): string[] {
   const rows = product.images;
   if (rows && rows.length > 0) {
     return [...rows]
@@ -43,5 +37,5 @@ export function imageUrls(product: {
       })
       .map((row) => row.url);
   }
-  return product.productImages ?? [];
+  return [];
 }

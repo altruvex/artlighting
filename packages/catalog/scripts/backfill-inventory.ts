@@ -1,14 +1,14 @@
 /**
- * Opens the inventory ledger: one InventoryItem per variant at the default
- * location, holding the stock the variant currently records, and one
- * RECEIPT movement that explains where that number came from.
+ * Opens an inventory row for any variant that has none, at the default
+ * location and at zero.
  *
- * The opening movement matters. Without it the ledger starts with a balance
- * nothing accounts for, and the first person to ask "why is this 10?" gets
- * no answer. With it, the first row says "opening balance, migrated".
+ * The original run of this script carried each variant's old
+ * `ProductVariant.stock` across as an opening RECEIPT, so the ledger would
+ * not start with a balance nothing accounts for. That column is gone now,
+ * so a variant reaching this script is a new one: it opens empty and is
+ * stocked by a receipt or a count, both of which write their own movement.
  *
- * Idempotent: a variant that already has an inventory item is skipped, so a
- * re-run does not double the stock or add a second opening row.
+ * Idempotent: a variant that already has an inventory item is skipped.
  *
  * Run: pnpm --filter @repo/catalog backfill:inventory -- --dry-run
  *      pnpm --filter @repo/catalog backfill:inventory -- --apply
@@ -27,7 +27,9 @@ reportHeader("Backfill: open the inventory ledger", options, hostOf(databaseUrl(
 
 const variants = await prisma.productVariant.findMany({
   where: { inventory: { none: {} } },
-  select: { id: true, sku: true, stock: true, product: { select: { lowStockThreshold: true } } },
+  // ProductVariant.stock is gone; a variant that somehow has no inventory
+  // row now opens at zero and is stocked through a receipt or a count.
+  select: { id: true, sku: true, product: { select: { lowStockThreshold: true } } },
   orderBy: { sku: "asc" },
   ...(options.limit ? { take: options.limit } : {}),
 });
@@ -41,7 +43,7 @@ if (variants.length === 0) {
   console.log("  Nothing to do.");
 } else if (options.dryRun) {
   for (const variant of variants.slice(0, 10)) {
-    console.log(`  ${variant.sku.padEnd(24)} opening onHand ${String(variant.stock).padStart(5)}`);
+    console.log(`  ${variant.sku.padEnd(24)} opens at 0`);
   }
   if (variants.length > 10) console.log(`  … and ${variants.length - 10} more`);
 } else {
@@ -51,31 +53,15 @@ if (variants.length === 0) {
   let opened = 0;
   for (const variant of variants) {
     await prisma.$transaction(async (tx) => {
-      const item = await tx.inventoryItem.create({
+      await tx.inventoryItem.create({
         data: {
           variantId: variant.id,
           locationId: location.id,
-          onHand: variant.stock,
           // The product's threshold becomes the item's starting reorder
           // point, so the restock list works from day one.
           reorderPoint: variant.product.lowStockThreshold,
         },
       });
-      // A movement of zero is not an event, and the CHECK constraint agrees:
-      // a variant that genuinely has no stock opens with an item and no row.
-      if (variant.stock !== 0) {
-        await tx.stockMovement.create({
-          data: {
-            itemId: item.id,
-            kind: "RECEIPT",
-            quantity: variant.stock,
-            onHandAfter: variant.stock,
-            reservedAfter: 0,
-            reason: "Opening balance, migrated from ProductVariant.stock",
-            actorId: "system",
-          },
-        });
-      }
     });
     opened += 1;
     if (opened % 25 === 0) console.log(`  … ${opened}/${variants.length}`);
@@ -83,5 +69,5 @@ if (variants.length === 0) {
   console.log(`\n  Opened ${opened} inventory item(s).`);
 }
 
-console.log("\n  ProductVariant.stock and Product.quantity are left as mirrors.");
+console.log("\n  Stock itself is moved by a receipt or a count, never by a column.");
 await prisma.$disconnect();

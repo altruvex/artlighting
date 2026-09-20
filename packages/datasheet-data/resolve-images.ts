@@ -69,7 +69,6 @@ async function tryResolve(rawUrl: string | undefined): Promise<ImageRef | undefi
 }
 
 interface ProductForImages {
-  productImages: string[];
   images: { url: string; isPrimary: boolean; order: number }[];
   brand?: string | null;
 }
@@ -107,7 +106,9 @@ export async function resolveProductImages(
     return a.order - b.order;
   });
 
-  const urls = ordered.length > 0 ? ordered.map((i) => i.url) : product.productImages;
+  // ProductImage is the only source now; the legacy Product.productImages[]
+  // array it used to fall back to has been dropped.
+  const urls = ordered.map((i) => i.url);
   const logoPath = product.brand ? BRAND_LOGOS[product.brand.trim().toLowerCase()] : undefined;
 
   const [mainImage, brandLogo, ...diagrams] = await Promise.all([

@@ -171,17 +171,6 @@ export async function recordMovement(input: MovementInput, db: Db = prisma): Pro
       },
     });
 
-    // The legacy mirrors, in the same transaction as the movement that
-    // caused them, until the storefront reads InventoryItem directly.
-    await tx.productVariant.update({ where: { id: variantId }, data: { stock: onHand } });
-    const defaultVariant = await tx.productVariant.findFirst({
-      where: { productId: variant.productId, isDefault: true },
-      select: { id: true, stock: true },
-    });
-    if (defaultVariant?.id === variantId) {
-      await tx.product.update({ where: { id: variant.productId }, data: { quantity: onHand } });
-    }
-
     return {
       itemId: updated.id,
       variantId,
@@ -247,6 +236,27 @@ export function shipStock(variantId: string, quantity: number, orderId: number, 
 /** A customer sent it back. */
 export function returnStock(variantId: string, quantity: number, orderId: number, actorId: string, db?: Db) {
   return recordMovement({ variantId, kind: "RETURN", quantity, orderId, actorId }, db);
+}
+
+/**
+ * The Prisma select that yields a variant's sellable quantity.
+ *
+ * Every reader of stock uses this, so "available" means the same thing on
+ * the product page, in the admin list and in an export: on hand minus what
+ * is already promised to orders that have not shipped.
+ */
+export function inventorySelect() {
+  return { select: { onHand: true, reserved: true } };
+}
+
+/** Sellable units from the rows `inventorySelect()` returns. */
+export function availableFrom(
+  inventory: { onHand: number; reserved: number }[] | null | undefined,
+): number {
+  if (!inventory || inventory.length === 0) return 0;
+  // Summed across locations: a variant in two warehouses is one sellable
+  // pool until picking has to care where it comes from.
+  return inventory.reduce((total, row) => total + Math.max(0, row.onHand - row.reserved), 0);
 }
 
 /** Current levels for one variant, across every location it sits in. */

@@ -1,5 +1,6 @@
 import { getLocaleFromParams } from "@/lib/i18n/utils"
 import { imageUrls, productImageSelect } from "@/lib/product-images";
+import { availableFrom, inventorySelect } from "@repo/catalog";
 import { serializeMoney, serializeRate } from "@repo/money"
 import { serializeRowMoney } from "@/lib/serialize-money"
 import { constructMetadata } from "@/lib/metadata"
@@ -37,6 +38,7 @@ const Page = async ({ searchParams }: PagePropsTypes) => {
       product: {
         include: {
           images: productImageSelect(),
+          variants: { where: { isDefault: true }, select: { inventory: inventorySelect() }, take: 1 },
           specifications: {
             where: {
               language: locale,
@@ -120,6 +122,10 @@ const Page = async ({ searchParams }: PagePropsTypes) => {
     configuration: localizedConfiguration,
     product: {
       ...serializeRowMoney(order.product),
+      // The view model still carries a flat list and a quantity; both come
+      // from their own tables now rather than columns on the product.
+      productImages: imageUrls(order.product),
+      quantity: availableFrom(order.product.variants[0]?.inventory),
       maxIP: order.product.maxIP ?? undefined,
       priceIncrease:
         order.product.priceIncrease == null ? undefined : serializeMoney(order.product.priceIncrease),

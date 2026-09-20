@@ -1,4 +1,6 @@
 import { PagePropsTypes } from "@/types";
+import { imageUrls, productImageSelect } from "@/lib/product-images";
+import { availableFrom, inventorySelect } from "@repo/catalog";
 import { serializeMoney, serializeRate, type MoneyInput } from "@repo/money";
 import { prisma } from "@repo/database";
 import { notFound } from "next/navigation";
@@ -100,7 +102,10 @@ const ProductsSection = async ({ params }: PagePropsTypes) => {
             }
           }
         }
-      }
+      },
+      // Images and stock both come from their own tables now.
+      images: productImageSelect(),
+      variants: { where: { isDefault: true }, select: { inventory: inventorySelect() }, take: 1 }
     } as const;
 
     let selectedProducts = await prisma.product.findMany({
@@ -144,11 +149,11 @@ const ProductsSection = async ({ params }: PagePropsTypes) => {
         productName: getLocalizedName(),
         brand: product.brand,
         price: serializeMoney(product.price),
-        productImages: product.productImages,
+        productImages: imageUrls(product),
         sectionType: product.sectionType,
         spotlightType: product.spotlightType,
         discount: serializeRate(product.discount),
-        quantity: product.quantity,
+        quantity: availableFrom(product.variants[0]?.inventory),
         isActive: product.isActive,
         featured: product.featured,
         chandelierLightingType: product.chandelierLightingType || undefined,

@@ -283,6 +283,9 @@ model Order {
   userId                 String
   productId              String
   productName            String
+  /// A snapshot taken when the order was placed. Deliberately a copy, not a
+  /// relation: an invoice must still show what the customer actually bought
+  /// after the product's images are replaced.
   productImages          String[]
   productColorTemp       String
   productIp              String
@@ -388,7 +391,6 @@ model Product {
   id                     String           @id @default(cuid())
   productId              String           @unique // e.g. "jy-202-15w"
   productName            String
-  productImages          String[]
   specSheetUrl           String? // downloadable PDF datasheet — URL-based, same rationale as ProductImage (no storage provider chosen yet)
   maxIP                  Int? // Max IP rating integer (20/44/54/65/68)
   spotlightType          String // e.g. "cob", "track-light", "mc15c"
@@ -400,7 +402,6 @@ model Product {
   cost                   Decimal?         @db.Decimal(12, 2)
   priceIncrease          Decimal          @default(0) @db.Decimal(12, 2)
   sectionType            String // "indoor" | "outdoor" | "chandelier"
-  quantity               Int              @default(0)
   brand                  String // "balcom" | "mister-led"
   discount               Decimal          @default(0) @db.Decimal(5, 4)
   chandelierLightingType String? // "LED" | "lamp"
@@ -466,10 +467,6 @@ model ProductVariant {
   colorTemp      ProductColorTemp?
   finish         String?
   size           String?
-  stock          Int               @default(0)
-  /// Deprecated in favour of `price`; kept until the admin and storefront
-  /// read the new column, then dropped in its own migration.
-  priceOverride  Decimal?          @db.Decimal(12, 2)
   /// This variant's own price. Null means "use the product's price".
   price          Decimal?          @db.Decimal(12, 2)
   compareAtPrice Decimal?          @db.Decimal(12, 2)

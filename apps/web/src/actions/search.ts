@@ -21,7 +21,6 @@ export async function searchProducts(searchItem: string) {
       sectionType: true,
       spotlightType: true,
       images: productImageSelect(),
-      productImages: true,
       discount: true,
     },
     take: 10,

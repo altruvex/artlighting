@@ -1,5 +1,6 @@
 import { prisma } from "@repo/database"
 import { imageUrls, productImageSelect } from "@/lib/product-images";
+import { availableFrom, inventorySelect } from "@repo/catalog";
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 
@@ -33,7 +34,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         productName: true,
         price: true,
         images: productImageSelect(),
-        productImages: true,
         discount: true,
         sectionType: true,
         spotlightType: true,
@@ -44,7 +44,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         maxIP: true,
         hNumber: true,
         chandelierLightingType: true,
-        quantity: true,
+        // Sellable units come from the ledger, not from a column.
+        variants: { where: { isDefault: true }, select: { inventory: inventorySelect() }, take: 1 },
         isActive: true,
         featured: true,
         categoryId: true,

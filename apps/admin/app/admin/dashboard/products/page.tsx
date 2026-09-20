@@ -1,5 +1,6 @@
 import { PageHeader, PageShell } from "@/components/page-header";
 import { serializeMoney } from "@repo/money";
+import { availableFrom, inventorySelect } from "@repo/catalog";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { requireAdminOrRedirect } from "@/lib/auth";
@@ -27,7 +28,9 @@ export default async function ProductsPage() {
         translations: { where: { language: locale }, select: { name: true } },
         category: { select: { id: true, name: true, translations: { where: { language: locale }, select: { name: true } } } },
         lightingtype: { select: { name: true, translations: { where: { language: locale }, select: { name: true } } } },
-        variants: { where: { isDefault: true }, select: { stock: true } },
+        // Sellable units, not units on a shelf: the products list should
+        // agree with what the storefront will let a customer buy.
+        variants: { where: { isDefault: true }, select: { inventory: inventorySelect() } },
         images: { where: { isPrimary: true }, select: { url: true }, take: 1 },
       },
     }),
@@ -48,11 +51,11 @@ export default async function ProductsPage() {
       product.lightingtype.translations[0]?.name ?? product.lightingtype.name,
     ].join(" / "),
     price: serializeMoney(product.price),
-    stock: product.variants[0]?.stock ?? product.quantity,
+    stock: availableFrom(product.variants[0]?.inventory),
     lowStockThreshold: LOW_STOCK_THRESHOLD,
     isActive: product.isActive,
     featured: product.featured,
-    imageUrl: product.images[0]?.url ?? product.productImages[0] ?? null,
+    imageUrl: product.images[0]?.url ?? null,
   }));
 
   const activeCount = rows.filter((row) => row.isActive).length;

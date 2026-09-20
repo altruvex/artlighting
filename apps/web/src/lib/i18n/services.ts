@@ -1,5 +1,6 @@
 import type { LocalizedCategory, LocalizedProduct, SectionType, SupportedLanguage } from "@/types/products";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
+import { availableFrom, inventorySelect } from "@repo/catalog";
 import { serializeMoney, serializeRate } from "@repo/money";
 import { prisma } from "@repo/database";
 import { CacheService, CacheTTL } from "@/lib/cache/redis.service";
@@ -137,12 +138,11 @@ export class I18nService {
                         sectionType,
                         isActive: true,
                         spotlightType: { in: spotlightTypes },
-                        OR: [{ images: { some: {} } }, { productImages: { isEmpty: false } }],
+                        images: { some: {} },
                     },
                     select: {
                         spotlightType: true,
                         images: productImageSelect(),
-                        productImages: true,
                         createdAt: true,
                     },
                     orderBy: {
@@ -239,9 +239,8 @@ export class I18nService {
                 // The ProductImage table, not Product.productImages[] — see
                 // lib/product-images.
                 images: productImageSelect(),
-                // Stock's source of truth is the default variant; Product.quantity
-                // is the legacy mirror (see @repo/catalog's stock module).
-                variants: { where: { isDefault: true }, select: { stock: true }, take: 1 },
+                // What a customer can buy: on hand minus what is promised.
+                variants: { where: { isDefault: true }, select: { inventory: inventorySelect() }, take: 1 },
             };
 
             // OPTIMIZED: Parallel queries
@@ -273,7 +272,7 @@ export class I18nService {
                     price: serializeMoney(product.price),
                     discount: serializeRate(product.discount ?? 0),
                     priceIncrease: serializeMoney(product.priceIncrease ?? 0),
-                    quantity: product.variants?.[0]?.stock ?? product.quantity,
+                    quantity: availableFrom(product.variants?.[0]?.inventory),
                     images: imageUrls(product),
                     productImages: imageUrls(product),
                     sectionType: product.sectionType,
@@ -381,7 +380,7 @@ export class I18nService {
                         },
                     },
                     images: productImageSelect(),
-                    variants: { where: { isDefault: true }, select: { stock: true }, take: 1 },
+                    variants: { where: { isDefault: true }, select: { inventory: inventorySelect() }, take: 1 },
                 },
             });
 
@@ -402,7 +401,7 @@ export class I18nService {
                         ...this.formatSpecifications(product.specifications[0])
                     }
                     : undefined,
-                quantity: product.variants?.[0]?.stock ?? product.quantity,
+                quantity: availableFrom(product.variants?.[0]?.inventory),
                 maxIP: product.maxIP || undefined,
                 spotlightType: product.spotlightType,
                 sectionType: product.sectionType,

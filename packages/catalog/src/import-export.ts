@@ -1,6 +1,7 @@
 import { money, serializeMoney, serializeRate } from "@repo/money";
 import { prisma, type Db } from "./client";
 import { type ImportRow, importRowSchema } from "./schemas";
+import { availableFrom, inventorySelect, setCountedStock } from "./inventory";
 
 /**
  * Excel round-trip for the catalogue.
@@ -48,11 +49,10 @@ export async function exportProducts(
       brand: true,
       price: true,
       discount: true,
-      quantity: true,
       isActive: true,
       featured: true,
       translations: { select: { language: true, name: true, description: true } },
-      variants: { where: { isDefault: true }, select: { stock: true }, take: 1 },
+      variants: { where: { isDefault: true }, select: { id: true, inventory: inventorySelect() }, take: 1 },
     },
     orderBy: { productId: "asc" },
   });
@@ -70,9 +70,9 @@ export async function exportProducts(
       // than a float's nearest representation.
       price: serializeMoney(product.price),
       discount: serializeRate(product.discount),
-      // The default variant is the source of truth; Product.quantity is the
-      // legacy mirror and is deliberately not what is exported.
-      stock: product.variants[0]?.stock ?? product.quantity,
+      // Sellable units from the inventory ledger — the figure an import
+      // then writes back through a counted adjustment.
+      stock: availableFrom(product.variants[0]?.inventory),
       isActive: product.isActive,
       featured: product.featured,
     };
@@ -149,7 +149,7 @@ export async function planImport(rawRows: unknown[], db: Db = prisma): Promise<I
       isActive: true,
       featured: true,
       translations: { select: { language: true, name: true, description: true } },
-      variants: { where: { isDefault: true }, select: { stock: true }, take: 1 },
+      variants: { where: { isDefault: true }, select: { id: true, inventory: inventorySelect() }, take: 1 },
     },
   });
   const bySku = new Map(existing.map((product) => [product.productId, product]));
@@ -209,7 +209,7 @@ export async function planImport(rawRows: unknown[], db: Db = prisma): Promise<I
     if (row.discount !== undefined && !money(current.discount).equals(row.discount)) {
       changes.discount = [serializeRate(current.discount), row.discount];
     }
-    if (row.stock !== undefined) note("stock", current.variants[0]?.stock, row.stock);
+    if (row.stock !== undefined) note("stock", availableFrom(current.variants[0]?.inventory), row.stock);
     if (row.isActive !== undefined) note("isActive", current.isActive, row.isActive);
     if (row.featured !== undefined) note("featured", current.featured, row.featured);
 
@@ -329,10 +329,10 @@ export async function applyImport(
             select: { id: true },
           });
           if (variant) {
-            await tx.productVariant.update({ where: { id: variant.id }, data: { stock: row.stock } });
-            // The legacy mirror, in the same transaction as the write that
-            // moved it — see the stock module.
-            await tx.product.update({ where: { id: product.id }, data: { quantity: row.stock } });
+            // A stock column in a sheet is a count, not a receipt: it says
+            // what is there, so it goes through the same audited path as a
+            // shelf count and lands in the ledger with a reason.
+            await setCountedStock(variant.id, row.stock, changedBy, "Excel import", tx);
           }
         }
 

@@ -245,7 +245,8 @@ export const generateMetadata = async ({ params }: PagePropsTypes): Promise<Meta
         },
         specifications: {
           where: { language: locale }
-        }
+        },
+        images: productImageSelect()
       }
     })
 

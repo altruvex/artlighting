@@ -155,7 +155,7 @@ export async function PUT(request: NextRequest) {
 
     const cart = await prisma.cart.findUnique({
       where: { userId },
-      include: { items: { include: { product: true } } },
+      include: { items: { include: { product: { include: { images: productImageSelect() } } } } },
     });
 
     if (!cart) {
@@ -173,7 +173,7 @@ export async function PUT(request: NextRequest) {
     const updatedItem = await prisma.cartItem.update({
       where: { id: itemId },
       data: { quantity },
-      include: { product: true },
+      include: { product: { include: { images: productImageSelect() } } },
     });
 
     const totalPrice = priceLine({

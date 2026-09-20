@@ -172,13 +172,11 @@ export async function duplicateProduct(productId: string) {
       data: {
         productId: newProductId,
         productName: `${source.productName} (Copy)`,
-        productImages: source.productImages,
         maxIP: source.maxIP,
         spotlightType: source.spotlightType,
         price: source.price,
         priceIncrease: source.priceIncrease,
         sectionType: source.sectionType,
-        quantity: 0, // new copy starts with no stock, admin sets it deliberately
         brand: source.brand,
         discount: source.discount,
         chandelierLightingType: source.chandelierLightingType,
@@ -205,12 +203,22 @@ export async function duplicateProduct(productId: string) {
             colorTemp: v.colorTemp,
             finish: v.finish,
             size: v.size,
-            stock: 0,
-            priceOverride: v.priceOverride,
+            price: v.price,
             isDefault: v.isDefault,
           })),
         },
       },
+    });
+
+    // A copy starts with no stock: it opens an empty inventory row rather
+    // than inheriting units that were never counted onto its shelf.
+    const location = await catalog.defaultLocation(prisma);
+    const copiedVariants = await prisma.productVariant.findMany({
+      where: { productId: copy.id },
+      select: { id: true },
+    });
+    await prisma.inventoryItem.createMany({
+      data: copiedVariants.map((variant) => ({ variantId: variant.id, locationId: location.id })),
     });
 
     revalidatePath("/admin/dashboard/products");

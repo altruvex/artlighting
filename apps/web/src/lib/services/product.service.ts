@@ -1,6 +1,7 @@
 import { prisma } from "@repo/database";
 import { parseLocalizedInt } from "@/lib/numbers";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
+import { availableFrom, inventorySelect } from "@repo/catalog";
 import { localizeSpecGroups, specGroupSelect, type LocalizedSpecGroup } from "@/lib/spec-groups";
 import { serializeMoney, serializeRate } from "@repo/money";
 import { toViewConfiguration } from "@/lib/serialize-money";
@@ -139,7 +140,7 @@ export function transformToLocalizedProduct(
     specGroups: localizeSpecGroups(product.specGroups ?? [], language),
     sectionType: product.sectionType,
     spotlightType: product.spotlightType,
-    quantity: product.variants?.[0]?.stock ?? product.quantity ?? 0,
+    quantity: availableFrom(product.variants?.[0]?.inventory),
     isActive: product.isActive ?? true,
     featured: product.featured ?? false,
     maxIP: product.maxIP ?? null,
@@ -186,9 +187,10 @@ function buildProductInclude(language: string, withRelations = false) {
     images: productImageSelect(),
     // The structured specs; see lib/spec-groups.
     specGroups: specGroupSelect(language),
-    // Stock's source of truth is the default variant; Product.quantity is
-    // the legacy mirror (see @repo/catalog's stock module).
-    variants: { where: { isDefault: true }, select: { stock: true }, take: 1 },
+    // Stock lives in the inventory ledger. What the storefront needs is
+    // what a customer can actually buy, which is on hand minus whatever is
+    // already promised to unshipped orders.
+    variants: { where: { isDefault: true }, select: { inventory: inventorySelect() }, take: 1 },
     ...(withRelations && {
       category: {
         include: { translations: { where: { language }, take: 1 } },

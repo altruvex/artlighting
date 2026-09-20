@@ -80,9 +80,11 @@ type Variant = {
   wattage: string | null;
   finish: string | null;
   size: string | null;
+  /** Sellable units: on hand minus what is promised to unshipped orders. */
   stock: number;
   /** Serialized money (see @repo/money): a string, never a float. */
-  priceOverride: string | null;
+  /** This variant's own price; null means the product's price. */
+  price: string | null;
   isDefault: boolean;
 };
 type Discount = {

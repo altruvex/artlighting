@@ -1,6 +1,7 @@
 import { requireAdmin, AdminAuthError } from "@/lib/auth";
 import { serializeRowMoney } from "@/lib/serialize-money";
 import { serializeMoney } from "@repo/money";
+import { availableFrom, inventorySelect } from "@repo/catalog";
 import { can } from "@/lib/permissions";
 import { prisma } from "@repo/database";
 import { notFound } from "next/navigation";
@@ -42,7 +43,7 @@ const ProductDetailPage = async ({
       where: { id: productId },
       include: {
         images: { orderBy: { order: "asc" } },
-        variants: true,
+        variants: { include: { inventory: inventorySelect() } },
         category: true,
         lightingtype: true,
         translations: true,
@@ -71,8 +72,12 @@ const ProductDetailPage = async ({
       product={{
         ...serializeRowMoney(product),
         // Relations are serialized explicitly: serializeRowMoney is shallow
-        // on purpose, so nothing is converted by accident.
-        variants: product.variants.map(serializeRowMoney),
+        // on purpose, so nothing is converted by accident. `stock` is not a
+        // column any more — it is what the ledger says is sellable.
+        variants: product.variants.map((variant) => ({
+          ...serializeRowMoney(variant),
+          stock: availableFrom(variant.inventory),
+        })),
       }}
       topCategories={topCategories}
       childCategories={childCategories}

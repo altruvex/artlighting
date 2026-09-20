@@ -10,7 +10,7 @@ import {
   updateProductGeneralSchema,
   updateVariantSchema,
 } from "./schemas";
-import { syncProductQuantityFromDefaultVariant } from "./stock";
+import { defaultLocation, receiveStock, setCountedStock } from "./inventory";
 
 /**
  * The product domain service. The admin actions, the Excel import and the
@@ -37,21 +37,24 @@ export async function createProduct(input: CreateProductInput, db: Db = prisma) 
         categoryId: data.categoryId,
         lightingtypeId: data.lightingtypeId,
         price: data.price,
-        quantity: data.stock,
-        productImages: [],
       },
     });
 
-    // One purchasable configuration per product today; the variant is the
-    // source of truth for its stock from the moment it exists.
-    await tx.productVariant.create({
-      data: {
-        productId: product.id,
-        sku: product.productId,
-        stock: data.stock,
-        isDefault: true,
-      },
+    // One purchasable configuration per product today.
+    const variant = await tx.productVariant.create({
+      data: { productId: product.id, sku: product.productId, isDefault: true },
     });
+
+    // Opening stock goes through the ledger like any other receipt, so a
+    // product created with 10 units can say where those 10 came from.
+    if (data.stock > 0) {
+      await receiveStock(variant.id, data.stock, "system", "Opening stock, product created", tx);
+    } else {
+      // Still open an inventory row, so the product appears in the stock
+      // list rather than silently having no inventory at all.
+      const location = await defaultLocation(tx);
+      await tx.inventoryItem.create({ data: { variantId: variant.id, locationId: location.id } });
+    }
 
     return product;
   });
@@ -197,32 +200,41 @@ export async function applyBulkPrice(
 }
 
 /**
- * Updates a variant and keeps the legacy `Product.quantity` mirror in step
- * inside the same transaction, so the two can never be observed disagreeing.
+ * Updates a variant. A stock figure in the input is a count — it says what
+ * is there — so it goes through the inventory ledger rather than setting a
+ * column, and lands with a reason like every other movement.
  */
-export async function updateVariant(variantId: string, input: UpdateVariantInput, db: Db = prisma) {
-  const data = updateVariantSchema.parse(input);
+export async function updateVariant(
+  variantId: string,
+  input: UpdateVariantInput,
+  actorId = "system",
+  db: Db = prisma,
+) {
+  const { stock, ...data } = updateVariantSchema.parse(input);
 
   return runInTransaction(db, async (tx) => {
     const variant = await tx.productVariant.update({ where: { id: variantId }, data });
-    if (variant.isDefault && data.stock !== undefined) {
-      await syncProductQuantityFromDefaultVariant(tx, variant.productId);
+    if (stock !== undefined) {
+      await setCountedStock(variantId, stock, actorId, "Set from the product editor", tx);
     }
     return variant;
   });
 }
 
-/** Sets stock on a product's default variant, mirror included. */
-export async function setDefaultVariantStock(productId: string, stock: number, db: Db = prisma) {
+/** Sets stock on a product's default variant, through the ledger. */
+export async function setDefaultVariantStock(
+  productId: string,
+  stock: number,
+  actorId = "system",
+  db: Db = prisma,
+) {
   return runInTransaction(db, async (tx) => {
     const variant = await tx.productVariant.findFirst({
       where: { productId, isDefault: true },
       select: { id: true },
     });
     if (!variant) throw new Error(`Product ${productId} has no default variant`);
-
-    await tx.productVariant.update({ where: { id: variant.id }, data: { stock } });
-    await syncProductQuantityFromDefaultVariant(tx, productId);
+    await setCountedStock(variant.id, stock, actorId, "Set from the product editor", tx);
   });
 }
 

@@ -553,5 +553,99 @@
       "OUTDOOR": "Outdoor",
       "CHANDELIER": "Chandeliers"
     }
+  },
+  "Bulbs": {
+    "title": "Bulbs",
+    "description": "What a chandelier with arms is sold with, and what each bulb costs. Changing a price here moves every fixture that offers it.",
+    "watts": "{n} W",
+    "edit": "Edit",
+    "turnOn": "Turn on",
+    "turnOff": "Turn off",
+    "saved": "Saved",
+    "created": "Bulb added",
+    "deleted": "Bulb removed",
+    "stopped": "Turned off — no fixture will offer it",
+    "resumed": "Turned on",
+    "fixtureSaved": "Fitting updated",
+    "deleteNamed": "Remove {name}",
+    "usedBy": "{products} fixtures · {configurations} saved carts",
+    "stats": {
+      "bulbs": "Bulbs",
+      "fixtures": "Fixtures with arms",
+      "unfitted": "Not fitted yet",
+      "unfittedHint": "These cannot be bought until they offer a bulb"
+    },
+    "status": {
+      "active": "On",
+      "off": "Off"
+    },
+    "columns": {
+      "name": "Bulb",
+      "wattage": "Wattage",
+      "base": "Base",
+      "price": "Price each",
+      "status": "Status",
+      "usage": "Used by",
+      "actions": "Actions",
+      "fixture": "Fixture",
+      "arms": "Arms",
+      "offers": "Offers",
+      "soldWith": "Sold with"
+    },
+    "catalogue": {
+      "title": "Price list",
+      "description": "The price is per bulb. A fixture with six arms takes six.",
+      "add": "Add a bulb",
+      "search": "Search bulbs…",
+      "emptyTitle": "No bulbs yet",
+      "empty": "Add the bulbs the showroom fits, with what one costs.",
+      "search_placeholder": "Search bulbs…"
+    },
+    "fixtures": {
+      "title": "Which fixture takes which",
+      "description": "Only fixtures with arms appear here — a bulb needs somewhere to go. The figure beside each bulb is what it adds to that fixture: its price times the arms.",
+      "filter": "Search fixtures…",
+      "emptyTitle": "No fixtures with arms",
+      "empty": "Nothing in the catalogue records arms yet.",
+      "needsOne": "Pick at least one — it cannot be bought without a bulb",
+      "noBulbsYet": "Add a bulb to the price list first",
+      "oddType": "Filed as {type}, but has arms"
+    },
+    "form": {
+      "nameEn": "Name (English)",
+      "nameAr": "Name (Arabic)",
+      "nameHint": "The shape only — \"Candle\", \"Standard\". The wattage is shown beside it.",
+      "key": "Key",
+      "keyHint": "Lowercase, e.g. candle_3w. It cannot be changed later.",
+      "wattage": "Wattage",
+      "base": "Base",
+      "baseHint": "E14 is the candle base.",
+      "e27": "E27 — standard screw",
+      "e14": "E14 — candle",
+      "price": "Price per bulb",
+      "priceHint": "In EGP, up to two decimal places.",
+      "save": "Save",
+      "create": "Add",
+      "cancel": "Cancel",
+      "errors": {
+        "nameEn": "Give the bulb an English name",
+        "nameAr": "Give the bulb an Arabic name",
+        "key": "Lowercase letters, digits and underscores only, e.g. candle_3w",
+        "wattage": "A whole number of watts, above zero",
+        "price": "An amount with at most two decimal places, e.g. 25.00"
+      }
+    },
+    "confirmDelete": {
+      "title": "Remove this bulb?",
+      "body": "{name} will be gone for good. A bulb any fixture or saved cart still uses cannot be removed — turn it off instead, which keeps those readable.",
+      "cancel": "Keep it",
+      "confirm": "Remove"
+    },
+    "errors": {
+      "generic": "That did not go through. Try again.",
+      "duplicateKey": "A bulb with that key already exists — pick another.",
+      "defaultRequired": "A fixture with arms has to be sold with one of them — pick which.",
+      "inUse": "Still in use by {products} fixtures and {configurations} saved carts. Turn it off instead."
+    }
   }
 }

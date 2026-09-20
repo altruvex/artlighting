@@ -2,6 +2,7 @@ import {
   BellIcon,
   FolderTreeIcon,
   LayoutDashboardIcon,
+  LightbulbIcon,
   type LucideIcon,
   PackageIcon,
   WarehouseIcon,
@@ -17,6 +18,7 @@ export type NavKey =
   | "customers"
   | "discounts"
   | "inventory"
+  | "bulbs"
   | "products"
   | "categories"
   | "team"
@@ -59,6 +61,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { key: "products", url: "/admin/dashboard/products", icon: PackageIcon },
       { key: "inventory", url: "/admin/dashboard/inventory", icon: WarehouseIcon },
+      { key: "bulbs", url: "/admin/dashboard/bulbs", icon: LightbulbIcon },
       { key: "categories", url: "/admin/dashboard/categories", icon: FolderTreeIcon },
     ],
   },

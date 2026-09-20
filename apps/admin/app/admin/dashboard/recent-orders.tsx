@@ -1,11 +1,12 @@
 "use client";
 
 import { type AdminColumn, ColumnHeader, DataTable } from "@/components/data-table";
+import { formatMoney, moneySortKey } from "@/lib/money";
 import { EmptyState } from "@/components/empty-state";
 import { StatusBadge } from "@/components/status-badge";
 import type { OrderStatus } from "@repo/database";
 import { ShoppingBagIcon } from "lucide-react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { useMemo } from "react";
 import { ORDER_STATUSES, orderStatusTone } from "./order-status";
@@ -14,7 +15,8 @@ export interface RecentOrderRow extends Record<string, unknown> {
   id: number;
   customer: string | null;
   productName: string;
-  total: number;
+  /** Serialized money (see @repo/money): a string, never a float. */
+  total: string;
   /** Epoch milliseconds: sorts as a number, formats as a date. */
   createdAt: number;
   status: OrderStatus;
@@ -27,6 +29,7 @@ export function RecentOrders({ orders }: { orders: RecentOrderRow[] }) {
   const tCommon = useTranslations("Common");
   const tStatus = useTranslations("OrderStatus");
   const format = useFormatter();
+  const locale = useLocale();
 
   const columns = useMemo<AdminColumn<RecentOrderRow>[]>(
     () => [
@@ -71,11 +74,11 @@ export function RecentOrders({ orders }: { orders: RecentOrderRow[] }) {
       },
       {
         id: "total",
-        accessorFn: (row) => row.total,
+        accessorFn: (row) => moneySortKey(row.total),
         header: ({ column }) => <ColumnHeader column={column} title={tCommon("total")} />,
         cell: ({ row }) => (
           <span className="tabular-nums">
-            {format.number(row.original.total, { style: "currency", currency: "EGP" })}
+            {formatMoney(row.original.total, { locale })}
           </span>
         ),
       },

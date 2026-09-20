@@ -1,6 +1,8 @@
 "use client";
 
 import { PageHeader, PageShell } from "@/components/page-header";
+import { applyRate, multiplyMoney } from "@repo/money";
+import { formatMoney, formatRateAsPercent, type MoneyInput, moneySortKey } from "@/lib/money";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { OrderStatus } from "@repo/database";
 import { ArrowLeftIcon, CalendarIcon, MailIcon, MapPinIcon, PackageIcon, PhoneIcon } from "lucide-react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -33,11 +35,13 @@ export interface OrderDetailData {
   productName: string;
   productImage: string | null;
   quantity: number;
-  unitPrice: number;
-  discountRate: number;
-  priceIncrease: number;
-  shippingPrice: number;
-  total: number;
+  /** Serialized money (see @repo/money): strings, never floats. */
+  unitPrice: string;
+  /** Rate, not percent: 0.13 = 13%. */
+  discountRate: string;
+  priceIncrease: string;
+  shippingPrice: string;
+  total: string;
   colorTemp: string | null;
   ipRating: string | null;
   lamp: string | null;
@@ -61,8 +65,9 @@ export default function OrderPage({ order }: { order: OrderDetailData }) {
   const tStatus = useTranslations("OrderStatus");
   const tCommon = useTranslations("Common");
   const format = useFormatter();
+  const locale = useLocale();
 
-  const money = (value: number) => format.number(value, { style: "currency", currency: "EGP" });
+  const money = (value: MoneyInput) => formatMoney(value, { locale });
   const date = (value: number) => format.dateTime(new Date(value), { dateStyle: "medium" });
   // Free-text DB values: translate known ones, show anything else as stored.
   const valueLabel = (group: "colorTemp" | "lamp" | "lightingType", value: string) => {
@@ -70,8 +75,9 @@ export default function OrderPage({ order }: { order: OrderDetailData }) {
     return tOrders.has(key as never) ? tOrders(key as never) : value;
   };
 
-  const subtotal = order.unitPrice * order.quantity;
-  const discountAmount = order.discountRate > 0 ? subtotal * order.discountRate : 0;
+  // Decimal, so the admin's arithmetic matches the stored order exactly.
+  const subtotal = multiplyMoney(order.unitPrice, order.quantity);
+  const discountAmount = applyRate(subtotal, order.discountRate);
 
   const specs = [
     order.colorTemp && { label: t("colorTemperature"), value: valueLabel("colorTemp", order.colorTemp) },
@@ -176,16 +182,16 @@ export default function OrderPage({ order }: { order: OrderDetailData }) {
           </CardHeader>
           <CardContent className="space-y-2 px-4 text-sm">
             <TotalRow label={t("subtotal")} value={money(subtotal)} />
-            {discountAmount > 0 && (
+            {discountAmount.greaterThan(0) && (
               <TotalRow
                 label={t("discountWithRate", {
-                  rate: format.number(order.discountRate, { style: "percent", maximumFractionDigits: 2 }),
+                  rate: formatRateAsPercent(order.discountRate, { locale }),
                 })}
-                value={money(-discountAmount)}
+                value={money(discountAmount.negated())}
                 valueClassName="text-success"
               />
             )}
-            {order.priceIncrease > 0 && (
+            {moneySortKey(order.priceIncrease) > 0 && (
               <TotalRow label={t("priceIncrease")} value={money(order.priceIncrease)} />
             )}
             <TotalRow label={t("shipping")} value={money(order.shippingPrice)} />

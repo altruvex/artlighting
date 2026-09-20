@@ -1,4 +1,5 @@
 import { EmptyState } from "@/components/empty-state";
+import { formatMoney, serializeMoney, sumMoney } from "@repo/money";
 import { PageHeader, PageShell } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import {
   ShoppingBagIcon,
   WalletIcon,
 } from "lucide-react";
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getFormatter, getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UserClient, type CustomerOrderRow } from "./user-client";
@@ -35,10 +36,11 @@ const UserPage = async ({ params }: { params: Promise<{ userId: string }> }) => 
   await requireAdminOrRedirect();
   const resolvedParams = await params;
 
-  const [t, tCommon, format] = await Promise.all([
+  const [t, tCommon, format, locale] = await Promise.all([
     getTranslations("CustomerDetail"),
     getTranslations("Common"),
     getFormatter(),
+    getLocale(),
   ]);
 
   let user;
@@ -98,13 +100,13 @@ const UserPage = async ({ params }: { params: Promise<{ userId: string }> }) => 
     productName: order.productName,
     imageUrl: order.productImages[0] ?? null,
     quantity: order.quantity,
-    total: order.totalPrice,
+    total: serializeMoney(order.totalPrice),
     status: order.status,
     createdAt: order.createdAt,
   }));
 
   const completedOrders = user.orders.filter((order) => order.isCompleted);
-  const lifetimeValue = completedOrders.reduce((sum, order) => sum + order.totalPrice, 0);
+  const lifetimeValue = sumMoney(completedOrders.map((order) => order.totalPrice));
   const lastOrderAt = user.orders[0]?.createdAt ?? null;
 
   const fullName = user.shippingAddress?.fullName?.trim() || user.name?.trim() || null;
@@ -149,7 +151,7 @@ const UserPage = async ({ params }: { params: Promise<{ userId: string }> }) => 
         />
         <StatCard
           label={t("stats.lifetimeValue")}
-          value={format.number(lifetimeValue, { style: "currency", currency: "EGP" })}
+          value={formatMoney(lifetimeValue, { locale })}
           hint={t("lifetimeValueHint")}
           icon={WalletIcon}
         />

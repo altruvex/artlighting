@@ -1,12 +1,13 @@
 "use client";
 
 import { type AdminColumn, ColumnHeader, DataTable } from "@/components/data-table";
+import { formatMoney, moneySortKey } from "@/lib/money";
 import { EmptyState } from "@/components/empty-state";
 import { StatusBadge, type StatusTone } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import type { OrderStatus } from "@repo/database";
 import { PackageIcon, ShoppingBagIcon } from "lucide-react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -16,7 +17,8 @@ export interface CustomerOrderRow extends Record<string, unknown> {
   productName: string;
   imageUrl: string | null;
   quantity: number;
-  total: number;
+  /** Serialized money (see @repo/money): a string, never a float. */
+  total: string;
   status: OrderStatus;
   createdAt: Date;
 }
@@ -45,6 +47,7 @@ export function UserClient({ orders }: { orders: CustomerOrderRow[] }) {
   const t = useTranslations("CustomerDetail");
   const tCommon = useTranslations("Common");
   const format = useFormatter();
+  const locale = useLocale();
 
   const columns = useMemo<AdminColumn<CustomerOrderRow>[]>(
     () => [
@@ -95,11 +98,11 @@ export function UserClient({ orders }: { orders: CustomerOrderRow[] }) {
       },
       {
         id: "total",
-        accessorFn: (row) => row.total,
+        accessorFn: (row) => moneySortKey(row.total),
         header: ({ column }) => <ColumnHeader column={column} title={tCommon("total")} />,
         cell: ({ row }) => (
           <span className="tabular-nums whitespace-nowrap">
-            {format.number(row.original.total, { style: "currency", currency: "EGP" })}
+            {formatMoney(row.original.total, { locale })}
           </span>
         ),
       },

@@ -1,4 +1,6 @@
 import { requireAdmin, AdminAuthError } from "@/lib/auth";
+import { serializeRowMoney } from "@/lib/serialize-money";
+import { serializeMoney } from "@repo/money";
 import { can } from "@/lib/permissions";
 import { prisma } from "@repo/database";
 import { notFound } from "next/navigation";
@@ -66,11 +68,18 @@ const ProductDetailPage = async ({
 
   return (
     <ProductEditor
-      product={product}
+      product={{
+        ...serializeRowMoney(product),
+        // Relations are serialized explicitly: serializeRowMoney is shallow
+        // on purpose, so nothing is converted by accident.
+        variants: product.variants.map(serializeRowMoney),
+      }}
       topCategories={topCategories}
       childCategories={childCategories}
-      discounts={discounts}
-      priceHistory={priceHistory}
+      // `value` is money or a percent depending on `type`; it is not one of
+      // the shared money field names, so it is serialized here.
+      discounts={discounts.map((discount) => ({ ...discount, value: serializeMoney(discount.value) }))}
+      priceHistory={priceHistory.map(serializeRowMoney)}
       isOwner={can(admin.role, "price:write")}
       storefrontUrl={storefrontUrlFor(product)}
     />

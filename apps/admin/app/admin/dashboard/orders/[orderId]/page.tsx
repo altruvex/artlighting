@@ -1,4 +1,5 @@
 import { requireAdminOrRedirect } from "@/lib/auth";
+import { serializeMoney, serializeRate } from "@repo/money";
 import { prisma } from "@repo/database";
 import { notFound } from "next/navigation";
 import OrderPage, { type OrderDetailData } from "./order-page";
@@ -33,11 +34,11 @@ export default async function OrderIdPage({ params }: { params: Promise<{ orderI
     productName: order.productName,
     productImage: order.productImages[0] ?? null,
     quantity: order.quantity,
-    unitPrice: order.configPrice,
-    discountRate: order.discountRate,
-    priceIncrease: order.priceIncrease,
-    shippingPrice: order.shippingPrice,
-    total: order.totalPrice,
+    unitPrice: serializeMoney(order.configPrice),
+    discountRate: serializeRate(order.discountRate),
+    priceIncrease: serializeMoney(order.priceIncrease),
+    shippingPrice: serializeMoney(order.shippingPrice),
+    total: serializeMoney(order.totalPrice),
     colorTemp: order.productColorTemp || null,
     ipRating: order.configuration.productIp ?? null,
     lamp: order.chandelierLightingType ? order.productChandLamp || null : null,

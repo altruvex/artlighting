@@ -1,4 +1,5 @@
 import { PageHeader, PageShell } from "@/components/page-header";
+import { serializeMoney } from "@repo/money";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { requireAdminOrRedirect } from "@/lib/auth";
@@ -44,7 +45,7 @@ export default async function ProductsPage() {
       product.category.translations[0]?.name ?? product.category.name,
       product.lightingtype.translations[0]?.name ?? product.lightingtype.name,
     ].join(" / "),
-    price: product.price,
+    price: serializeMoney(product.price),
     stock: product.variants[0]?.stock ?? product.quantity,
     lowStockThreshold: LOW_STOCK_THRESHOLD,
     isActive: product.isActive,

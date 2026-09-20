@@ -24,6 +24,7 @@
     "@repo/database": "workspace:*",
     "@repo/datasheet": "workspace:*",
     "@repo/datasheet-data": "workspace:*",
+    "@repo/money": "workspace:*",
     "@tanstack/react-query": "^5.103.1",
     "@tanstack/react-table": "^9.2.4",
     "better-auth": "catalog:",

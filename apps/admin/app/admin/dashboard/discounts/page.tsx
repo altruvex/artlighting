@@ -1,4 +1,5 @@
 import { PageHeader, PageShell } from "@/components/page-header";
+import { serializeMoney } from "@repo/money";
 import { StatCard } from "@/components/stat-card";
 import { requireAdminOrRedirect } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -46,7 +47,7 @@ const DiscountsPage = async () => {
     id: discount.id,
     type: discount.type,
     scope: discount.scope,
-    value: discount.value,
+    value: serializeMoney(discount.value),
     code: discount.code,
     targetName:
       discount.scope === "category"

@@ -1,4 +1,5 @@
 import { parseTableParams, type SearchParamsInput, toPrismaPagination } from "@/components/data-table";
+import { serializeMoney } from "@repo/money";
 import { PageHeader, PageShell } from "@/components/page-header";
 import { requireAdminOrRedirect } from "@/lib/auth";
 import { OrderStatus, type Prisma, prisma } from "@repo/database";
@@ -76,8 +77,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
     productName: order.productName,
     imageUrl: order.productImages[0] ?? null,
     quantity: order.quantity,
-    shippingPrice: order.shippingPrice,
-    total: order.totalPrice,
+    shippingPrice: serializeMoney(order.shippingPrice),
+    total: serializeMoney(order.totalPrice),
     createdAt: order.createdAt.getTime(),
     expectedAt: order.orderTimeReceived?.getTime() ?? null,
     status: order.status,

@@ -1,4 +1,5 @@
 import { PageHeader, PageShell } from "@/components/page-header";
+import { formatMoney, money, type MoneyInput, roundMoney, serializeMoney } from "@repo/money";
 import { StatCard } from "@/components/stat-card";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { requireAdminOrRedirect } from "@/lib/auth";
 import { prisma } from "@repo/database";
 import { BanknoteIcon, ReceiptTextIcon, ShoppingBagIcon, UsersIcon } from "lucide-react";
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getFormatter, getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { ORDER_STATUSES, orderStatusTone, REVENUE_STATUSES } from "./order-status";
 import { RecentOrders, type RecentOrderRow } from "./recent-orders";
@@ -16,12 +17,13 @@ const RECENT_ORDERS_LIMIT = 10;
 export default async function DashboardPage() {
   await requireAdminOrRedirect();
 
-  const [t, tNav, tStatus, tSummary, format] = await Promise.all([
+  const [t, tNav, tStatus, tSummary, format, locale] = await Promise.all([
     getTranslations("Dashboard"),
     getTranslations("Nav"),
     getTranslations("OrderStatus"),
     getTranslations("Summary"),
     getFormatter(),
+    getLocale(),
   ]);
 
   const [recentOrders, totalCustomers, totalOrders, revenue, statusGroups] = await Promise.all([
@@ -50,9 +52,10 @@ export default async function DashboardPage() {
     }),
   ]);
 
-  const totalSales = revenue._sum.totalPrice ?? 0;
+  // Decimal, so the dashboard's totals match the sum of the orders exactly.
+  const totalSales = money(revenue._sum.totalPrice ?? 0);
   const countedOrders = revenue._count._all;
-  const averageOrder = countedOrders > 0 ? totalSales / countedOrders : 0;
+  const averageOrder = countedOrders > 0 ? roundMoney(totalSales.dividedBy(countedOrders)) : money(0);
 
   const countByStatus = new Map(statusGroups.map((group) => [group.status, group._count._all]));
   const statusRows = ORDER_STATUSES.map((status) => ({ status, count: countByStatus.get(status) ?? 0 }));
@@ -61,13 +64,13 @@ export default async function DashboardPage() {
     id: order.id,
     customer: order.shippingAddress?.fullName ?? null,
     productName: order.productName,
-    total: order.totalPrice,
+    total: serializeMoney(order.totalPrice),
     createdAt: order.createdAt.getTime(),
     status: order.status,
     userId: order.userId,
   }));
 
-  const money = (value: number) => format.number(value, { style: "currency", currency: "EGP" });
+  const currency = (value: MoneyInput) => formatMoney(value, { locale });
 
   return (
     <PageShell>
@@ -84,7 +87,7 @@ export default async function DashboardPage() {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label={tSummary("totalSales")}
-          value={money(totalSales)}
+          value={currency(totalSales)}
           hint={tSummary("totalSalesDescription")}
           icon={BanknoteIcon}
         />
@@ -102,7 +105,7 @@ export default async function DashboardPage() {
         />
         <StatCard
           label={tSummary("averageOrder")}
-          value={money(averageOrder)}
+          value={currency(averageOrder)}
           hint={tSummary("averageOrderDescription")}
           icon={ReceiptTextIcon}
         />

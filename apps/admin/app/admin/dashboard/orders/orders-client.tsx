@@ -1,11 +1,12 @@
 "use client";
 
 import { type AdminColumn, ServerDataTable, type TableParams } from "@/components/data-table";
+import { formatMoney, moneySortKey } from "@/lib/money";
 import { EmptyState } from "@/components/empty-state";
 import { StatusBadge } from "@/components/status-badge";
 import type { OrderStatus } from "@repo/database";
 import { PackageIcon, ShoppingBagIcon } from "lucide-react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -20,8 +21,9 @@ export interface OrderRow extends Record<string, unknown> {
   productName: string;
   imageUrl: string | null;
   quantity: number;
-  shippingPrice: number;
-  total: number;
+  /** Serialized money (see @repo/money): strings, never floats. */
+  shippingPrice: string;
+  total: string;
   /** Epoch milliseconds: sorts as a number, formats as a date. */
   createdAt: number;
   expectedAt: number | null;
@@ -41,6 +43,7 @@ export default function OrdersClient({
   const tCommon = useTranslations("Common");
   const tStatus = useTranslations("OrderStatus");
   const format = useFormatter();
+  const locale = useLocale();
 
   const columns = useMemo<AdminColumn<OrderRow>[]>(
     () => [
@@ -114,21 +117,21 @@ export default function OrdersClient({
       },
       {
         id: "shipping",
-        accessorFn: (row) => row.shippingPrice,
+        accessorFn: (row) => moneySortKey(row.shippingPrice),
         header: t("columns.shippingFee"),
         cell: ({ row }) => (
           <span className="tabular-nums">
-            {format.number(row.original.shippingPrice, { style: "currency", currency: "EGP" })}
+            {formatMoney(row.original.shippingPrice, { locale })}
           </span>
         ),
       },
       {
         id: "total",
-        accessorFn: (row) => row.total,
+        accessorFn: (row) => moneySortKey(row.total),
         header: tCommon("total"),
         cell: ({ row }) => (
           <span className="font-medium tabular-nums">
-            {format.number(row.original.total, { style: "currency", currency: "EGP" })}
+            {formatMoney(row.original.total, { locale })}
           </span>
         ),
       },

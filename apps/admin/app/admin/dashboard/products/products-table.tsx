@@ -1,11 +1,12 @@
 "use client";
 
 import { type AdminColumn, ColumnHeader, DataTable } from "@/components/data-table";
+import { formatMoney, moneySortKey } from "@/lib/money";
 import { EmptyState } from "@/components/empty-state";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { PackageIcon } from "lucide-react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -16,7 +17,8 @@ export interface ProductRow extends Record<string, unknown> {
   name: string;
   categoryId: string;
   categoryLabel: string;
-  price: number;
+  /** Serialized money (see @repo/money): a string, never a float. */
+  price: string;
   stock: number;
   lowStockThreshold: number;
   isActive: boolean;
@@ -34,6 +36,7 @@ export function ProductsTable({
   const t = useTranslations("Products");
   const tCommon = useTranslations("Common");
   const format = useFormatter();
+  const locale = useLocale();
 
   const columns = useMemo<AdminColumn<ProductRow>[]>(
     () => [
@@ -82,11 +85,11 @@ export function ProductsTable({
       },
       {
         id: "price",
-        accessorFn: (row) => row.price,
+        accessorFn: (row) => moneySortKey(row.price),
         header: ({ column }) => <ColumnHeader column={column} title={tCommon("price")} />,
         cell: ({ row }) => (
           <span className="tabular-nums">
-            {format.number(row.original.price, { style: "currency", currency: "EGP" })}
+            {formatMoney(row.original.price, { locale })}
           </span>
         ),
       },

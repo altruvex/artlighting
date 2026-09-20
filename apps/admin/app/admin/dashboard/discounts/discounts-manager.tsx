@@ -1,6 +1,8 @@
 "use client";
 
 import { type AdminColumn, ColumnHeader, DataTable } from "@/components/data-table";
+import { formatMoney, formatRateAsPercent, moneySortKey } from "@/lib/money";
+import { money } from "@repo/money";
 import { EmptyState } from "@/components/empty-state";
 import { StatusBadge, type StatusTone } from "@/components/status-badge";
 import {
@@ -28,7 +30,7 @@ import { createDiscount, deactivateDiscount } from "@/lib/actions/discounts";
 import type { ActionResult } from "@/lib/actions/result";
 import type { DiscountScope, DiscountType } from "@repo/database";
 import { TicketPercentIcon } from "lucide-react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -39,7 +41,11 @@ export interface DiscountRow extends Record<string, unknown> {
   id: string;
   type: DiscountType;
   scope: DiscountScope;
-  value: number;
+  /**
+   * Serialized money (see @repo/money). Dual-purpose, as the column is:
+   * a percent (13 = 13%) when `type` is "percentage", an amount when "fixed".
+   */
+  value: string;
   code: string | null;
   targetName: string | null;
   state: DiscountState;
@@ -78,6 +84,7 @@ export default function DiscountsManager({
   const t = useTranslations("Discounts");
   const tCommon = useTranslations("Common");
   const format = useFormatter();
+  const locale = useLocale();
   const [isPending, startTransition] = useTransition();
 
   const [scope, setScope] = useState<"category" | "global">("global");
@@ -142,16 +149,13 @@ export default function DiscountsManager({
       },
       {
         id: "value",
-        accessorFn: (row) => row.value,
+        accessorFn: (row) => moneySortKey(row.value),
         header: ({ column }) => <ColumnHeader column={column} title={t("columns.value")} />,
         cell: ({ row }) => (
           <span className="tabular-nums whitespace-nowrap">
             {row.original.type === "percentage"
-              ? format.number(row.original.value / 100, {
-                  style: "percent",
-                  maximumFractionDigits: 2,
-                })
-              : format.number(row.original.value, { style: "currency", currency: "EGP" })}
+              ? formatRateAsPercent(money(row.original.value).dividedBy(100), { locale })
+              : formatMoney(row.original.value, { locale })}
           </span>
         ),
       },

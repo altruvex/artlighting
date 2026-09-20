@@ -1,9 +1,10 @@
 "use client";
 
 import { useId, useMemo, useRef, useState, useTransition } from "react";
+import { formatMoney } from "@/lib/money";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { PageHeader, PageShell } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/empty-state";
@@ -78,22 +79,25 @@ type Variant = {
   finish: string | null;
   size: string | null;
   stock: number;
-  priceOverride: number | null;
+  /** Serialized money (see @repo/money): a string, never a float. */
+  priceOverride: string | null;
   isDefault: boolean;
 };
 type Discount = {
   id: string;
   type: string;
   scope: string;
-  value: number;
+  /** Serialized money (see @repo/money): a percent for "percentage", an amount for "fixed". */
+  value: string;
   code: string | null;
   startsAt: Date | null;
   endsAt: Date | null;
 };
 type PriceHistoryEntry = {
   id: string;
-  oldPrice: number;
-  newPrice: number;
+  /** Serialized money (see @repo/money): strings, never floats. */
+  oldPrice: string;
+  newPrice: string;
   changedBy: string;
   changedAt: Date;
 };
@@ -147,7 +151,8 @@ interface Props {
     productId: string;
     productName: string;
     brand: string;
-    price: number;
+    /** Serialized money (see @repo/money): a string, never a float. */
+    price: string;
     isActive: boolean;
     featured: boolean;
     deletedAt: Date | null;
@@ -196,6 +201,7 @@ export default function ProductEditor({
   const tProducts = useTranslations("Products");
   const tCommon = useTranslations("Common");
   const format = useFormatter();
+  const locale = useLocale();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const fieldId = useId();
@@ -831,13 +837,13 @@ export default function ProductEditor({
                       <li key={h.id} className="px-3 py-2">
                         <p className="flex items-center gap-1.5 text-sm tabular-nums">
                           <span className="text-muted-foreground line-through">
-                            {format.number(h.oldPrice, MONEY)}
+                            {formatMoney(h.oldPrice, { locale })}
                           </span>
                           <ArrowRightIcon
                             className="size-3.5 shrink-0 text-muted-foreground rtl:-scale-x-100"
                             aria-hidden
                           />
-                          <span className="font-medium">{format.number(h.newPrice, MONEY)}</span>
+                          <span className="font-medium">{formatMoney(h.newPrice, { locale })}</span>
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {format.dateTime(new Date(h.changedAt), {
@@ -933,7 +939,7 @@ export default function ProductEditor({
                           {d.type === "percentage"
                             ? t("discounts.percentOff", { value: d.value })
                             : t("discounts.amountOff", {
-                                amount: format.number(d.value, MONEY),
+                                amount: formatMoney(d.value, { locale }),
                               })}
                           {d.code ? ` — ${t("discounts.withCode", { code: d.code })}` : ""}
                         </span>

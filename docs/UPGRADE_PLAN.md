@@ -262,6 +262,57 @@ re-running the backfill cannot bring them back.
   is not something I will do; contrast and RTL are measured statically, but
   the bulk-price and import flows need a session.
 
+### Building the tables right (2026-09-20)
+
+Ali: *"انا مش عايز احل مشكله وخلاص… عايز اعدل الجدول عشان يكون مبني صح لما
+احب اعدل حجات اخري تبقي افضل واسهل في الصيانه"* — structure, not patches.
+
+**Inventory** (`20260920200000_inventory`). Stock was a single Int on
+ProductVariant. Now: `InventoryLocation`, `InventoryItem` (onHand,
+reserved, incoming, reorder point) and an append-only `StockMovement`
+ledger. `available` is `onHand - reserved`, **computed on read and never
+stored** — a third stored number is a third thing that can drift.
+
+A reservation moves only `reserved`, because the units are still in the
+building and a stock count must still find them; the sale removes them and
+releases the reservation in one movement. The invariants are CHECK
+constraints, not just service code, so a bug in the app cannot leave the
+database describing an impossible warehouse. The backfill opens the ledger
+with a RECEIPT reading "opening balance, migrated" — without it the ledger
+would start with a balance nothing accounts for.
+
+Exercised on dev: receive, reserve, a refused oversell, ship, return, a
+count, a re-count writing nothing, and the database rejecting both
+`onHand = -1` and `reserved > onHand`.
+
+**Translations and specs keyed on `Product.id`**
+(`20260920210000_translations_keyed_on_product_id`). Both pointed at the
+SKU string, which made a SKU unrenameable and routed every join through a
+mutable business key. TypeScript could not help — both sides are `String`
+— so the four call sites were found by hand. Proved on dev by renaming a
+SKU and finding its translations and specifications still attached.
+
+**Spec table renders one cell per stored figure.** The data was already one
+row per measurement; only the rendering joined them. Figures with a
+condition are now a `<dl>` so a screen reader hears which temperature a
+reading belongs to. A third column for the condition was rejected: it would
+be empty on ~85% of rows.
+
+#### Legacy columns: not ready to drop, and why
+Dropping them now would be the patch Ali is pushing back against. The
+honest state:
+
+| column | status |
+|---|---|
+| `Product.quantity` | fallback only, plus the drift detector — **close** |
+| `Product.productImages[]` | fallback only, plus the order snapshot — **close** |
+| `Product.discount` | **read in 6 places**; its replacement is Phase 3's Discount model |
+| `ProductVariant.priceOverride` | replacement `price` exists but nothing uses it yet |
+| `ProductVariant.stock` | now a mirror of `InventoryItem.onHand`, still read in 4 places |
+
+The order is: move the readers, then drop. Each drop is its own migration
+and needs Ali's word.
+
 ## Production rollout runbook
 
 Nothing below has run against production. Production receives exactly the

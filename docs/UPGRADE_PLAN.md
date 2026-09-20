@@ -360,10 +360,43 @@ and lists the discounts that did *not* apply with the reason. The product
 editor's discount section is read-only with a link — a second, smaller form
 for the same thing is a second place to get it wrong.
 
+#### Phase 3 follow-up: families, the date window, and dropping the column
+Two more migrations.
+
+**`20260921010000_discount_families`** — a discount can target a product
+family. "Every outdoor fixture" is a thing a promotion wants to say, and no
+list of categories says it as directly: a category list has to be revisited
+whenever a category is added, a family does not. `ProductFamily` mirrors
+`Product.sectionType`, which is still a String; that seam lives in exactly
+one function (`familyOf()`), so converting sectionType to the enum later is
+a single edit. **That conversion is still owed** — it touches routing and
+every catalogue query, so it is its own migration.
+
+**The date window** was in the schema and in `computePricing` from the
+start and missing from the admin form, which meant a scheduled promotion
+could not be scheduled. My omission; the inputs are there now, with the end
+exclusive so one window can meet the next without overlapping.
+
+**`20260921020000_drop_product_discount`.** Proved before dropping rather
+than after: setting the column to 0 on all 118 products changed nothing the
+storefront rendered in either language. The values were restored, then the
+migration dropped it behind a guard that refuses while any product carries
+a rate no Discount row covers.
+
+Moving the readers changed more than where a number comes from: the
+storefront shows what the **engine** says, so a promotion that has not
+started is no longer advertised, and the cart is priced **as a whole**
+rather than line by line — the only way a cart-scoped discount or a minimum
+order means anything.
+
+The Excel sheet keeps its discount column because seeing the effective rate
+is useful, but an import that tries to *change* it is told discounts are
+managed on the discounts page: a name, a window and a scope do not fit in a
+spreadsheet cell, and silently dropping the edit would be worse.
+
 #### Still open
-- **`Product.discount` is still read by the storefront display** (product
-  cards, listings). Checkout prices through the engine; the display does
-  not yet. Moving those readers is what finally lets the column go.
+- **`Product.sectionType` should become the `ProductFamily` enum.** Its own
+  migration; `familyOf()` is the only bridge until then.
 - A photo for `mc1608-w1`.
 
 ## Production rollout runbook

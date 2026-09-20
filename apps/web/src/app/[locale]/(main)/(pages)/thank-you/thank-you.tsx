@@ -1,5 +1,6 @@
 "use client";
 import Breadcrumb from "@/components/breadcrumb/custom-breadcrumb";
+import type { MoneyInput } from "@repo/money";
 import { Container } from "@/components/container";
 import NormalPrice from "@/components/normal-price";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,14 +34,14 @@ type OrderWithRelations = Order & {
   }
   shippingAddress: ShippingAddress | null
   configuration: Configuration | null
-  discount: number | null
+  discount: MoneyInput | null
 }
 
 export default function ThankYou({
   discount,
   initialOrder
 }: {
-  discount: number,
+  discount: MoneyInput,
   initialOrder: OrderWithRelations
 }) {
   // Animation variants for Framer Motion

@@ -1,4 +1,5 @@
 import { prisma } from "@repo/database";
+import { type MoneyInput, serializeMoney, serializeRate } from "@repo/money";
 import type { Prisma } from "@repo/database";
 import { CacheService, CacheTTL, CachePrefix } from "@/lib/cache/redis.service";
 
@@ -33,9 +34,9 @@ export interface LocalizedProductData {
   localizedName: string;
   localizedDescription?: string | null;
   brand: string;
-  price: number;
-  discount: number;
-  priceIncrease: number;
+  price: MoneyInput;
+  discount: MoneyInput;
+  priceIncrease: MoneyInput;
   productImages: string[];
   images: string[];
   sectionType: string;
@@ -343,12 +344,12 @@ export class ProductService {
           productId: product.productId,
           userId: userId ?? null,
           guestToken: userId ? null : (guestToken ?? null),
-          configPrice: product.price,
-          priceIncrease: product.priceIncrease,
+          configPrice: serializeMoney(product.price),
+          priceIncrease: serializeMoney(product.priceIncrease),
           shippingPrice: 69,
-          discount: product.discount,
+          discount: serializeRate(product.discount),
           quantity: 1,
-          totalPrice: product.price,
+          totalPrice: serializeMoney(product.price),
           lampPriceIncrease: 0,
         },
       });

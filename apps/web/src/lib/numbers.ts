@@ -1,3 +1,4 @@
+import { serializeMoney, type MoneyInput } from "@repo/money";
 import { Locale } from "next-intl";
 
 export function convertArabicToEnglishNumbers(str: string): string {
@@ -20,7 +21,12 @@ export function formatNumber(number: number, locale: Locale): string {
 }
 
 
-export function formatNumberWithConversion(amount: number, locale: string): string {
+/**
+ * Formats an amount for display. Accepts the serialized string form as well
+ * as a number: money travels as a string (see @repo/money), and formatting
+ * from the string keeps digits a Number conversion could round away.
+ */
+export function formatNumberWithConversion(amount: MoneyInput, locale: string): string {
     const currencyConfig = {
         ar: { currency: "EGP", symbol: "ج.م" },
         "ar-EG": { currency: "EGP", symbol: "ج.م" },
@@ -39,7 +45,10 @@ export function formatNumberWithConversion(amount: number, locale: string): stri
         formatOptions.numberingSystem = "arab";
     }
 
-    const formattedNumber = new Intl.NumberFormat(locale, formatOptions).format(amount);
+    // Intl accepts a numeric string and formats it without a float round trip.
+    const formattedNumber = new Intl.NumberFormat(locale, formatOptions).format(
+        serializeMoney(amount) as unknown as number,
+    );
 
     if (locale.startsWith("ar")) {
         return `${formattedNumber} ${config.symbol}`;

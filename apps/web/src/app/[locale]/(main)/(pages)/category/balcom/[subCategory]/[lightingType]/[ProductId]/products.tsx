@@ -1,6 +1,7 @@
 "use client";
 
 import ColorTemperatureSection from "@/components/color-temperature-section";
+import { multiplyMoney, serializeMoney, serializeRate } from "@repo/money"
 import { Container } from "@/components/container";
 import ProductCard from "@/components/product-card/product-card";
 import ProductFeatures from "@/components/product-features";
@@ -69,16 +70,16 @@ export default function BalcomProducts({
     createdAt: new Date(),
     updatedAt: new Date(),
     configurationId: configuration?.id || "",
-    productPrice: product.price,
+    productPrice: serializeMoney(product.price),
     discountedPrice: null,
     discountApplied: false,
     discountRate: null,
-    totalPrice: product.price * quantity,
-    configPrice: configuration?.configPrice || product.price,
-    priceIncrease: configuration?.priceIncrease || 0,
+    totalPrice: multiplyMoney(product.price, quantity).toFixed(2),
+    configPrice: serializeMoney(configuration?.configPrice ?? product.price),
+    priceIncrease: serializeMoney(configuration?.priceIncrease ?? 0),
     brand: product.brand,
     chandelierLightingType: product.chandelierLightingType || "",
-    shippingPrice: 69,
+    shippingPrice: "69.00",
     shippingAddressId: null,
     orderTimeReceived: null,
   };
@@ -211,8 +212,8 @@ export default function BalcomProducts({
     return {
       productId: relatedProduct.productId,
       productName: relatedProduct.productName,
-      price: relatedProduct.price,
-      discount: relatedProduct.discount || 0,
+      price: serializeMoney(relatedProduct.price),
+      discount: serializeRate(relatedProduct.discount ?? 0),
       productImages: relatedProduct.productImages,
       Brand: relatedProduct.brand,
       brand: relatedProduct.brand,

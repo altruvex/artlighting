@@ -1,4 +1,5 @@
 import { PagePropsTypes } from "@/types";
+import { serializeMoney, serializeRate, type MoneyInput } from "@repo/money";
 import { prisma } from "@repo/database";
 import { notFound } from "next/navigation";
 import ProductsClient from "./products-client";
@@ -7,11 +8,11 @@ interface ProductTranslationData {
   productId: string;
   productName: string;
   brand: string;
-  price: number;
+  price: MoneyInput;
   productImages: string[];
   sectionType: string;
   spotlightType: string;
-  discount: number;
+  discount: MoneyInput;
   chandelierLightingType?: string;
   hNumber?: number;
   maximumWattage?: string;
@@ -142,11 +143,11 @@ const ProductsSection = async ({ params }: PagePropsTypes) => {
         productId: product.productId,
         productName: getLocalizedName(),
         brand: product.brand,
-        price: product.price,
+        price: serializeMoney(product.price),
         productImages: product.productImages,
         sectionType: product.sectionType,
         spotlightType: product.spotlightType,
-        discount: product.discount,
+        discount: serializeRate(product.discount),
         quantity: product.quantity,
         isActive: product.isActive,
         featured: product.featured,

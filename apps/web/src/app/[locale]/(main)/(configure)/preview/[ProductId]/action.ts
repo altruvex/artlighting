@@ -1,6 +1,8 @@
 "use server"
 
 import { auth } from "@/lib/auth-server"
+import { money, roundMoney } from "@repo/money"
+import { priceLine } from "@/lib/pricing"
 import { prisma } from "@repo/database"
 
 export async function createOrder({
@@ -67,16 +69,18 @@ export async function createOrder({
     const shippingPrice = configuration.shippingPrice ?? 69
     const validQuantity = Math.max(1, Math.floor(quantity))
 
-    const unitConfigPrice = product.price + priceIncrease + lampPriceIncrease
-
-    const subtotal = unitConfigPrice * validQuantity
-
-    const discountAmount = discount > 0 
-        ? subtotal * (discount > 1 ? discount / 100 : discount) 
-        : 0
-
-    const finalTotal = subtotal - discountAmount + shippingPrice
-    const unitPriceAfterDiscount = (subtotal - discountAmount) / validQuantity
+    // Same helper as the cart and the configure API (lib/pricing.ts).
+    const pricing = priceLine({
+      unitPrice: product.price,
+      quantity: validQuantity,
+      priceIncrease,
+      lampPriceIncrease,
+      discountRate: discount,
+      shippingPrice,
+    })
+    const unitPriceAfterDiscount = roundMoney(
+      money(pricing.subtotal).minus(pricing.discountAmount).dividedBy(validQuantity),
+    ).toFixed(2)
 
     const order = await prisma.order.create({
       data: {
@@ -87,8 +91,8 @@ export async function createOrder({
         productPrice: product.price,
         discountRate: discount,
         discountedPrice: unitPriceAfterDiscount,
-        totalPrice: finalTotal,
-        configPrice: subtotal,
+        totalPrice: pricing.total,
+        configPrice: pricing.subtotal,
         priceIncrease: priceIncrease,
         productName: product.productName,
         productImages: product.productImages,

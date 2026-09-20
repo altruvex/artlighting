@@ -1,6 +1,7 @@
 "use client";
 
 import { Container } from "@/components/container";
+import type { MoneyInput } from "@repo/money";
 import ProductCard from "@/components/product-card/product-card";
 import {
   Carousel,
@@ -20,18 +21,18 @@ interface Product {
   productId: string;
   productName: string;
   brand: string;
-  price: number;
+  price: MoneyInput;
   productImages: string[];
   sectionType: string;
   spotlightType: string;
-  discount: number;
+  discount: MoneyInput;
   chandelierLightingType?: string;
   hNumber?: number;
   maxIP?: number;
   quantity: number;
   isActive: boolean;
   featured: boolean;
-  priceIncrease?: number;
+  priceIncrease?: MoneyInput;
   maximumWattage?: string;
   lampBase?: string;
   mainMaterial?: string;

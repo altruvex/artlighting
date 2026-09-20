@@ -1,6 +1,7 @@
 "use client";
 
 import ProductCard from "@/components/product-card/product-card";
+import { multiplyMoney, serializeMoney, serializeRate } from "@repo/money"
 import ProductImages from "@/components/product-images-for-chand";
 import ProductMainInfo from "@/components/product-main-Info";
 import ProductSpecifications from "@/components/product-specifications-table";
@@ -63,16 +64,16 @@ export default function ChandelierProducts({
     createdAt: new Date(),
     updatedAt: new Date(),
     configurationId: configuration?.id || "",
-    productPrice: product.price,
+    productPrice: serializeMoney(product.price),
     discountedPrice: null,
     discountApplied: false,
     discountRate: null,
-    totalPrice: product.price * quantity,
-    configPrice: configuration?.configPrice || product.price,
-    priceIncrease: configuration?.priceIncrease || 0,
+    totalPrice: multiplyMoney(product.price, quantity).toFixed(2),
+    configPrice: serializeMoney(configuration?.configPrice ?? product.price),
+    priceIncrease: serializeMoney(configuration?.priceIncrease ?? 0),
     brand: product.brand,
     chandelierLightingType: product.chandelierLightingType || "",
-    shippingPrice: 69,
+    shippingPrice: "69.00",
     shippingAddressId: null,
     orderTimeReceived: null,
     status: OrderStatus.awaiting_shipment,
@@ -168,7 +169,7 @@ export default function ChandelierProducts({
     return {
       productId: relatedProduct.productId,
       productName: relatedProduct.productName,
-      price: relatedProduct.price,
+      price: serializeMoney(relatedProduct.price),
       discount: relatedProduct.discount,
       productImages: relatedProduct.productImages,
       Brand: relatedProduct.brand,

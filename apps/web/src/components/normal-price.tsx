@@ -1,13 +1,14 @@
 "use client"
 
+import { addMoney, type MoneyInput, multiplyMoney } from "@repo/money"
 import { formatNumberWithConversion } from "@/lib/numbers"
 import { cn } from "@/lib/utils"
 import { useLocale } from "next-intl"
 
 type ProductPrices = {
-  price: number
+  price: MoneyInput
   quantity?: number
-  shippingPrice?: number
+  shippingPrice?: MoneyInput
   sectionType?: string
   className?: string
 }
@@ -15,9 +16,9 @@ type ProductPrices = {
 export default function NormalPrice({ price, quantity = 1, shippingPrice = 0, className }: ProductPrices) {
   const locale = useLocale()
 
-  const normalPrice = price
-  const PriceAfterTimesQuantity = normalPrice * quantity + shippingPrice
-  const formattedTotalPrice = formatNumberWithConversion(Math.ceil(PriceAfterTimesQuantity), locale)
+  // Decimal arithmetic: price × quantity + shipping, no float rounding.
+  const total = addMoney(multiplyMoney(price, quantity), shippingPrice)
+  const formattedTotalPrice = formatNumberWithConversion(total, locale)
 
   return (
     <div>

@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth-server"
 import { ownsConfiguration, publicConfiguration, readGuestToken } from "@/lib/guest-token"
+import { priceLine } from "@/lib/pricing"
 import { prisma } from "@repo/database"
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
@@ -126,18 +127,16 @@ export async function POST(
         const discount = currentConfig.discount ?? product.discount ?? 0
         const shippingPrice = currentConfig.shippingPrice ?? existingConfig.shippingPrice ?? 69
         
-        // Calculate unit price (base + increases)
-        const unitConfigPrice = product.price + priceIncrease + lampPriceIncrease
-        
-        // Calculate subtotal
-        const subtotal = unitConfigPrice * quantity
-        
-        // Calculate final total
-        const discountAmount = discount > 0 
-            ? subtotal * (discount > 1 ? discount / 100 : discount) 
-            : 0
-            
-        const finalTotal = subtotal - discountAmount + shippingPrice
+        // One helper owns line pricing (lib/pricing.ts): Decimal arithmetic,
+        // and `discount` is a rate (0.13 = 13%), not a percentage.
+        const pricing = priceLine({
+            unitPrice: product.price,
+            quantity,
+            priceIncrease,
+            lampPriceIncrease,
+            discountRate: discount,
+            shippingPrice,
+        })
 
         const updatedConfig = await prisma.configuration.update({
             where: { id: configId },
@@ -148,11 +147,11 @@ export async function POST(
                 // the guest token goes with it, so a row has one owner.
                 userId,
                 guestToken: null,
-                configPrice: unitConfigPrice,
+                configPrice: pricing.unitConfigPrice,
                 priceIncrease,
                 lampPriceIncrease,
                 discount,
-                totalPrice: finalTotal,
+                totalPrice: pricing.total,
                 shippingPrice, 
                 updatedAt: new Date(),
             }

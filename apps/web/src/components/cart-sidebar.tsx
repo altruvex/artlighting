@@ -1,6 +1,8 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
+import { money, type MoneyInput, serializeMoney, sumMoney } from "@repo/money";
+import { priceLine } from "@/lib/pricing";
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
@@ -20,12 +22,12 @@ interface CartItem {
   productName: string
   quantity: number
   productImages: string[]
-  discount: number
-  price: number
+  discount: MoneyInput
+  price: MoneyInput
   brand: string
   sectionType: string
   spotlightType: string
-  totalPrice: number
+  totalPrice: MoneyInput
 }
 
 export function CartSidebar() {
@@ -73,7 +75,9 @@ export function CartSidebar() {
           ? {
             ...item,
             quantity: newQuantity,
-            totalPrice: item.price * newQuantity * (1 - item.discount / 100),
+            // `discount` is a rate (0.13 = 13%). Dividing it by 100 again
+            // charged 0.13% and disagreed with the server's total.
+            totalPrice: priceLine({ unitPrice: item.price, quantity: newQuantity, discountRate: item.discount }).total,
           }
           : item,
       ),
@@ -136,7 +140,7 @@ export function CartSidebar() {
   }
 
   const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0)
-  const totalPrice = cartItems.reduce((total, item) => total + item.totalPrice, 0)
+  const totalPrice = serializeMoney(sumMoney(cartItems.map((item) => item.totalPrice)))
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -302,12 +306,12 @@ function CartItemCard({
               fill
               className="object-cover rounded-lg shadow-sm"
             />
-            {item.discount > 0 && (
+            {money(item.discount).greaterThan(0) && (
               <Badge
                 variant="destructive"
                 className="absolute -top-2 -left-2 text-xs px-2 py-1 font-bold shadow-md"
               >
-                -{Math.round(item.discount * 100)}%
+                -{money(item.discount).times(100).toNearest(1).toNumber()}%
               </Badge>
             )}
           </div>
@@ -330,7 +334,7 @@ function CartItemCard({
                 quantity={item.quantity}
                 discount={item.discount}
               />
-              {item.discount > 0 && (
+              {money(item.discount).greaterThan(0) && (
                 <NormalPrice
                   price={item.price}
                   quantity={item.quantity}

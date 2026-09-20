@@ -1,5 +1,6 @@
 "use client"
 import { Container } from "@/components/container"
+import { serializeMoney, serializeRate } from "@repo/money";
 import ProductCard from "@/components/product-card/product-card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -24,8 +25,8 @@ const transformProductForCard = (product: LocalizedProduct, locale: SupportedLan
     productName: product.localizedName || product.productName,
     brand: product.brand,
     price: product.price,
-    discount: product.discount || 0,
-    priceIncrease: product.priceIncrease || 0,
+    discount: serializeRate(product.discount ?? 0),
+    priceIncrease: serializeMoney(product.priceIncrease ?? 0),
     productImages: product.images || product.productImages || [],
     sectionType: product.sectionType,
     spotlightType: product.spotlightType,

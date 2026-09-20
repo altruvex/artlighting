@@ -1,6 +1,7 @@
 "use client"
 
 import { addToCart } from "@/actions/cart"
+import { addMoney, applyRate, clampNonNegative, money, type MoneyInput, multiplyMoney, serializeMoney, subtractMoney } from "@repo/money"
 import { updateProductIP } from "@/actions/product-ip"
 import { saveConfig as _saveConfig, type SaveConfigArgs } from "@/components/action"
 import AddToCardIcon from "@/components/add-to-card"
@@ -35,13 +36,15 @@ const QUANTITY_STORAGE_KEY_PREFIX = "quantity-"
 
 interface ProductMainInfoProps {
   productName: string
-  price: number
+  /** Serialized money (see @repo/money): never a float. */
+  price: MoneyInput
   quantity?: number
   increaseQuantity?: () => void
   decreaseQuantity?: () => void
   productId: string
   configId?: string
-  discount: number
+  /** Rate, not percent: 0.13 = 13%. */
+  discount: MoneyInput
   order?: Order
   chandelierLightingType?: string
   Brand: string
@@ -128,8 +131,9 @@ export default function ProductMainInfo({
   const [selectedProductChandelierLamp, setSelectedProductChandelierLamp] =
     useState<ProductChandLamp>((order?.productChandLamp as ProductChandLamp) ?? "lamp9w")
 
-  const [priceIncrease, setPriceIncrease] = useState(0)
-  const [lampPriceIncrease, setLampPriceIncrease] = useState(0)
+  // Money as serialized strings; see @repo/money.
+  const [priceIncrease, setPriceIncrease] = useState<string>("0")
+  const [lampPriceIncrease, setLampPriceIncrease] = useState<string>("0")
 
   const { isSignedIn } = useAuth()
   const isUpdatingRef = useRef(false)
@@ -138,17 +142,20 @@ export default function ProductMainInfo({
   const [debouncedProductIp] = useDebounce(selectedProductIp, DEBOUNCE_DELAY)
 
   const totalPriceBeforeDiscount = useMemo(
-    () => price + priceIncrease + lampPriceIncrease,
+    () => serializeMoney(addMoney(price, priceIncrease, lampPriceIncrease)),
     [price, priceIncrease, lampPriceIncrease]
   )
 
-  const discountedUnitPrice = useMemo(() => {
-    const normalized = discount > 1 ? discount / 100 : discount
-    return Math.ceil(totalPriceBeforeDiscount * (1 - normalized))
-  }, [totalPriceBeforeDiscount, discount])
+  // `discount` is a rate (0.13 = 13%). The old code guessed with
+  // `discount > 1 ? discount / 100 : discount` and then Math.ceil'd, which
+  // turned a 1.5% rate into 150% and drifted from the server's total.
+  const discountedUnitPrice = useMemo(
+    () => serializeMoney(clampNonNegative(subtractMoney(totalPriceBeforeDiscount, applyRate(totalPriceBeforeDiscount, discount)))),
+    [totalPriceBeforeDiscount, discount]
+  )
 
   const finalTotalPrice = useMemo(
-    () => discountedUnitPrice * currentQuantity,
+    () => serializeMoney(multiplyMoney(discountedUnitPrice, currentQuantity)),
     [discountedUnitPrice, currentQuantity]
   )
 
@@ -179,7 +186,7 @@ export default function ProductMainInfo({
   }, [currentQuantity, decreaseQuantity])
 
   const handleProductChandelierLampChange = useCallback(
-    (newProductLamp: ProductChandLamp, newLampPriceIncrease: number) => {
+    (newProductLamp: ProductChandLamp, newLampPriceIncrease: string) => {
       setSelectedProductChandelierLamp(newProductLamp)
       setLampPriceIncrease(newLampPriceIncrease)
     },
@@ -191,7 +198,7 @@ export default function ProductMainInfo({
   }, [])
 
   const handleProductIPChange = useCallback(
-    (newProductIp: PrismaProductIP, newPriceIncrease: number) => {
+    (newProductIp: PrismaProductIP, newPriceIncrease: string) => {
       setSelectProductIp(newProductIp)
       setPriceIncrease(newPriceIncrease)
     },
@@ -199,7 +206,7 @@ export default function ProductMainInfo({
   )
 
   const updateProductIPConfig = useCallback(
-    async (newProductIp: PrismaProductIP, newPriceIncrease: number) => {
+    async (newProductIp: PrismaProductIP, newPriceIncrease: string) => {
       if (!configId || isUpdatingRef.current) return
       const updateKey = `${configId}-${newProductIp}-${newPriceIncrease}`
       if (lastUpdateRef.current === updateKey) return
@@ -215,8 +222,11 @@ export default function ProductMainInfo({
             productIp: result.updatedConfig.productIp
               ? (result.updatedConfig.productIp as unknown as ProductIP)
               : undefined,
-            lampPriceIncrease: result.updatedConfig.lampPriceIncrease ?? undefined,
-            priceIncrease: result.updatedConfig.priceIncrease ?? undefined,
+            lampPriceIncrease:
+              result.updatedConfig.lampPriceIncrease == null
+                ? undefined
+                : serializeMoney(result.updatedConfig.lampPriceIncrease),
+            priceIncrease: serializeMoney(result.updatedConfig.priceIncrease),
           })
         } else {
           toast.error(tNotification("updateError"))
@@ -399,7 +409,7 @@ export default function ProductMainInfo({
         </div>
 
         <div className="flex items-center space-x-3">
-          {discount > 0 ? (
+          {money(discount).greaterThan(0) ? (
             <>
               <span className="text-xl font-semibold">
                 <DiscountPrice
@@ -408,14 +418,13 @@ export default function ProductMainInfo({
                   quantity={currentQuantity}
                   priceIncrease={priceIncrease}
                   lampPriceIncrease={lampPriceIncrease}
-                  roundingMode="ceil"
                 />
               </span>
               <s className="text-muted-foreground text-base">
                 <NormalPrice price={totalPriceBeforeDiscount} quantity={currentQuantity} />
               </s>
               <span className="bg-green-100 text-green-800 px-2 py-1 rounded-md text-sm font-medium">
-                {discount > 1 ? discount : discount * 100}% {t("off")}
+                {money(discount).times(100).toNumber()}% {t("off")}
               </span>
             </>
           ) : (

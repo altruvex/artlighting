@@ -5,6 +5,8 @@ import { saveConfig, type SaveConfigArgs } from "@/components/action";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/lib/numbers";
 import { cn } from "@/lib/utils";
+import { money, type MoneyInput } from "@repo/money";
+import { calculateLampPriceIncrease } from "@/lib/pricing-rules";
 import type { ProductChandLamp } from "@repo/database";
 import { useMutation } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
@@ -21,10 +23,12 @@ interface ProductChandelierLampButtonsProps {
   configId?: string;
   productChandLamp: ProductChandLamp;
   hNumber: number;
-  basePrice: number;
-  discount?: number;
-  priceIncrease?: number;
-  onProductLampChange: (newProductLamp: ProductChandLamp, lampPriceIncrease: number) => void;
+  /** Serialized money (see @repo/money): never a float. */
+  basePrice: MoneyInput;
+  /** Rate, not percent: 0.13 = 13%. */
+  discount?: MoneyInput;
+  priceIncrease?: MoneyInput;
+  onProductLampChange: (newProductLamp: ProductChandLamp, lampPriceIncrease: string) => void;
 }
 
 export default function ProductChandelierLampButtons({
@@ -44,9 +48,8 @@ export default function ProductChandelierLampButtons({
   const [isUpdating, setIsUpdating] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const calculateLampPriceIncrease = useCallback(
-    (lampType: ProductChandLamp) =>
-      PRODUCT_CHAND_LAMP_CONFIG[lampType].priceIncreasePerLamp * hNumber,
+  const lampPriceIncreaseFor = useCallback(
+    (lampType: ProductChandLamp) => calculateLampPriceIncrease(hNumber, lampType),
     [hNumber]
   );
 
@@ -80,8 +83,8 @@ export default function ProductChandelierLampButtons({
   );
 
   useEffect(() => {
-    onProductLampChange(activeProductLamp, calculateLampPriceIncrease(activeProductLamp));
-  }, [activeProductLamp, calculateLampPriceIncrease, onProductLampChange]);
+    onProductLampChange(activeProductLamp, lampPriceIncreaseFor(activeProductLamp));
+  }, [activeProductLamp, lampPriceIncreaseFor, onProductLampChange]);
 
   const handleLampChange = useCallback(
     (productLamp: ProductChandLamp) => {

@@ -1,6 +1,8 @@
 "use server";
 
 import { prisma, ProductIP } from "@repo/database";
+import { addMoney, serializeMoney } from "@repo/money";
+import { serializeRowMoney } from "@/lib/serialize-money";
 import { calculateIpPriceIncrease } from "@/lib/pricing-rules";
 
 export const updateProductIP = async ({
@@ -28,18 +30,19 @@ export const updateProductIP = async ({
       return { success: false, error: "Product not available" };
     }
 
+    // Decimal arithmetic: the IP upgrade is added to the stored unit price.
     const priceIncrease = calculateIpPriceIncrease(product.price, newProductIp);
-    const updatedTotalPrice = configuration.configPrice + priceIncrease;
+    const updatedTotalPrice = addMoney(configuration.configPrice, priceIncrease);
 
     const updatedConfig = await prisma.configuration.update({
       where: { id: configId },
       data: {
         productIp: newProductIp,
-        priceIncrease: priceIncrease,
-        totalPrice: updatedTotalPrice,
+        priceIncrease,
+        totalPrice: serializeMoney(updatedTotalPrice),
       },
     });
-    return { success: true, updatedConfig };
+    return { success: true, updatedConfig: serializeRowMoney(updatedConfig) };
   } catch (error) {
     console.error("Error updating product IP:", error);
     return { success: false, error: "Failed to update configuration" };

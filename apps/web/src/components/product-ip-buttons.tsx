@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/tooltip";
 import { formatNumber } from "@/lib/numbers";
 import { cn } from "@/lib/utils";
+import { Decimal, money, type MoneyInput, serializeMoney } from "@repo/money";
 import type { ProductIP } from "@repo/database";
 import { Droplets } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -56,9 +57,11 @@ interface ProductIPButtonsProps {
   configId: string;
   productIp: ProductIP;
   maxIP: number;
-  basePrice: number;
-  discount: number;
-  onProductIpChange: (newProductIp: ProductIP, priceIncrease: number) => void;
+  /** Serialized money (see @repo/money): never a float. */
+  basePrice: MoneyInput;
+  /** Rate, not percent: 0.13 = 13%. */
+  discount: MoneyInput;
+  onProductIpChange: (newProductIp: ProductIP, priceIncrease: string) => void;
 }
 
 export default function ProductIPButtons({
@@ -78,7 +81,9 @@ export default function ProductIPButtons({
   const calculatePriceIncrease = useCallback(
     (ip: ProductIP) => {
       const { increaseOnPricePercent } = PRODUCT_IP_LABEL_MAP[ip];
-      return Math.ceil(basePrice * increaseOnPricePercent);
+      // Decimal, rounded up to the piastre — the old Math.ceil rounded to
+      // whole pounds and drifted from the amount the server stored.
+      return serializeMoney(money(basePrice).times(increaseOnPricePercent).toDecimalPlaces(2, Decimal.ROUND_UP));
     },
     [basePrice]
   );
@@ -149,9 +154,9 @@ export default function ProductIPButtons({
                     <span className={cn("rtl:mr-1 ltr:ml-1")}>
                       {t(`ratings.${ip}.label`)}
                     </span>
-                    {displayedIncrease > 0 && (
+                    {money(displayedIncrease).greaterThan(0) && (
                       <span className="ml-2 text-sm opacity-70">
-                        +{formatNumber(displayedIncrease, isRTL ? "ar" : "en")}
+                        +{formatNumber(money(displayedIncrease).toNumber(), isRTL ? "ar" : "en")}
                       </span>
                     )}
                     {isUpdating && selectedIp === ip && (

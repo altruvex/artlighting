@@ -27,7 +27,8 @@ export type OrderWithRelations = Order & {
   }
   shippingAddress: ShippingAddress | null
   configuration: Configuration | null
-  discount: number | null
+  /** Rate, not percent: 0.13 = 13%. Serialized; see @repo/money. */
+  discount: string | null
 }
 
 interface UpdateOrderStatusResponse {
@@ -59,7 +60,8 @@ const updateOrderStatus = async (orderId: string): Promise<UpdateOrderStatusResp
 };
 
 type CompleteProps = {
-  discount: number
+  /** Rate, not percent: 0.13 = 13%. */
+  discount: string
   brand: string
   order: OrderWithRelations
 }
@@ -84,10 +86,10 @@ const Complete = ({ discount, brand, order: initialOrder }: CompleteProps) => {
     if (!order) return null;
 
     return PricingService.calculateOrderPricing(
-      order.configuration?.configPrice || order.configPrice || 0,
-      order.configuration?.totalPrice || order.totalPrice || 0,
+      order.configuration?.configPrice ?? order.configPrice ?? 0,
+      order.configuration?.totalPrice ?? order.totalPrice ?? 0,
       order.configuration?.quantity || order.quantity || 1,
-      order.configuration?.discount || order.discount || discount || 0,
+      order.configuration?.discount ?? order.discount ?? discount ?? 0,
       order.shippingPrice
     );
   }, [order, discount]);

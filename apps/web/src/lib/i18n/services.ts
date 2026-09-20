@@ -1,4 +1,5 @@
 import type { LocalizedCategory, LocalizedProduct, SectionType, SupportedLanguage } from "@/types/products";
+import { serializeMoney, serializeRate } from "@repo/money";
 import { prisma } from "@repo/database";
 import { CacheService, CacheTTL } from "@/lib/cache/redis.service";
 
@@ -261,9 +262,9 @@ export class I18nService {
                     localizedName: primaryTranslation?.name || product.productName,
                     localizedDescription: primaryTranslation?.description ?? undefined,
                     brand: product.brand,
-                    price: product.price,
-                    discount: product.discount || 0,
-                    priceIncrease: product.priceIncrease || 0,
+                    price: serializeMoney(product.price),
+                    discount: serializeRate(product.discount ?? 0),
+                    priceIncrease: serializeMoney(product.priceIncrease ?? 0),
                     quantity: product.quantity,
                     images: product.productImages,
                     productImages: product.productImages,
@@ -382,8 +383,8 @@ export class I18nService {
                 productName: product.productName,
                 localizedName: product.translations[0]?.name || product.productName,
                 brand: product.brand,
-                price: product.price,
-                discount: product.discount || 0,
+                price: serializeMoney(product.price),
+                discount: serializeRate(product.discount ?? 0),
                 images: product.productImages,
                 specifications: product.specifications[0]
                     ? {

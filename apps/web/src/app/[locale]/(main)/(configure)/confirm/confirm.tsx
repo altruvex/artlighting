@@ -1,6 +1,8 @@
 "use client"
 
 import { Container } from "@/components/container"
+import { money, type MoneyInput } from "@repo/money";
+import { PricingService } from "@/lib/pricing.server"
 import CustomInput from "@/components/custom-input"
 import LoadingState from "@/components/loading-state"
 import NormalPrice from "@/components/normal-price"
@@ -27,19 +29,19 @@ type Order = {
   userId: string
   configurationId: string
   quantity: number
-  totalPrice: number
-  configPrice: number
-  productPrice: number
-  discountRate: number
-  discountedPrice: number
+  totalPrice: MoneyInput
+  configPrice: MoneyInput
+  productPrice: MoneyInput
+  discountRate: MoneyInput
+  discountedPrice: MoneyInput
   productName: string
   productImages: string[]
   product: {
     id: string
     productName: string
     productImages: string[]
-    price: number
-    discount: number
+    price: MoneyInput
+    discount: MoneyInput
   }
   shippingAddress: {
     fullName: string
@@ -52,10 +54,10 @@ type Order = {
   }
   configuration?: {
     id: string
-    configPrice: number
-    totalPrice: number
+    configPrice: MoneyInput
+    totalPrice: MoneyInput
     quantity: number
-    discount: number
+    discount: MoneyInput
   }
 }
 
@@ -71,38 +73,19 @@ const fetchOrderDetails = async (orderId: string): Promise<Order> => {
 const OrderSummary = ({ order }: { order: Order }) => {
   const t = useTranslations("confirm")
   const priceCalculations = useMemo(() => {
-    const configPrice = order.configuration?.configPrice || order.configPrice || 0
-    const totalPrice = order.configuration?.totalPrice || order.totalPrice || 0
-    const quantity = order.configuration?.quantity || order.quantity || 1
-    const discount = order.configuration?.discount || order.discountRate || 0
-
-    const unitPriceAfterDiscount = quantity > 0 ? totalPrice / quantity : 0
-    const hasDiscount = discount > 0
-
-    console.log("Price calculations from order configuration:", {
-      configPrice,
-      totalPrice,
-      quantity,
-      discount,
-      unitPriceAfterDiscount,
-      hasDiscount
-    });
-
-    return {
-      configPrice,
-      totalPrice,
-      quantity,
-      discount,
-      unitPriceAfterDiscount,
-      hasDiscount,
-      subtotal: configPrice * quantity,
-      discountAmount: hasDiscount ? (configPrice * quantity * (discount > 1 ? discount / 100 : discount)) : 0
-    }
+    // One Decimal calculation, shared with the server. The old inline maths
+    // divided and multiplied floats and guessed whether `discount` was a rate
+    // or a percent with `discount > 1`, which turned 1.5% into 150%.
+    return PricingService.calculateOrderPricing(
+      order.configuration?.configPrice ?? order.configPrice ?? 0,
+      order.configuration?.totalPrice ?? order.totalPrice ?? 0,
+      order.configuration?.quantity || order.quantity || 1,
+      order.configuration?.discount ?? order.discountRate ?? 0,
+    )
   }, [order])
 
 
-  const shippingCost = 69
-  const finalTotal = priceCalculations.totalPrice + shippingCost
+  const finalTotal = priceCalculations.finalTotal
   const itemsText = priceCalculations.quantity === 1 ? t("orderSummary.item") : t("orderSummary.items")
 
   return (
@@ -121,7 +104,7 @@ const OrderSummary = ({ order }: { order: Order }) => {
         </div>
         {priceCalculations.hasDiscount && (
           <div className="flex justify-between items-center text-green-600">
-            <span>{`${t("orderSummary.discount")} (${Math.round(priceCalculations.discount > 1 ? priceCalculations.discount : priceCalculations.discount * 100)}%)`}</span>
+            <span>{`${t("orderSummary.discount")} (${priceCalculations.discountPercentage}%)`}</span>
             <span>
               -<NormalPrice price={priceCalculations.discountAmount} />
             </span>
@@ -135,7 +118,7 @@ const OrderSummary = ({ order }: { order: Order }) => {
         )}
         <div className="flex justify-between items-center text-muted-foreground">
           <span>{t("orderSummary.shipping")}</span>
-          <NormalPrice price={shippingCost} />
+          <NormalPrice price={priceCalculations.shippingCost} />
         </div>
         <div className="border-t border-border pt-4">
           <div className="flex justify-between items-center">
@@ -241,24 +224,12 @@ const Confirm = () => {
   const priceCalculations = useMemo(() => {
     if (!order) return null
 
-    const configPrice = order.configuration?.configPrice || order.configPrice || 0
-    const totalPrice = order.configuration?.totalPrice || order.totalPrice || 0
-    const quantity = order.configuration?.quantity || order.quantity || 1
-    const discount = order.configuration?.discount || order.discountRate || 0
-
-    const unitPriceAfterDiscount = quantity > 0 ? totalPrice / quantity : 0
-    const hasDiscount = discount > 0
-    const discountPercentage = Math.round(discount > 1 ? discount : discount * 100)
-
-    return {
-      configPrice,
-      totalPrice,
-      quantity,
-      discount,
-      unitPriceAfterDiscount,
-      hasDiscount,
-      discountPercentage
-    }
+    return PricingService.calculateOrderPricing(
+      order.configuration?.configPrice ?? order.configPrice ?? 0,
+      order.configuration?.totalPrice ?? order.totalPrice ?? 0,
+      order.configuration?.quantity || order.quantity || 1,
+      order.configuration?.discount ?? order.discountRate ?? 0,
+    )
   }, [order])
 
   useEffect(() => {

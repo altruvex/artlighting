@@ -1,61 +1,81 @@
+import { applyRate, clampNonNegative, compareMoney, money, type MoneyInput, multiplyMoney, roundMoney, serializeMoney, subtractMoney } from "@repo/money";
+
+/**
+ * Order/configuration pricing shown in the configure flow and validated by
+ * /api/pricing/validate. Despite the file name it runs on both sides, so it
+ * stays free of server-only imports.
+ *
+ * Money in and out is a string (or Decimal); nothing here goes through a JS
+ * number. `discount` is a RATE: 0.13 = 13%. The old version accepted either
+ * a rate or a percentage and guessed with `discount > 1`, which silently
+ * turned a 1.5% rate into 150%.
+ */
 export interface PricingCalculation {
-    configPrice: number;
-    totalPrice: number;
-    quantity: number;
-    discount: number;
-    unitPriceAfterDiscount: number;
-    hasDiscount: boolean;
-    discountPercentage: number;
-    subtotal: number;
-    discountAmount: number;
-    finalTotal: number;
-    shippingCost: number;
+  configPrice: string;
+  totalPrice: string;
+  quantity: number;
+  discount: string;
+  unitPriceAfterDiscount: string;
+  hasDiscount: boolean;
+  /** Whole percent, for display only ("13% off"). */
+  discountPercentage: number;
+  subtotal: string;
+  discountAmount: string;
+  finalTotal: string;
+  shippingCost: string;
 }
 
 export class PricingService {
-    private static readonly DEFAULT_SHIPPING_COST = 69;
+  private static readonly DEFAULT_SHIPPING_COST = "69";
 
-    static calculateOrderPricing(
-        configPrice: number,
-        totalPrice: number,
-        quantity: number,
-        discount: number,
-        shippingCost: number = this.DEFAULT_SHIPPING_COST
-    ): PricingCalculation {
-        const unitPriceAfterDiscount = quantity > 0 ? totalPrice / quantity : 0;
-        const hasDiscount = discount > 0;
-        const discountPercentage = Math.round(discount > 1 ? discount : discount * 100);
-        const subtotal = configPrice * quantity;
-        const discountAmount = hasDiscount
-            ? subtotal * (discount > 1 ? discount / 100 : discount)
-            : 0;
-        const finalTotal = totalPrice + shippingCost;
+  static calculateOrderPricing(
+    configPrice: MoneyInput,
+    totalPrice: MoneyInput,
+    quantity: number,
+    discount: MoneyInput,
+    shippingCost: MoneyInput = PricingService.DEFAULT_SHIPPING_COST,
+  ): PricingCalculation {
+    const unitPrice = money(configPrice);
+    const orderTotal = money(totalPrice);
+    const rate = money(discount);
+    const shipping = money(shippingCost);
 
-        return {
-            configPrice,
-            totalPrice,
-            quantity,
-            discount,
-            unitPriceAfterDiscount,
-            hasDiscount,
-            discountPercentage,
-            subtotal,
-            discountAmount,
-            finalTotal,
-            shippingCost,
-        };
-    }
+    const subtotal = multiplyMoney(unitPrice, quantity);
+    const hasDiscount = rate.greaterThan(0);
+    const discountAmount = applyRate(subtotal, rate);
+    const unitPriceAfterDiscount = quantity > 0 ? roundMoney(orderTotal.dividedBy(quantity)) : money(0);
+    const finalTotal = clampNonNegative(orderTotal.plus(shipping));
 
-    static calculateConfigurationPrice(
-        basePrice: number,
-        priceIncrease: number,
-        lampPriceIncrease: number,
-        quantity: number,
-        discount: number
-    ): number {
-        const unitPrice = basePrice + priceIncrease + lampPriceIncrease;
-        const subtotal = unitPrice * quantity;
-        const discountAmount = discount > 0 ? subtotal * (discount > 1 ? discount / 100 : discount) : 0;
-        return subtotal - discountAmount;
-    }
+    return {
+      configPrice: serializeMoney(unitPrice),
+      totalPrice: serializeMoney(orderTotal),
+      quantity,
+      discount: rate.toString(),
+      unitPriceAfterDiscount: serializeMoney(unitPriceAfterDiscount),
+      hasDiscount,
+      discountPercentage: Math.round(rate.times(100).toNumber()),
+      subtotal: serializeMoney(subtotal),
+      discountAmount: serializeMoney(discountAmount),
+      finalTotal: serializeMoney(finalTotal),
+      shippingCost: serializeMoney(shipping),
+    };
+  }
+
+  /** Line total after its discount, before shipping. */
+  static calculateConfigurationPrice(
+    basePrice: MoneyInput,
+    priceIncrease: MoneyInput,
+    lampPriceIncrease: MoneyInput,
+    quantity: number,
+    discount: MoneyInput,
+  ): string {
+    const unitPrice = money(basePrice).plus(money(priceIncrease)).plus(money(lampPriceIncrease));
+    const subtotal = multiplyMoney(unitPrice, quantity);
+    return serializeMoney(clampNonNegative(subtractMoney(subtotal, applyRate(subtotal, discount))));
+  }
+
+  /** True when two amounts differ — never compare money with `!==`. */
+  static differs(a: MoneyInput, b: MoneyInput): boolean {
+    return compareMoney(a, b) !== 0;
+  }
 }

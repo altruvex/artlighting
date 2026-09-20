@@ -2,6 +2,7 @@
 "use client";
 
 import { Container } from "@/components/container";
+import type { MoneyInput } from "@repo/money";
 import LoginModal from "@/components/login-model";
 import NormalPrice from "@/components/normal-price";
 import ProductImages from "@/components/product-images";
@@ -24,9 +25,9 @@ export interface ProductWithSpecs {
   id: string;
   productId: string;
   productName: string;
-  price: number;
+  price: MoneyInput;
   productImages: string[];
-  discount: number;
+  discount: MoneyInput;
   sectionType: string;
   spotlightType: string;
   brand: string;
@@ -85,7 +86,7 @@ const fetchConfiguration = async (productId: string): Promise<Configuration> => 
 
 interface PreviewProps {
   configuration?: Configuration;
-  discount?: number;
+  discount?: MoneyInput;
   productId: string;
   product?: ProductWithSpecs;
   locale: string;

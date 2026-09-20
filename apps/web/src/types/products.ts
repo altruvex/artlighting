@@ -1,3 +1,11 @@
+/**
+ * Money and rates travel as strings in these view models.
+ *
+ * They are Decimal in the database: a JS number can't hold money exactly,
+ * and a Prisma.Decimal can't be passed from a Server Component to a Client
+ * Component. Server code serializes with @repo/money's serializeMoney at the
+ * boundary, and components format for display.
+ */
 export type SupportedLanguage = "en" | "ar"
 export type SupportedCurrency = "EGP" | "USD" | "EUR"
 
@@ -156,12 +164,12 @@ export interface BaseProduct {
   productImages: string[]
   maxIP?: number
   spotlightType: string
-  price: number
-  priceIncrease?: number
+  price: string
+  priceIncrease?: string
   sectionType: string
   quantity: number
   brand: string
-  discount: number
+  discount: string
   chandelierLightingType?: string
   hNumber?: number
   isActive: boolean
@@ -207,9 +215,9 @@ export interface LocalizedProduct {
   localizedName?: string;
   localizedDescription?: string;
   brand: string;
-  price: number;
-  discount?: number;
-  priceIncrease?: number;
+  price: string;
+  discount?: string;
+  priceIncrease?: string;
   quantity: number;
   images: string[];
   productImages?: string[];
@@ -273,8 +281,8 @@ export interface ProductCardProps {
   productId: string
   productName: string
   productImages: string[]
-  price: number
-  discount?: number
+  price: string
+  discount?: string
   brand: string
   Brand?: string
   quantity?: number
@@ -307,13 +315,13 @@ export interface SpecificationsTable {
 export interface Configuration {
   id: string
   productId: string
-  configPrice: number
-  priceIncrease: number
-  shippingPrice: number
-  discount: number
+  configPrice: string
+  priceIncrease: string
+  shippingPrice: string
+  discount: string
   quantity: number
-  lampPriceIncrease?: number
-  totalPrice: number
+  lampPriceIncrease?: string
+  totalPrice: string
   currency: SupportedCurrency
   productIp?: ProductIP
   createdAt: Date
@@ -338,14 +346,14 @@ export interface Order {
   customerLanguage: SupportedLanguage
   createdAt: Date
   updatedAt: Date
-  productPrice: number
-  discountedPrice?: number | null
+  productPrice: string
+  discountedPrice?: string | null
   discountApplied: boolean
-  discountRate?: number | null
-  totalPrice: number
-  configPrice: number
-  priceIncrease?: number
-  shippingPrice: number
+  discountRate?: string | null
+  totalPrice: string
+  configPrice: string
+  priceIncrease?: string
+  shippingPrice: string
   brand?: string
   chandelierLightingType?: string
   orderTimeReceived?: Date | null
@@ -358,7 +366,7 @@ export interface OrderItem {
   orderId: number
   productId: string
   quantity: number
-  configPrice: number
+  configPrice: string
   configurationId?: string
   localizedName?: string
 }

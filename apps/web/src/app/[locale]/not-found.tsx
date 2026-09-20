@@ -1,6 +1,7 @@
 "use client";
 
 import { searchProducts } from "@/actions/search";
+import type { MoneyInput } from "@repo/money";
 import ProductCard from "@/components/product-card/product-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,11 +16,11 @@ interface Product {
   productName: string;
   Brand: string;
   brand: string;
-  price: number;
+  price: MoneyInput;
   productImages: string[];
   sectionType: string;
   spotlightType: string;
-  discount: number;
+  discount: MoneyInput;
   ProductId: string;
   chandelierLightingType: string;
   hNumber: number;

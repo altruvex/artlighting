@@ -1,6 +1,7 @@
 "use server"
 
 import { prisma } from "@repo/database"
+import { priceLine } from "@/lib/pricing"
 import { PricingService } from "@/lib/pricing.server"
 
 export interface SaveConfigArgs {
@@ -60,29 +61,29 @@ export async function saveConfig({
     const lampPriceIncrease = currentConfig.lampPriceIncrease ?? 0
     const discount = currentConfig.discount ?? product.discount ?? 0
     const shippingPrice = currentConfig.shippingPrice ?? existingConfig.shippingPrice ?? 69
-    
-    const unitConfigPrice = product.price + priceIncrease + lampPriceIncrease
-    
 
-    const subtotal = unitConfigPrice * quantity
-
-    const discountAmount = discount > 0 
-        ? subtotal * (discount > 1 ? discount / 100 : discount) 
-        : 0
-        
-    const finalTotal = subtotal - discountAmount + shippingPrice
+    // One helper computes every line price (see lib/pricing.ts): the
+    // discount is a rate, and the arithmetic is Decimal, not float.
+    const pricing = priceLine({
+      unitPrice: product.price,
+      quantity,
+      priceIncrease,
+      lampPriceIncrease,
+      discountRate: discount,
+      shippingPrice,
+    })
 
     const updatedConfiguration = await prisma.configuration.update({
       where: { id: configId },
       data: {
         productId: product.productId,
-        configPrice: unitConfigPrice,
+        configPrice: pricing.unitConfigPrice,
         priceIncrease,
         lampPriceIncrease,
         shippingPrice,
         quantity,
         discount,
-        totalPrice: finalTotal,
+        totalPrice: pricing.total,
       },
     })
 

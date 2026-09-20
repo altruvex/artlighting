@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth-server";
+import { discountedUnitPrice, priceLine } from "@/lib/pricing";
 import { prisma } from "@repo/database";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -41,10 +42,17 @@ export async function GET() {
       productId: item.product.productId,
       productName: item.product.productName,
       quantity: item.quantity,
-      price: item.product.price,
-      totalPrice: item.product.price * item.quantity * (1 - item.product.discount / 100),
+      // Money leaves as strings; `discount` is a rate (0.13 = 13%), which
+      // this line used to divide by 100 again — charging 0.13% off.
+      price: item.product.price.toFixed(2),
+      unitPriceAfterDiscount: discountedUnitPrice(item.product.price, item.product.discount),
+      totalPrice: priceLine({
+        unitPrice: item.product.price,
+        quantity: item.quantity,
+        discountRate: item.product.discount,
+      }).total,
       productImages: item.product.productImages,
-      discount: item.product.discount,
+      discount: item.product.discount.toString(),
       sectionType: item.product.sectionType,
       spotlightType: item.product.spotlightType,
       brand: item.product.brand,
@@ -101,17 +109,21 @@ export async function PATCH(request: NextRequest) {
     });
 
     // Calculate total price with discount
-    const totalPrice = updatedItem.product.price * updatedItem.quantity * (1 - updatedItem.product.discount / 100);
+    const totalPrice = priceLine({
+      unitPrice: updatedItem.product.price,
+      quantity: updatedItem.quantity,
+      discountRate: updatedItem.product.discount,
+    }).total;
 
     return NextResponse.json({
       id: updatedItem.id,
       productId: updatedItem.product.productId,
       productName: updatedItem.product.productName,
       quantity: updatedItem.quantity,
-      price: updatedItem.product.price,
+      price: updatedItem.product.price.toFixed(2),
       totalPrice,
       productImages: updatedItem.product.productImages,
-      discount: updatedItem.product.discount,
+      discount: updatedItem.product.discount.toString(),
       sectionType: updatedItem.product.sectionType,
       spotlightType: updatedItem.product.spotlightType,
       brand: updatedItem.product.brand,
@@ -163,17 +175,21 @@ export async function PUT(request: NextRequest) {
       include: { product: true },
     });
 
-    const totalPrice = updatedItem.product.price * updatedItem.quantity * (1 - updatedItem.product.discount / 100);
+    const totalPrice = priceLine({
+      unitPrice: updatedItem.product.price,
+      quantity: updatedItem.quantity,
+      discountRate: updatedItem.product.discount,
+    }).total;
 
     return NextResponse.json({
       id: updatedItem.id,
       productId: updatedItem.product.productId,
       productName: updatedItem.product.productName,
       quantity: updatedItem.quantity,
-      price: updatedItem.product.price,
+      price: updatedItem.product.price.toFixed(2),
       totalPrice,
       productImages: updatedItem.product.productImages,
-      discount: updatedItem.product.discount,
+      discount: updatedItem.product.discount.toString(),
       sectionType: updatedItem.product.sectionType,
       spotlightType: updatedItem.product.spotlightType,
       brand: updatedItem.product.brand,

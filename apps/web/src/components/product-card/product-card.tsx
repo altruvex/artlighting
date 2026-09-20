@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useTextDirection } from "@/helpers/language";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
+import { money, type MoneyInput } from "@repo/money";
 import { useAuth } from "@/lib/auth-hooks";
 import { useTranslations } from 'next-intl';
 import Image from "next/image";
@@ -22,11 +23,13 @@ interface Product {
   productId: string;
   productName: string;
   brand: string;
-  price: number;
+  /** Serialized money (see @repo/money): a string, never a float. */
+  price: MoneyInput;
   productImages: string[];
   sectionType: string;
   spotlightType: string;
-  discount: number;
+  /** Rate, not percent: 0.13 = 13%. */
+  discount: MoneyInput;
   chandelierLightingType?: string;
   hNumber?: number;
   maximumWattage?: string;
@@ -167,13 +170,13 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
             {tCommon('fastShipping')}
           </span>
         </div>
-        {product.discount > 0 && (
+        {money(product.discount).greaterThan(0) && (
           <div className={cn(
             "absolute top-[3px] z-10 px-[5px] py-[7px] flex items-center justify-center text-background text-xs",
             isRTL ? "left-[5px]" : "right-[5px]"
           )}>
             <Badge className="rounded-none text-sm" variant={"destructive"}>
-              -{Math.round(product.discount * 100)}%
+              -{money(product.discount).times(100).toNearest(1).toNumber()}%
             </Badge>
           </div>
         )}
@@ -232,7 +235,7 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
           </p>
           <div>
             <div className="font-medium text-lg mt-[5] mx-0 mb-0 text-left rtl:text-right">
-              {product.discount > 0 ? (
+              {money(product.discount).greaterThan(0) ? (
                 <div className={cn(
                   "flex items-center",
                 )}>

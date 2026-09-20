@@ -1,6 +1,7 @@
 "use client"
 
 import { searchProducts } from "@/actions/search"
+import { money, type MoneyInput } from "@repo/money";
 import { Input } from "@/components/ui/input"
 import { Link } from "@/i18n/navigation"
 import { Button } from "@/components/ui/button"
@@ -17,11 +18,11 @@ interface Product {
     productId: string
     productName: string
     brand: string
-    price: number
+    price: MoneyInput
     productImages: string[]
     sectionType: string
     spotlightType: string
-    discount: number
+    discount: MoneyInput
     ProductId: string
     chandelierLightingType: string
     hNumber: number
@@ -262,7 +263,7 @@ function ProductItem({ product, onResultClick }: {
 }
 
 function ProductPrice({ product }: { product: Product }) {
-    if (product.discount > 0) {
+    if (money(product.discount).greaterThan(0)) {
         return (
             <div className="flex items-center gap-2 rtl:flex-row-reverse">
                 <span className="text-sm text-destructive font-semibold">

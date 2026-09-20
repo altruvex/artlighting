@@ -1,4 +1,6 @@
 import { getLocaleFromParams } from "@/lib/i18n/utils"
+import { serializeMoney, serializeRate } from "@repo/money"
+import { serializeRowMoney } from "@/lib/serialize-money"
 import { constructMetadata } from "@/lib/metadata"
 import { PagePropsTypes } from "@/types"
 import type {
@@ -76,19 +78,23 @@ const Page = async ({ searchParams }: PagePropsTypes) => {
     updatedAt: trans.updatedAt,
   }))
 
-  const orderDiscount = order.configuration?.discount || order.discountRate || 0
+  // Money crosses to the client as strings (see lib/serialize-money.ts).
+  const orderDiscount = serializeRate(order.configuration?.discount ?? order.discountRate ?? 0)
 
   const localizedConfiguration: Configuration | null = order.configuration
     ? {
         id: order.configuration.id,
         productId: order.configuration.productId,
-        configPrice: order.configuration.configPrice,
-        priceIncrease: order.configuration.priceIncrease,
-        shippingPrice: order.configuration.shippingPrice,
-        discount: order.configuration.discount,
+        configPrice: serializeMoney(order.configuration.configPrice),
+        priceIncrease: serializeMoney(order.configuration.priceIncrease),
+        shippingPrice: serializeMoney(order.configuration.shippingPrice),
+        discount: serializeRate(order.configuration.discount),
         quantity: order.configuration.quantity,
-        lampPriceIncrease: order.configuration.lampPriceIncrease ?? undefined,
-        totalPrice: order.configuration.totalPrice,
+        lampPriceIncrease:
+          order.configuration.lampPriceIncrease == null
+            ? undefined
+            : serializeMoney(order.configuration.lampPriceIncrease),
+        totalPrice: serializeMoney(order.configuration.totalPrice),
         currency: order.configuration.currency as SupportedCurrency,
         productIp: order.configuration.productIp
           ? (order.configuration.productIp as ProductIP)
@@ -99,11 +105,11 @@ const Page = async ({ searchParams }: PagePropsTypes) => {
     : null
 
   const localizedOrder: OrderWithRelations = {
-    ...order,
+    ...serializeRowMoney(order),
     status: order.status as OrderStatus,
     currency: order.currency as SupportedCurrency,
     customerLanguage: order.customerLanguage as SupportedLanguage,
-    priceIncrease: order.priceIncrease ?? undefined,
+    priceIncrease: order.priceIncrease == null ? undefined : serializeMoney(order.priceIncrease),
     brand: order.brand ?? undefined,
     chandelierLightingType: order.chandelierLightingType ?? undefined,
     configurationId: order.configurationId ?? undefined,
@@ -111,9 +117,10 @@ const Page = async ({ searchParams }: PagePropsTypes) => {
     productName: localizedProductName,
     configuration: localizedConfiguration,
     product: {
-      ...order.product,
+      ...serializeRowMoney(order.product),
       maxIP: order.product.maxIP ?? undefined,
-      priceIncrease: order.product.priceIncrease ?? undefined,
+      priceIncrease:
+        order.product.priceIncrease == null ? undefined : serializeMoney(order.product.priceIncrease),
       hNumber: order.product.hNumber ?? undefined,
       chandelierLightingType: order.product.chandelierLightingType ?? undefined,
       translations: localizedTranslations,

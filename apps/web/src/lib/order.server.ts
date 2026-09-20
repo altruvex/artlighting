@@ -1,4 +1,5 @@
 import type { Order, ShippingAddress } from "@/types/products";
+import { applyRate, money, serializeMoney, serializeRate, subtractMoney, type MoneyInput } from "@repo/money";
 import { prisma } from "@repo/database";
 
 export interface CreateOrderDTO {
@@ -7,11 +8,11 @@ export interface CreateOrderDTO {
     productName: string;
     productImages: string[];
     quantity: number;
-    configPrice: number;
-    productPrice: number;
-    totalPrice: number;
+    configPrice: MoneyInput;
+    productPrice: MoneyInput;
+    totalPrice: MoneyInput;
     shippingMethod: string;
-    shippingPrice: number;
+    shippingPrice: MoneyInput;
     configurationId: string;
     shippingAddress: {
         fullName: string;
@@ -36,10 +37,12 @@ export class OrderService {
 
         const shippingAddress = await this.upsertShippingAddress(dto.userId, dto.shippingAddress);
 
-        const discountRate = product.discount;
-        const discountedPrice = discountRate > 0
-            ? Math.ceil(dto.configPrice * (1 - discountRate))
-            : dto.configPrice;
+        // `discount` is a rate (0.13 = 13%). Decimal throughout, and the
+        // result is stored as a fixed-scale string.
+        const discountRate = money(product.discount);
+        const discountedPrice = discountRate.greaterThan(0)
+            ? subtractMoney(dto.configPrice, applyRate(dto.configPrice, discountRate))
+            : money(dto.configPrice);
 
         return prisma.order.create({
             data: {
@@ -47,14 +50,14 @@ export class OrderService {
                 configuration: { connect: { id: dto.configurationId } },
                 product: { connect: { id: dto.productId } },
                 quantity: dto.quantity,
-                productPrice: dto.productPrice,
-                discountRate,
-                discountedPrice,
-                discountApplied: discountRate > 0,
-                totalPrice: dto.totalPrice,
+                productPrice: serializeMoney(dto.productPrice),
+                discountRate: serializeRate(discountRate),
+                discountedPrice: serializeMoney(discountedPrice),
+                discountApplied: discountRate.greaterThan(0),
+                totalPrice: serializeMoney(dto.totalPrice),
                 productName: dto.productName,
                 productImages: dto.productImages,
-                shippingPrice: dto.shippingPrice,
+                shippingPrice: serializeMoney(dto.shippingPrice),
                 status: "awaiting_shipment",
                 shippingAddress: { connect: { id: shippingAddress.id } },
                 productColorTemp: product.productColor || "warm",
@@ -62,7 +65,7 @@ export class OrderService {
                 productChandLamp: product.productChandLamp || "lamp9w",
                 brand: product.brand,
                 chandelierLightingType: product.chandelierLightingType,
-                configPrice: dto.configPrice,
+                configPrice: serializeMoney(dto.configPrice),
             },
         }) as any as Order;
     }

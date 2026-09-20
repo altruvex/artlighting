@@ -211,15 +211,16 @@ function buildProductInclude(language: string, withRelations = false) {
     // Which bulbs this fixture is sold with. Only fixtures with arms have
     // any; see @repo/catalog/bulb-pricing.
     bulbs: productBulbSelect(),
+    // Always, not only for the detail page: a card's generated description
+    // opens with the lighting type's name, and a listing that omits it
+    // would open with a blank.
+    lightingtype: { include: { translations: { where: { language }, take: 1 } } },
     // Stock lives in the inventory ledger. What the storefront needs is
     // what a customer can actually buy, which is on hand minus whatever is
     // already promised to unshipped orders.
     variants: { where: { isDefault: true }, select: { inventory: inventorySelect() }, take: 1 },
     ...(withRelations && {
       category: {
-        include: { translations: { where: { language }, take: 1 } },
-      },
-      lightingtype: {
         include: { translations: { where: { language }, take: 1 } },
       },
     }),

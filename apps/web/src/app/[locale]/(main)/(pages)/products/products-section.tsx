@@ -1,6 +1,8 @@
 import { PagePropsTypes } from "@/types";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { availableFrom, inventorySelect, productDiscountRates, type ProductFamily } from "@repo/catalog";
+import { availableFrom, inventorySelect, productBulbSelect, productDiscountRates, type ProductFamily } from "@repo/catalog";
+import { bulbChoices } from "@repo/catalog/bulb-pricing";
+import { localizeSpecGroups, specGroupSelect } from "@/lib/spec-groups";
 import { serializeMoney, serializeRate, type MoneyInput } from "@repo/money";
 import { prisma } from "@repo/database";
 import { notFound } from "next/navigation";
@@ -105,8 +107,13 @@ const ProductsSection = async ({ params }: PagePropsTypes) => {
       },
       // Images and stock both come from their own tables now.
       images: productImageSelect(),
-      variants: { where: { isDefault: true }, select: { inventory: inventorySelect() }, take: 1 }
-    } as const;
+      variants: { where: { isDefault: true }, select: { inventory: inventorySelect() }, take: 1 },
+      // A card's description is generated from these; see
+      // @repo/catalog/describe.
+      specGroups: specGroupSelect(locale),
+      bulbs: productBulbSelect(),
+      lightingtype: { include: { translations: { where: { language: locale }, take: 1 } } },
+    };
 
     let selectedProducts = await prisma.product.findMany({
       where: {
@@ -161,6 +168,10 @@ const ProductsSection = async ({ params }: PagePropsTypes) => {
         isActive: product.isActive,
         featured: product.featured,
         chandelierLightingType: product.chandelierLightingType || undefined,
+        specGroups: localizeSpecGroups(product.specGroups ?? [], locale),
+        bulbChoices: bulbChoices(product.bulbs, product.hNumber, locale),
+        lightingTypeName:
+          product.lightingtype?.translations?.[0]?.name ?? product.lightingtype?.name ?? undefined,
         hNumber: product.hNumber || undefined,
         maximumWattage: primarySpec?.maximumWattage ?? undefined,
         mainMaterial: primarySpec?.mainMaterial ?? undefined,

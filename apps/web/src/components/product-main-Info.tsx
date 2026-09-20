@@ -10,6 +10,8 @@ import DiscountPrice from "@/components/discount-price"
 import NormalPrice from "@/components/normal-price"
 import ProductBulbButtons from "@/components/product-bulb-buttons"
 import type { BulbChoice } from "@repo/catalog/bulb-pricing"
+import { useProductDescription } from "@/lib/use-product-description"
+import type { LocalizedSpecGroup } from "@/lib/specs-view"
 import ProductColorTempButtons from "@/components/product-color-temp-buttons"
 import ProductIPButtons from "@/components/product-ip-buttons"
 import { QuantitySelector } from "@/components/quantity-selector"
@@ -54,6 +56,10 @@ interface ProductMainInfoProps {
   hNumber?: number
   /** Priced for this fixture's arms; empty when it has none. */
   bulbChoices?: BulbChoice[]
+  /** The structured specs, localized — what the description is built from. */
+  specGroups?: LocalizedSpecGroup[]
+  /** The lighting type's name in this locale, for the opening clause. */
+  lightingTypeName?: string
   configuration?: Configuration
   ip?: PrismaProductIP
   /** The fixture's own rating — the floor the customer upgrades from. */
@@ -91,6 +97,8 @@ export default function ProductMainInfo({
   Brand,
   hNumber,
   bulbChoices = [],
+  specGroups,
+  lightingTypeName,
   configuration: initialConfiguration,
   ip,
   baseIp,
@@ -113,8 +121,6 @@ export default function ProductMainInfo({
   lampBase,
 }: ProductMainInfoProps) {
   const t = useTranslations("product-main-info")
-  const tDescription = useTranslations("product-descriptions")
-  const tFullDescription = useTranslations("product-fullDescriptions")
   const tNotification = useTranslations("product-notifications")
   const tDialog = useTranslations("product-dialog")
   const router = useRouter()
@@ -332,75 +338,29 @@ export default function ProductMainInfo({
     })
   }, [isSignedIn, currentQuantity, productId, tNotification, productName])
 
-  const createProductDescription = useCallback((): string => {
-    const params = {
-      Brand, brand: Brand,
-      wattage: maximumWattage ?? "",
-      material: mainMaterial ?? "N/A",
-      luminousFlux: luminousFlux ?? "N/A",
-      beamAngle: beamAngle ?? "N/A",
-      ip: ip ?? "N/A",
-      spotlightType,
-      colorTemperature: colorTemperature ?? "N/A",
-      finish: finish ?? "N/A",
-      totalWattage: (hNumber || 0) * 12,
-      hNumber: hNumber ?? 0,
-      lampBase: lampBase ?? "N/A",
-    }
-    if (Brand === "balcom")
-      return sectionType === "INDOOR"
-        ? tDescription("balcomIndoor", params)
-        : tDescription("balcomOutdoor", params)
-    if (Brand === "mister-led" && sectionType === "CHANDELIER")
-      return chandelierLightingType === "LED"
-        ? tDescription("misterLedChandelierLED", params)
-        : tDescription("misterLedChandelierLamp", params)
-    return ""
-  }, [Brand, sectionType, chandelierLightingType, maximumWattage, mainMaterial,
-    luminousFlux, beamAngle, ip, spotlightType, colorTemperature, finish,
-    hNumber, lampBase, tDescription])
-
-  const createProductDescriptionFull = useCallback((): string => {
-    const params = {
-      Brand, brand: Brand,
-      wattage: maximumWattage ?? 0,
-      material: mainMaterial ?? "N/A",
-      luminousFlux: luminousFlux ?? "N/A",
-      beamAngle: beamAngle ?? "N/A",
-      colorTemperature: colorTemperature ?? "N/A",
-      lifeTime: lifeTime ?? "N/A",
-      energySaving: energySaving ?? "N/A",
-      cri: cri ?? "N/A",
-      ip: ip ?? "N/A",
-      brandOfLed: brandOfLed ?? "N/A",
-      electrical: electrical ?? "N/A",
-      spotlightType,
-      finish: finish ?? "N/A",
-      input: input ?? "N/A",
-      totalWattage: (hNumber || 0) * 12,
-      hNumber: hNumber ?? 0,
-      lampBase: lampBase ?? "N/A",
-    }
-    if (Brand === "balcom")
-      return sectionType === "INDOOR"
-        ? tFullDescription("balcomIndoor", params)
-        : tFullDescription("balcomOutdoor", params)
-    if (Brand === "mister-led" && sectionType === "CHANDELIER")
-      return chandelierLightingType === "LED"
-        ? tFullDescription("misterLedChandelierLED", params)
-        : tFullDescription("misterLedChandelierLamp", params)
-    return ""
-  }, [Brand, sectionType, chandelierLightingType, maximumWattage, mainMaterial,
-    luminousFlux, beamAngle, colorTemperature, lifeTime, energySaving, cri,
-    ip, brandOfLed, electrical, spotlightType, finish, input, hNumber,
-    lampBase, tFullDescription])
+  // One generated description, built from what the catalogue records about
+  // this product — see @repo/catalog/describe. The three hand-branched
+  // builders it replaces disagreed with each other, read the legacy spec
+  // columns, and stated a 12 W bulb that is a row now.
+  const describable = useMemo(
+    () => ({
+      family: sectionType,
+      lightingTypeName,
+      hNumber,
+      bulbChoices,
+      specGroups,
+    }),
+    [sectionType, lightingTypeName, hNumber, bulbChoices, specGroups]
+  )
+  const shortDescription = useProductDescription(describable, "short")
+  const fullDescription = useProductDescription(describable, "full")
 
   return (
     <div className="md:ml-7 ml-0">
       <div className="space-y-4">
         <h1 className="text-2xl lg:text-3xl font-bold uppercase tracking-tight">{productName}</h1>
         <p className="text-muted-foreground text-sm md:text-base lg:text-lg leading-relaxed">
-          {createProductDescription()}
+          {shortDescription}
         </p>
       </div>
 
@@ -518,7 +478,7 @@ export default function ProductMainInfo({
 
       <div className="mt-8 mb-20 md:mb-0">
         <h2 className="text-xl font-semibold mb-4">{t("description")}</h2>
-        <p className="text-muted-foreground leading-relaxed text-base">{createProductDescriptionFull()}</p>
+        <p className="text-muted-foreground leading-relaxed text-base">{fullDescription}</p>
       </div>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>

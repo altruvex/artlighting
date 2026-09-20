@@ -260,14 +260,7 @@
     },
     "product-card": {
         "moreDetails": "تفاصيل أكثر",
-        "addToCart": "أضف للسلة",
-        "descriptions": {
-            "chandelier": "نجفة أنيقة مصنوعة من {material} بقاعدة {base} وقدرة إضاءة {wattage} وات. تحتوي على {hNumber} أذرع يمكن تركيب لمبات 12 وات أو 9 وات عليها.",
-            "indoorSpotlight": "كشاف إضاءة داخلي مصنوع من {material} بزاوية إضاءة {beamAngle} وبقدرة {wattage} وات",
-            "outdoorSpotlight": "كشاف إضاءة خارجي نوع {spotlightType} بقدرة {wattage} وات مقاوم للعوامل الجوية",
-            "ledChandelier": "نجف ليد حديثة من {material} بقدرة إضاءة {wattage} وات مع توفير عالي للطاقة",
-            "default": "منتج إضاءة عالي الجودة - {productName}"
-        }
+        "addToCart": "أضف للسلة"
     },
     "common": {
         "fastShipping": "شحن سريع",
@@ -307,17 +300,35 @@
         "processingOrder": "جاري معالجة الطلب...",
         "off": "خصم"
     },
-    "product-descriptions": {
-        "balcomIndoor": "ارفع مستوى مساحتك الداخلية مع مصباح ليد بقوة {wattage} وات من {Brand}. مصنوع من {material} عالي الجودة، يوفر هذا المصباح عالي الأداء {luminousFlux} إضاءة، زاوية شعاع {beamAngle}.",
-        "balcomOutdoor": "أضيء منطقتك الخارجية مع تركيبة إضاءة {spotlightType} بقوة {wattage} وات من {Brand}. مبنية لتحمل العوامل الجوية بتصنيف مقاوم للماء IP{ip} وبناء {material} متين، توفر هذه التركيبة {luminousFlux} إضاءة و{beamAngle} انتشار شعاع. استمتع بـ {colorTemperature}",
-        "misterLedChandelierLED": "حول مساحتك مع هذا الثريا الأنيقة ليد بقوة {wattage} وات من {Brand}. تتميز بلمسة نهائية {finish} أنيقة ومصنوعة من {material}، تجمع هذه التركيبة الحديثة بين الأناقة و تقنيات ليد الموفرة للطاقة.",
-        "misterLedChandelierLamp": "عزز ديكورك الداخلي مع هذه الثريا المذهلة من {Brand}، مصممة بـ {totalWattage} وات مصابيح أنيقة - العدد: {hNumber} مع حاملات مصابيح 12W. مصنوعة بشكل جميل من {material} مع لمسة نهائية {finish} راقية، تتيح لك هذه التركيبة المرنة تخصيص تجربة الإضاءة مع مصابيح {lampBase}."
-    },
-    "product-fullDescriptions": {
-        "balcomIndoor": "ارفع مستوى مساحتك الداخلية مع مصباح ليد بقوة {wattage} وات من {Brand}. مصنوع من {material} عالي الجودة، يوفر هذا المصباح عالي الأداء {luminousFlux} لومن من السطوع، زاوية شعاع {beamAngle} درجة، و{colorTemperature} قابل للتعديل. استمتع بما يصل إلى {lifeTime} ساعة من الأداء الموثوق، وفر {energySaving} على فواتير الطاقة، واستمتع بعرض ألوان استثنائي مع CRI بقيمة {cri}. مصمم لبيئات مصنفة IP{ip}، يتميز هذا المصباح بمصابيح ليد من {brandOfLed} و{electrical} للكفاءة المثلى.",
-        "balcomOutdoor": "أضيء منطقتك الخارجية مع تركيبة إضاءة {spotlightType} بقوة {wattage} وات من {Brand}. مبنية لتحمل العوامل الجوية بتصنيف مقاوم للماء IP{ip} وبناء {material} متين، توفر هذه التركيبة  {luminousFlux}  لومن من السطوع و{beamAngle} درجة انتشار شعاع. استمتع بدرجة حرارة لون {colorTemperature}، {lifeTime} ساعة من الأداء طويل المدى، و{energySaving} كفاءة في الطاقة. مجهزة بمصابيح ليد من {brandOfLed} و{electrical}، توفر هذه التركيبة إضاءة موثوقة لأي بيئة خارجية.",
-        "misterLedChandelierLED": "حول مساحتك مع هذه الثريا الأنيقة ليد بقوة {wattage} وات من {Brand}. تتميز بلمسة نهائية {finish} أنيقة ومصنوعة بإتقان من {material}، تجمع هذه التركيبة الحديثة بين الأناقة الخالدة وتقنية ليد المتطورة. تعمل بـ {input}، وتوفر خيارات إضاءة مرنة مع درجات حرارة ألوان قابلة للتعديل من {colorTemperature}. مع عمر افتراضي مثير للإعجاب يبلغ {lifeTime} ساعة، توفر هذه الثريا إضاءة طويلة الأمد وخالية من الصيانة مع إضافة لمسة من الفخامة إلى مساحتك.",
-        "misterLedChandelierLamp": "عزز ديكورك الداخلي مع هذه الثريا المذهلة من {Brand}، مصممة بعناية بـ {totalWattage} وات مصابيح - العدد: {hNumber} مع {hNumber} حاملات مصابيح أنيقة بقوة 12W. مصنوعة بشكل جميل من {material} مع لمسة نهائية {finish} راقية، تتيح لك هذه التركيبة المرنة تخصيص تجربة الإضاءة مع مصابيح {lampBase}. تعمل بـ {input}، وتدعم درجات حرارة ألوان متنوعة ({colorTemperature}) لتناسب مزاجك وديكورك. البناء المتين للثريا والتصميم الخالد يجعلانها قطعة مركزية مثالية لغرفة المعيشة أو غرفة الطعام أو المدخل. مرونة التصميم تتيح لك اختيار المصابيح المفضلة لديك (غير مشمولة) للحصول على إضاءة شخصية."
+    "product-description": {
+        "fixture": "وحدة إضاءة",
+        "join": "، ",
+        "end": ".",
+        "opening": {
+            "INDOOR": "{type} للإضاءة الداخلية",
+            "OUTDOOR": "{type} للإضاءة الخارجية",
+            "CHANDELIER": "{type}"
+        },
+        "openingWithWattage": {
+            "INDOOR": "{type} للإضاءة الداخلية بقدرة {wattage}",
+            "OUTDOOR": "{type} للإضاءة الخارجية بقدرة {wattage}",
+            "CHANDELIER": "{type} بقدرة {wattage}"
+        },
+        "clause": {
+            "material": "من {material}",
+            "arms": "{count, plural, one{بذراع واحد} two{بذراعين} few{بـ{countText} أذرع} many{بـ{countText} ذراعًا} other{بـ{countText} ذراع}}",
+            "armsWithBulb": "{count, plural, one{بذراع واحد} two{بذراعين} few{بـ{countText} أذرع} many{بـ{countText} ذراعًا} other{بـ{countText} ذراع}} تركّب فيها لمبات {bulb} {wattageText} وات",
+            "lampBase": "بقواعد {base}",
+            "finish": "بتشطيب {finish}",
+            "luminousFlux": "بتدفق ضوئي {flux}",
+            "beamAngle": "بزاوية شعاع {angle}",
+            "colorTemperature": "عند {temperature}",
+            "cri": "بمعامل تجسيد ألوان {cri}",
+            "ip": "بتصنيف حماية IP{ip}",
+            "lifeTime": "بعمر تشغيلي {hours}",
+            "input": "بمدخل {input}",
+            "energySaving": "بتوفير {saving} من الطاقة"
+        }
     },
     "product-notifications": {
         "signInRequired": "يرجى تسجيل الدخول لإضافة عناصر إلى سلة التسوق.",

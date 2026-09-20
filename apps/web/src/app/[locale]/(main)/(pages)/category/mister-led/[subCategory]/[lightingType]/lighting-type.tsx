@@ -32,6 +32,12 @@ const transformProductForCard = (product: LocalizedProduct, locale: SupportedLan
     spotlightType: product.spotlightType,
     hNumber: product.hNumber,
     chandelierLightingType: product.chandelierLightingType,
+    // The card's description is generated from these; see
+    // @repo/catalog/describe. The invented fallbacks below feed only the
+    // legacy spec shape the card no longer reads for its prose.
+    specGroups: product.specGroups,
+    lightingTypeName: product.lightingtype?.translations?.[0]?.name ?? product.lightingtype?.name ?? undefined,
+    bulbChoices: product.bulbChoices ?? [],
     specifications: product.specifications ? [product.specifications] : [{
       language: locale,
       maximumWattage: product.maximumWattage ||

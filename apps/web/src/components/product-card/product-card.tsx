@@ -2,6 +2,9 @@
 
 import { addToCart } from "@/actions/cart";
 import type { ProductFamily } from "@repo/catalog/families";
+import type { BulbChoice } from "@repo/catalog/bulb-pricing";
+import type { LocalizedSpecGroup } from "@/lib/specs-view";
+import { useProductDescription } from "@/lib/use-product-description";
 import NormalPrice from "@/components/normal-price";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,6 +45,12 @@ interface Product {
     name?: string;
     description?: string;
   };
+  /** The structured specs, localized — what the description is built from. */
+  specGroups?: LocalizedSpecGroup[];
+  /** The lighting type's name in this locale, for the opening clause. */
+  lightingTypeName?: string;
+  /** What the fixture is sold with, so the bulb clause states the real one. */
+  bulbChoices?: BulbChoice[];
   specifications?: Array<{
     maximumWattage?: string;
     mainMaterial?: string;
@@ -68,6 +77,20 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
   const tToast = useTranslations('toast');
 
   const { direction, isRTL } = useTextDirection(locale);
+
+  // Generated from this product's own specs — the same generator the
+  // product page uses, so a card and the page it links to cannot say
+  // different things about the same fixture.
+  const description = useProductDescription(
+    {
+      family: product.sectionType,
+      lightingTypeName: product.lightingTypeName,
+      hNumber: product.hNumber,
+      bulbChoices: product.bulbChoices,
+      specGroups: product.specGroups,
+    },
+    "short"
+  );
 
   const displayName = useMemo(() => {
     return product.translations?.name || product.productName;
@@ -98,57 +121,6 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
     });
   };
 
-  function createLocalizedProductDescription(): string {
-    if (product.translations?.description) {
-      return product.translations.description ?? "";
-    }
-
-    const specs = product.specifications?.[0] || {};
-
-    const mainMaterial = safeString(specs.mainMaterial || product.mainMaterial);
-    const lampBase = safeString(specs.lampBase || product.lampBase);
-    const beamAngle = safeString(specs.beamAngle || product.beamAngle);
-    const maximumWattage = safeString(specs.maximumWattage || product.maximumWattage);
-    const spotlightType = safeString(product.spotlightType);
-    const hNumberCha = safeString(product.hNumber?.toString());
-
-    const calculatedWattage = product.hNumber ? product.hNumber * 12 : 0;
-
-    if (product.brand === "mister-led" && product.chandelierLightingType === "lamp") {
-      return t('descriptions.chandelier', {
-        material: mainMaterial,
-        
-        base: lampBase,
-        wattage: calculatedWattage || safeString(maximumWattage),
-        hNumber: hNumberCha
-      });
-    }
-
-    if (product.brand === "balcom" &&
-      product.sectionType === "INDOOR") {
-      return t('descriptions.indoorSpotlight', {
-        material: mainMaterial,
-        beamAngle: beamAngle,
-        wattage: maximumWattage,
-      });
-    }
-
-    if (product.brand === "balcom" &&
-      product.sectionType === "OUTDOOR") {
-      return t('descriptions.outdoorSpotlight', {
-        spotlightType: spotlightType,
-        wattage: maximumWattage,
-      });
-    }
-    if (product.brand === "mister-led" && product.chandelierLightingType === "LED") {
-      return t('descriptions.ledChandelier', {
-        material: mainMaterial,
-        wattage: maximumWattage,
-      });
-    }
-
-    return t('descriptions.default', { productName: displayName });
-  }
 
   return (
     <div className="relative p-2.5 select-none">
@@ -232,8 +204,10 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
           <h2 className="text-lg uppercase mt-2.5 text-foreground text-left rtl:text-right font-medium">
             {displayName}
           </h2>
-          <p className="text-sm text-muted-foreground font-normal capitalize text-left rtl:text-right">
-            {createLocalizedProductDescription()}
+          {/* No `capitalize`: this is a sentence now, and Title Casing it
+              turned "putting out 2,500 lm" into "Putting Out 2,500 Lm". */}
+          <p className="text-sm text-muted-foreground font-normal text-left rtl:text-right">
+            {description}
           </p>
           <div>
             <div className="font-medium text-lg mt-[5] mx-0 mb-0 text-left rtl:text-right">

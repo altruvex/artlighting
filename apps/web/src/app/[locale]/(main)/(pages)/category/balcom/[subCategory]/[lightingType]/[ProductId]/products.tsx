@@ -223,6 +223,11 @@ export default function BalcomProducts({
       Brand: relatedProduct.brand,
       brand: relatedProduct.brand,
       chandelierLightingType: relatedProduct.chandelierLightingType || "",
+      // The related card's description comes from these, the same way the
+      // page above it builds its own; see @repo/catalog/describe.
+      specGroups: relatedProduct.specGroups,
+      lightingTypeName: relatedProduct.lightingtype?.translations?.[0]?.name ?? relatedProduct.lightingtype?.name ?? undefined,
+      bulbChoices: relatedProduct.bulbChoices ?? [],
       sectionType: relatedProduct.sectionType,
       specification: mockSpecification,
       maximumWattage: parseLocalizedInt(specs.maximumWattage) ?? relatedProduct.maximumWattage ?? undefined,
@@ -265,6 +270,8 @@ export default function BalcomProducts({
                 chandelierLightingType=""
                 hNumber={undefined}
                 bulbChoices={product.bulbChoices ?? []}
+                specGroups={product.specGroups}
+                lightingTypeName={product.lightingtype?.translations?.[0]?.name ?? product.lightingtype?.name ?? undefined}
                 configuration={configuration}
                 sectionTypes={[product.sectionType]}
                 sectionType={product.sectionType}

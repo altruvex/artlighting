@@ -1,6 +1,8 @@
 import type { LocalizedCategory, LocalizedProduct, SectionType, SupportedLanguage } from "@/types/products";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { availableFrom, inventorySelect, productDiscountRates, type ProductFamily } from "@repo/catalog";
+import { availableFrom, inventorySelect, productBulbSelect, productDiscountRates, type ProductFamily } from "@repo/catalog";
+import { bulbChoices } from "@repo/catalog/bulb-pricing";
+import { localizeSpecGroups, specGroupSelect } from "@/lib/spec-groups";
 import { serializeMoney, serializeRate } from "@repo/money";
 import { prisma } from "@repo/database";
 import { CacheService, CacheTTL } from "@/lib/cache/redis.service";
@@ -241,6 +243,12 @@ export class I18nService {
                 images: productImageSelect(),
                 // What a customer can buy: on hand minus what is promised.
                 variants: { where: { isDefault: true }, select: { inventory: inventorySelect() }, take: 1 },
+                // A card's description is generated from these; see
+                // @repo/catalog/describe. Without them it opens with a
+                // generic noun and says nothing about the fixture.
+                specGroups: specGroupSelect(language),
+                bulbs: productBulbSelect(),
+                lightingtype: { include: { translations: { where: { language }, take: 1 } } },
             };
 
             // OPTIMIZED: Parallel queries
@@ -284,6 +292,9 @@ export class I18nService {
                     maxIP: product.maxIP ?? undefined,
                     hNumber: product.hNumber ?? undefined,
                     chandelierLightingType: product.chandelierLightingType ?? undefined,
+                    specGroups: localizeSpecGroups(product.specGroups ?? [], language),
+                    bulbChoices: bulbChoices(product.bulbs, product.hNumber, language),
+                    lightingtype: product.lightingtype as never,
                     productColor: product.productColor ?? undefined,
                     productIp: product.productIp ?? undefined,
                     productChandLamp: product.productChandLamp ?? undefined,

@@ -231,6 +231,12 @@ export interface LocalizedProduct {
   maxIP?: number;
   hNumber?: number;
   chandelierLightingType?: string;
+  /** The structured specs, localized — what the description is built from. */
+  specGroups?: LocalizedSpecGroup[];
+  /** What the fixture is sold with, so the bulb clause states the real one. */
+  bulbChoices?: BulbChoice[];
+  /** The service sets this spelling — see transformToLocalizedProduct. */
+  lightingtype?: LightingType;
   productColor?: string;
   productIp?: string;
   productChandLamp?: string;
@@ -275,6 +281,8 @@ export interface LocalizedProduct {
 export interface LocalizedProductWithRelations extends BaseProduct {
   category: Category
   lightingType: LightingType
+  /** What the service actually sets; lightingType above is aspirational. */
+  lightingtype?: LightingType
   specifications: ProductSpecification[]
   translations: ProductTranslation[]
   localizedSpecs?: LocalizedSpecs
@@ -305,6 +313,11 @@ export interface ProductCardProps {
   sectionType: ProductFamily
   chandelierLightingType?: string
   hNumber?: number
+  /** The structured specs, localized — what the description is built from. */
+  specGroups?: LocalizedSpecGroup[]
+  /** What the fixture is sold with, so the bulb clause states the real one. */
+  bulbChoices?: BulbChoice[]
+  lightingTypeName?: string
   specification?: ProductSpecification
   maximumWattage?: number
   mainMaterial?: string

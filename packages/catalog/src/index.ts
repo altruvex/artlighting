@@ -1,5 +1,6 @@
 export * from "./families";
 export * from "./bulb-pricing";
+export * from "./describe";
 export * from "./schemas";
 export * from "./inventory";
 export * from "./bulbs";

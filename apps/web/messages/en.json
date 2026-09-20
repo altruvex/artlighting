@@ -470,14 +470,7 @@
     },
     "product-card": {
         "moreDetails": "More Details",
-        "addToCart": "Add to Cart",
-        "descriptions": {
-            "chandelier": "Elegant {material} chandelier with a {base} base, featuring {hNumber} arms designed for interchangeable 9W or 12W bulbs.",
-            "indoorSpotlight": "Indoor spotlight made of {material} with {beamAngle} lighting angle and {wattage}W power",
-            "outdoorSpotlight": "Outdoor {spotlightType} spotlight with {wattage}W power, weather-resistant",
-            "ledChandelier": "Modern LED chandelier made of {material} with {wattage}W lighting power and high energy efficiency",
-            "default": "High-quality lighting product - {productName}"
-        }
+        "addToCart": "Add to Cart"
     },
     "common": {
         "fastShipping": "Fast Shipping",
@@ -517,17 +510,35 @@
         "processingOrder": "Processing Order...",
         "off": "OFF"
     },
-    "product-descriptions": {
-        "balcomIndoor": "Elevate your indoor space with the {Brand} {wattage}W LED luminaire. Crafted with premium {material}, this high-performance light offers {luminousFlux} luminous output, {beamAngle} beam angle.",
-        "balcomOutdoor": "Illuminate your outdoor area with the {Brand} {wattage}W {spotlightType} lighting fixture. Built to withstand the elements with its IP{ip} weatherproof rating and durable {material} construction, this fixture delivers {luminousFlux} luminous output and {beamAngle} beam spread. Experience {colorTemperature}",
-        "misterLedChandelierLED": "Transform your space with this elegant {Brand} {wattage}W LED chandelier. Featuring a sophisticated {finish} finish and crafted from {material}, this modern fixture combines style with energy-efficient LED technology.",
-        "misterLedChandelierLamp": "Enhance your interior with this stunning {Brand} chandelier, designed with {totalWattage}w elegant Lamp counted: {hNumber} with 12W lamp holders. Beautifully crafted from {material} with a refined {finish} finish, this versatile fixture allows you to customize your lighting experience with {lampBase} bulbs."
-    },
-    "product-fullDescriptions": {
-        "balcomIndoor": "Elevate your indoor space with the {Brand} {wattage}W LED luminaire. Crafted with premium {material}, this high-performance light offers {luminousFlux} lumens of brightness, a {beamAngle} degree beam angle, and adjustable {colorTemperature}. Enjoy up to {lifeTime} hours of reliable performance, save {energySaving} on your energy bills, and experience exceptional color rendering with a CRI of {cri}. Designed for IP{ip} rated environments, this luminaire features {brandOfLed} LEDs and {electrical} for optimal efficiency.",
-        "balcomOutdoor": "Illuminate your outdoor area with the {Brand} {wattage}W {spotlightType} lighting fixture. Built to withstand the elements with its IP{ip} weatherproof rating and durable {material} construction, this fixture delivers {luminousFlux} lumens of brightness and a {beamAngle} degree beam spread. Experience {colorTemperature} color temperature, {lifeTime} hours of long-lasting performance, and {energySaving}% energy efficiency. Equipped with {brandOfLed} LEDs and {electrical}, this fixture provides reliable lighting for any outdoor setting.",
-        "misterLedChandelierLED": "Transform your space with this elegant {Brand} {wattage}W LED chandelier. Featuring a sophisticated {finish} finish and masterfully crafted from {material}, this modern fixture combines timeless style with cutting-edge LED technology. Operating at {input}, it offers flexible lighting options with adjustable color temperatures of {colorTemperature}. With an impressive lifespan of {lifeTime} hours, this chandelier provides long-lasting, maintenance-free illumination while adding a touch of luxury to your space.",
-        "misterLedChandelierLamp": "Enhance your interior with this stunning {Brand} chandelier, thoughtfully designed with {totalWattage}w Lamp counted: {hNumber} with 12W lamp elegant lamp holders. Beautifully crafted from {material} with a refined {finish} finish, this versatile fixture allows you to customize your lighting experience with {lampBase} bulbs. Operating at {input}, it supports various color temperatures ({colorTemperature}) to suit your mood and decor. The chandelier's durable construction and timeless design make it a perfect centerpiece for your living space, dining room, or entryway. Design flexibility allows you to choose your preferred bulbs (not included) for personalized illumination."
+    "product-description": {
+        "fixture": "light fixture",
+        "join": ", ",
+        "end": ".",
+        "opening": {
+            "INDOOR": "An indoor {type}",
+            "OUTDOOR": "An outdoor {type}",
+            "CHANDELIER": "A {type}"
+        },
+        "openingWithWattage": {
+            "INDOOR": "A {wattage} indoor {type}",
+            "OUTDOOR": "A {wattage} outdoor {type}",
+            "CHANDELIER": "A {wattage} {type}"
+        },
+        "clause": {
+            "material": "built in {material}",
+            "arms": "with {count, plural, one{one arm} other{{countText} arms}}",
+            "armsWithBulb": "with {count, plural, one{one arm} other{{countText} arms}} taking {bulb} {wattageText} W bulbs",
+            "lampBase": "on {base} sockets",
+            "finish": "finished in {finish}",
+            "luminousFlux": "putting out {flux}",
+            "beamAngle": "over a {angle} beam",
+            "colorTemperature": "at {temperature}",
+            "cri": "rendering colour at CRI {cri}",
+            "ip": "rated IP{ip}",
+            "lifeTime": "rated for {hours} of use",
+            "input": "running on {input}",
+            "energySaving": "saving {saving} of the energy"
+        }
     },
     "product-notifications": {
         "signInRequired": "Please sign in to add items to your cart.",

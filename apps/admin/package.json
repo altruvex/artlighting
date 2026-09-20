@@ -33,6 +33,7 @@
     "cloudinary": "^2.11.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "exceljs": "^4.4.0",
     "lucide-react": "^0.525.0",
     "next": "catalog:",
     "next-intl": "catalog:",

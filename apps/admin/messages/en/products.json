@@ -259,7 +259,8 @@
       "invalidType": "Only JPEG, PNG, WEBP, or AVIF images are allowed",
       "tooLarge": "Image must be under 8MB",
       "uploadNotConfigured": "Image uploads are not configured on this environment.",
-      "uploadFailed": "Upload failed. Please try again."
+      "uploadFailed": "Upload failed. Please try again.",
+      "tooManyRows": "That sheet has more than {max} rows. Split it and import in parts."
     }
   },
   "BulkDatasheet": {

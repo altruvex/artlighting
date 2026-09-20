@@ -259,7 +259,8 @@
       "invalidType": "يُسمح فقط بصور JPEG أو PNG أو WEBP أو AVIF",
       "tooLarge": "يجب ألا يتجاوز حجم الصورة 8MB",
       "uploadNotConfigured": "رفع الصور غير مُهيأ في هذه البيئة.",
-      "uploadFailed": "فشل الرفع. حاول مرة أخرى."
+      "uploadFailed": "فشل الرفع. حاول مرة أخرى.",
+      "tooManyRows": "الملف يحتوي على أكثر من {max} صف. قسّمه واستورده على مراحل."
     }
   },
   "BulkDatasheet": {

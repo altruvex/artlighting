@@ -8,7 +8,7 @@ import { getLocaleFromParams, getServerI18n } from "@/lib/i18n/utils"
 import { PagePropsTypes } from "@/types"
 import { prisma } from "@repo/database"
 import type { Metadata } from "next"
-import { notFound } from "next/navigation"
+import { notFound, unstable_rethrow } from "next/navigation"
 import Preview, { type ProductWithSpecs } from "./preview"
 
 const Page = async ({ params, searchParams }: PagePropsTypes) => {
@@ -232,9 +232,15 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
       />
     )
   } catch (error) {
+    // notFound() works by throwing, so it lands here too. Let the interrupt
+    // through untouched — see lib/attempt for what catching it costs.
+    unstable_rethrow(error)
+    // Everything else is a 500. Answering a database blip with "this product
+    // does not exist" tells the customer the wrong thing and asks Google to
+    // drop a page that is fine.
     console.error("Error loading preview data:", error)
     console.error("Stack trace:", error instanceof Error ? error.stack : "Unknown error")
-    return notFound()
+    throw error
   }
 }
 

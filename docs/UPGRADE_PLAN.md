@@ -149,6 +149,67 @@ products, 118 variants, and:
 So **the Excel import can match on `productId` (= SKU) directly**, with a
 case-insensitive lookup and no disambiguation step.
 
+### Phase 2 outcome (2026-09-20)
+All on the Neon `dev` branch; production untouched; nothing pushed.
+
+**Two migrations**, SQL shown before applying:
+- `20260920140000_money_and_rates_to_decimal` — D3, above.
+- `20260920160000_catalog_pricing_status_and_spec_groups` — §3.3, entirely
+  additive. compareAtPrice/cost on product and variant, `ProductVariant.price`
+  (replacing priceOverride), `Product.status` (DRAFT|ACTIVE|ARCHIVED) and
+  `lowStockThreshold`, ProductImage width/height/format/bytes, and
+  SpecGroup/SpecItem with per-language translations. The status derivation runs
+  **inside** the migration, not as a separate backfill, so no row is ever
+  briefly wrong — verified: 117 ACTIVE, 1 ARCHIVED, 0 disagreements.
+
+**`@repo/catalog`** is now the one product domain service: zod validation over
+strings, price changes through the audited path, bulk pricing, the Excel
+round-trip, and the stock sync **inside the caller's transaction**. Stock's
+source of truth is the default variant; `Product.quantity` is a mirror kept in
+step there rather than in whichever action remembered to.
+
+**Three backfills**, each idempotent, dry-run-first, production-guarded, and
+refusing to run with no flag at all: `backfill:stock`, `backfill:images`
+(deterministic `products/<sku>/<order>` public_ids), `backfill:specs` (403
+groups, 1,311 items on dev; a second run produces identical counts).
+
+**Signed direct Cloudinary uploads** replace base64-through-a-Server-Action.
+Only the `public_id` returns; the server re-reads the asset from Cloudinary,
+so a forged URL cannot reach a product page.
+
+**The storefront reads `ProductImage` and variant stock**, not
+`productImages[]`/`quantity`. Both sources hold the same URLs today, so this
+changed nothing visible — proved by flipping `isPrimary` on dev and watching
+the render order follow.
+
+**Admin UI**: bulk price editing (in the table's existing selection bar) and
+Excel import/export with a dry-run preview. Neither writes on one click.
+
+#### Bugs found and fixed on the way
+| bug | consequence |
+|---|---|
+| cart computed `price * qty * (1 - discount / 100)` on a rate | charged **0.13%** instead of 13% |
+| several components guessed `discount > 1 ? d / 100 : d` | a 1.5% rate became **150%** |
+| `product.updatePrice` compared Decimals with `!==` | compares identity, so a PriceHistory row on every save |
+| view models typed money as `MoneyInput` | `MoneyInput` accepts a Decimal, so unserialized rows compiled and failed at runtime; the Arabic product page never finished rendering |
+| `guestToken` in the preview page payload | the httpOnly cookie was being handed to page scripts anyway |
+| `applyBulkPrice` dropped ids with no product | a selection of ten could price eight and report success |
+| `runInTransaction` probed with `"$transaction" in db` | the client is a Proxy with only a `get` trap, so every write ran unwrapped |
+| `parseInt` on Arabic-Indic spec values | every Arabic product page read "بقدرة NaN وات" |
+
+#### Still open, needing Ali
+- **The image backfill has not been applied.** Its apply path writes 174 assets
+  to the one shared Cloudinary account whichever database is pointed at. It was
+  verified end-to-end on dev under a `dev/` prefix and those test assets
+  destroyed. Say the word and it runs for real.
+- **`mc1608-w1`** has a `ProductImage` row whose file is missing from
+  `apps/web/public`; the dry run reports it rather than failing.
+- **Arabic/English spec mismatch** predating this work: `jy-202-15w` reads
+  "٦٢٠ لومن/متر" in Arabic and "1320LM (3000k) / 1400LM (6500k)" in English.
+  Data, not code — not mine to guess at.
+- **The admin screens have not been looked at signed in.** Contrast and RTL
+  were measured statically; the flows need a session.
+
 ## Production rollout runbook
 
 Nothing below has run against production. Production receives exactly the

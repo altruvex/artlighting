@@ -405,7 +405,6 @@ model Product {
   priceIncrease          Decimal          @default(0) @db.Decimal(12, 2)
   sectionType            String // "indoor" | "outdoor" | "chandelier"
   brand                  String // "balcom" | "mister-led"
-  discount               Decimal          @default(0) @db.Decimal(5, 4)
   chandelierLightingType String? // "LED" | "lamp"
   hNumber                Int? // Number of heads/lights (chandeliers)
   isActive               Boolean          @default(true)
@@ -694,6 +693,7 @@ model Discount {
 
   products    DiscountProduct[]
   categories  DiscountCategory[]
+  families    DiscountFamily[]
   redemptions DiscountRedemption[]
 
   @@index([scope])
@@ -732,6 +732,18 @@ model DiscountCategory {
 
 /// One use of a discount on one order. This is what enforces the usage
 /// limits, and what answers "what did this promotion actually cost us".
+/// Which families a FAMILIES-scoped discount covers.
+model DiscountFamily {
+  discountId String
+  family     ProductFamily
+
+  discount Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+
+  @@id([discountId, family])
+  @@index([family])
+  @@map("discount_families")
+}
+
 model DiscountRedemption {
   id            String   @id @default(cuid())
   discountId    String
@@ -1087,6 +1099,17 @@ enum DiscountType {
   @@map("DiscountType")
 }
 
+/// The broad shelf a product sits on, mirroring `Product.sectionType`.
+///
+/// An enum here and a String there is a seam: `sectionType` should become
+/// this type too, in its own migration, and until it does `familyOf()` in
+/// @repo/catalog is the single place that maps between them.
+enum ProductFamily {
+  INDOOR
+  OUTDOOR
+  CHANDELIER
+}
+
 /// AUTOMATIC applies on its own; COUPON needs the customer to type a code.
 enum DiscountMode {
   AUTOMATIC
@@ -1098,6 +1121,10 @@ enum DiscountScope {
   PRODUCTS
   /// Applies to the lines whose product is in one of the categories.
   CATEGORIES
+  /// Applies to the lines whose product is in one of the families —
+  /// "every outdoor fixture", which no list of categories expresses as
+  /// directly.
+  FAMILIES
   /// Applies to the order total rather than to any line.
   CART
 

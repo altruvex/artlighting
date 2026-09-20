@@ -10,7 +10,8 @@ import type { MoneyInput } from "@repo/money";
 
 export type DiscountType = "PERCENTAGE" | "FIXED";
 export type DiscountMode = "AUTOMATIC" | "COUPON";
-export type DiscountScope = "PRODUCTS" | "CATEGORIES" | "CART";
+export type DiscountScope = "PRODUCTS" | "CATEGORIES" | "FAMILIES" | "CART";
+export type ProductFamily = "INDOOR" | "OUTDOOR" | "CHANDELIER";
 
 export interface CartLine {
   /** Stable per line, so a result can be matched back to its input. */
@@ -18,6 +19,8 @@ export interface CartLine {
   productId: string;
   /** Every category the product belongs to, for CATEGORIES-scoped discounts. */
   categoryIds: string[];
+  /** The product's family, for FAMILIES-scoped discounts. */
+  family?: ProductFamily | null;
   /** Serialized money — never a float. */
   unitPrice: MoneyInput;
   /** The struck-through "was" price, if any. Display only. */
@@ -49,6 +52,8 @@ export interface DiscountRule {
   productIds?: string[];
   /** CATEGORIES scope: the categories it covers. */
   categoryIds?: string[];
+  /** FAMILIES scope: the families it covers. */
+  families?: ProductFamily[];
 }
 
 export interface CustomerContext {

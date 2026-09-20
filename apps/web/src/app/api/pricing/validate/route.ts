@@ -57,10 +57,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get product to verify discount
+    // Only the price: the rate the order was quoted at is the snapshot on
+    // the configuration, not something read off the product row.
     const product = await prisma.product.findUnique({
       where: { id: configuration.productId },
-      select: { discount: true, price: true },
+      select: { price: true },
     });
 
     if (!product) {
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
       configuration.configPrice,
       configuration.totalPrice,
       actualQuantity,
-      product.discount || configuration.discount,
+      configuration.discount,
       configuration.shippingPrice
     );
 

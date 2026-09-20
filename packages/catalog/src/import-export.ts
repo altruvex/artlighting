@@ -2,6 +2,7 @@ import { money, serializeMoney, serializeRate } from "@repo/money";
 import { prisma, type Db } from "./client";
 import { type ImportRow, importRowSchema } from "./schemas";
 import { availableFrom, inventorySelect, setCountedStock } from "./inventory";
+import { productDiscountRates } from "./discounts";
 
 /**
  * Excel round-trip for the catalogue.
@@ -44,11 +45,15 @@ export async function exportProducts(
   const products = await db.product.findMany({
     where,
     select: {
+      id: true,
       productId: true,
       productName: true,
       brand: true,
       price: true,
-      discount: true,
+      // The engine reads these to decide what applies.
+      categoryId: true,
+      lightingtypeId: true,
+      sectionType: true,
       isActive: true,
       featured: true,
       translations: { select: { language: true, name: true, description: true } },
@@ -56,6 +61,8 @@ export async function exportProducts(
     },
     orderBy: { productId: "asc" },
   });
+
+  const rates = await productDiscountRates(products, db);
 
   return products.map((product) => {
     const byLanguage = new Map(product.translations.map((t) => [t.language, t]));
@@ -69,7 +76,7 @@ export async function exportProducts(
       // Money as a string, so Excel shows what the database holds rather
       // than a float's nearest representation.
       price: serializeMoney(product.price),
-      discount: serializeRate(product.discount),
+      discount: rates[product.id] ?? serializeRate(0),
       // Sellable units from the inventory ledger — the figure an import
       // then writes back through a counted adjustment.
       stock: availableFrom(product.variants[0]?.inventory),
@@ -145,14 +152,19 @@ export async function planImport(rawRows: unknown[], db: Db = prisma): Promise<I
       productName: true,
       brand: true,
       price: true,
-      discount: true,
       isActive: true,
       featured: true,
+      categoryId: true,
+      lightingtypeId: true,
+      sectionType: true,
       translations: { select: { language: true, name: true, description: true } },
       variants: { where: { isDefault: true }, select: { id: true, inventory: inventorySelect() }, take: 1 },
     },
   });
   const bySku = new Map(existing.map((product) => [product.productId, product]));
+  // The effective rates, so a sheet round-tripped unchanged does not look
+  // like it is trying to change the discount.
+  const rates = await productDiscountRates(existing, db);
 
   for (const entry of parsed) {
     if (!entry.row) {
@@ -206,8 +218,21 @@ export async function planImport(rawRows: unknown[], db: Db = prisma): Promise<I
     if (row.price !== undefined && !money(current.price).equals(row.price)) {
       changes.price = [serializeMoney(current.price), row.price];
     }
-    if (row.discount !== undefined && !money(current.discount).equals(row.discount)) {
-      changes.discount = [serializeRate(current.discount), row.discount];
+    // A discount is a Discount row now, not a column on the product: it
+    // carries a name, a window, a scope and limits that a spreadsheet cell
+    // cannot express. The export still shows the effective rate because it
+    // is useful to see, but a sheet that tries to change it is told where
+    // that decision actually lives rather than having the edit silently
+    // dropped.
+    if (row.discount !== undefined && !money(rates[current.id] ?? 0).equals(row.discount)) {
+      rows.push({
+        rowNumber: entry.rowNumber,
+        sku: row.sku,
+        action: "error",
+        changes: {},
+        errors: ["discount: discounts are managed on the discounts page, not in this sheet"],
+      });
+      continue;
     }
     if (row.stock !== undefined) note("stock", availableFrom(current.variants[0]?.inventory), row.stock);
     if (row.isActive !== undefined) note("isActive", current.isActive, row.isActive);
@@ -275,7 +300,6 @@ export async function applyImport(
         if (row.brand !== undefined) data.brand = row.brand;
         if (row.isActive !== undefined) data.isActive = row.isActive;
         if (row.featured !== undefined) data.featured = row.featured;
-        if (row.discount !== undefined) data.discount = row.discount;
         if (row.name_en !== undefined) data.productName = row.name_en;
 
         if (Object.keys(data).length > 0) {

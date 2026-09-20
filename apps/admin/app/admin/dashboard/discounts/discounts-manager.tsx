@@ -24,7 +24,10 @@ import { toast } from "sonner";
 
 export type DiscountType = "PERCENTAGE" | "FIXED";
 export type DiscountMode = "AUTOMATIC" | "COUPON";
-export type DiscountScope = "PRODUCTS" | "CATEGORIES" | "CART";
+export type DiscountScope = "PRODUCTS" | "CATEGORIES" | "FAMILIES" | "CART";
+export type ProductFamily = "INDOOR" | "OUTDOOR" | "CHANDELIER";
+
+const FAMILIES: ProductFamily[] = ["INDOOR", "OUTDOOR", "CHANDELIER"];
 
 export interface DiscountRow extends Record<string, unknown> {
   id: string;
@@ -49,10 +52,27 @@ export interface DiscountRow extends Record<string, unknown> {
   isActive: boolean;
   productIds: string[];
   categoryIds: string[];
+  families: ProductFamily[];
   targetNames: string[];
 }
 
 type Option = { id: string; label: string; sku?: string; isChild?: boolean };
+
+/**
+ * `datetime-local` speaks the browser's local time with no zone; a Date
+ * carries one. These two are the only place that conversion happens.
+ */
+function toLocalInput(value: Date | null | undefined): string {
+  if (!value) return "";
+  const local = new Date(value.getTime() - value.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
+function fromLocalInput(value: string): Date | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
 
 /** Derived, not stored: a stopped discount is not the same as an expired one. */
 function stateOf(row: DiscountRow, now: Date): { key: "active" | "scheduled" | "expired" | "stopped" | "usedUp"; tone: StatusTone } {
@@ -73,6 +93,7 @@ const BLANK: DiscountInput = {
   isActive: true,
   productIds: [],
   categoryIds: [],
+  families: [],
 };
 
 export function DiscountsManager({
@@ -126,6 +147,7 @@ export function DiscountsManager({
       isActive: row.isActive,
       productIds: row.productIds,
       categoryIds: row.categoryIds,
+      families: row.families,
     });
     // The admin thinks in percent; the engine takes a rate.
     setPercentInput(row.rate ? String(Number(row.rate) * 100) : "");
@@ -275,8 +297,14 @@ export function DiscountsManager({
     [t, format, locale, now, canWrite, isPending],
   );
 
-  const targetOptions = form.scope === "PRODUCTS" ? products : categories;
-  const selectedTargets = form.scope === "PRODUCTS" ? form.productIds : form.categoryIds;
+  const targetOptions: Option[] =
+    form.scope === "PRODUCTS"
+      ? products
+      : form.scope === "CATEGORIES"
+        ? categories
+        : FAMILIES.map((family) => ({ id: family, label: t(`family.${family}` as const) }));
+  const selectedTargets =
+    form.scope === "PRODUCTS" ? form.productIds : form.scope === "CATEGORIES" ? form.categoryIds : form.families;
 
   return (
     <div className="space-y-4">
@@ -484,6 +512,7 @@ export function DiscountsManager({
                 <SelectContent>
                   <SelectItem value="CART">{t("scope.CART")}</SelectItem>
                   <SelectItem value="PRODUCTS">{t("scope.PRODUCTS")}</SelectItem>
+                  <SelectItem value="FAMILIES">{t("scope.FAMILIES")}</SelectItem>
                   <SelectItem value="CATEGORIES">{t("scope.CATEGORIES")}</SelectItem>
                 </SelectContent>
               </Select>
@@ -492,7 +521,12 @@ export function DiscountsManager({
             {form.scope !== "CART" && (
               <fieldset className="space-y-2 sm:col-span-2">
                 <legend className="text-sm font-medium">
-                  {form.scope === "PRODUCTS" ? t("fields.products") : t("fields.categories")} *
+                  {form.scope === "PRODUCTS"
+                    ? t("fields.products")
+                    : form.scope === "FAMILIES"
+                      ? t("fields.families")
+                      : t("fields.categories")}{" "}
+                  *
                 </legend>
                 <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border p-2">
                   {targetOptions.map((option) => {
@@ -508,7 +542,9 @@ export function DiscountsManager({
                             setForm(
                               form.scope === "PRODUCTS"
                                 ? { ...form, productIds: ids }
-                                : { ...form, categoryIds: ids },
+                                : form.scope === "CATEGORIES"
+                                  ? { ...form, categoryIds: ids }
+                                  : { ...form, families: ids as ProductFamily[] },
                             );
                           }}
                         />
@@ -525,6 +561,34 @@ export function DiscountsManager({
                 </p>
               </fieldset>
             )}
+
+            {/*
+              The window the engine already honours. It was in the schema
+              and in computePricing from the start; leaving it out of the
+              form meant a scheduled promotion could not actually be
+              scheduled.
+            */}
+            <div className="space-y-1.5">
+              <Label htmlFor={`${fieldId}-starts`}>{t("fields.startsAt")}</Label>
+              <Input
+                id={`${fieldId}-starts`}
+                type="datetime-local"
+                value={toLocalInput(form.startsAt)}
+                onChange={(event) => setForm({ ...form, startsAt: fromLocalInput(event.target.value) })}
+                dir="ltr"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`${fieldId}-ends`}>{t("fields.endsAt")}</Label>
+              <Input
+                id={`${fieldId}-ends`}
+                type="datetime-local"
+                value={toLocalInput(form.endsAt)}
+                onChange={(event) => setForm({ ...form, endsAt: fromLocalInput(event.target.value) })}
+                dir="ltr"
+              />
+              <p className="text-xs text-muted-foreground">{t("fields.endsAtHint")}</p>
+            </div>
 
             <div className="space-y-1.5">
               <Label htmlFor={`${fieldId}-min`}>{t("fields.minOrder")}</Label>

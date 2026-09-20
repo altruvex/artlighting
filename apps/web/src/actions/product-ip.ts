@@ -24,7 +24,7 @@ export const updateProductIP = async ({
 
     const product = await prisma.product.findUnique({
       where: { productId: configuration.productId },
-      select: { price: true, discount: true, isActive: true },
+      select: { price: true, isActive: true },
     });
     if (!product || !product.isActive) {
       return { success: false, error: "Product not available" };

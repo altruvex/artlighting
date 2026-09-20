@@ -56,6 +56,10 @@ function matchingLines(rule: DiscountRule, lines: CartLine[]): CartLine[] {
       const ids = new Set(rule.categoryIds ?? []);
       return lines.filter((line) => line.categoryIds.some((id) => ids.has(id)));
     }
+    case "FAMILIES": {
+      const families = new Set(rule.families ?? []);
+      return lines.filter((line) => line.family != null && families.has(line.family));
+    }
     case "CART":
       return [];
   }

@@ -1,6 +1,6 @@
 import type { LocalizedCategory, LocalizedProduct, SectionType, SupportedLanguage } from "@/types/products";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { availableFrom, inventorySelect } from "@repo/catalog";
+import { availableFrom, inventorySelect, productDiscountRates } from "@repo/catalog";
 import { serializeMoney, serializeRate } from "@repo/money";
 import { prisma } from "@repo/database";
 import { CacheService, CacheTTL } from "@/lib/cache/redis.service";
@@ -258,6 +258,7 @@ export class I18nService {
                 prisma.product.count({ where }),
             ]);
 
+            const rates = await productDiscountRates(products, prisma);
             const localizedProducts: LocalizedProduct[] = products.map(product => {
                 const primarySpec = product.specifications?.[0];
                 const primaryTranslation = product.translations?.[0];
@@ -270,7 +271,8 @@ export class I18nService {
                     localizedDescription: primaryTranslation?.description ?? undefined,
                     brand: product.brand,
                     price: serializeMoney(product.price),
-                    discount: serializeRate(product.discount ?? 0),
+                    // From the engine, not from a rate on the row.
+                    discount: rates[product.id] ?? serializeRate(0),
                     priceIncrease: serializeMoney(product.priceIncrease ?? 0),
                     quantity: availableFrom(product.variants?.[0]?.inventory),
                     images: imageUrls(product),
@@ -386,6 +388,7 @@ export class I18nService {
 
             if (!product) return null;
 
+            const rates = await productDiscountRates([product], prisma);
             const localizedProduct: LocalizedProduct = {
                 id: product.id,
                 productId: product.productId,
@@ -393,7 +396,7 @@ export class I18nService {
                 localizedName: product.translations[0]?.name || product.productName,
                 brand: product.brand,
                 price: serializeMoney(product.price),
-                discount: serializeRate(product.discount ?? 0),
+                discount: rates[product.id] ?? serializeRate(0),
                 images: imageUrls(product),
                 specifications: product.specifications[0]
                     ? {

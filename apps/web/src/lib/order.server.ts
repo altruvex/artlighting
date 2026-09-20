@@ -1,6 +1,8 @@
 import type { Order, ShippingAddress } from "@/types/products";
 import { applyRate, money, serializeMoney, serializeRate, subtractMoney, type MoneyInput } from "@repo/money";
 import { prisma } from "@repo/database";
+import { computePricing } from "@repo/pricing";
+import { discountsForCart, toCartLine } from "@repo/catalog";
 
 export interface CreateOrderDTO {
     userId: string;
@@ -37,12 +39,18 @@ export class OrderService {
 
         const shippingAddress = await this.upsertShippingAddress(dto.userId, dto.shippingAddress);
 
-        // `discount` is a rate (0.13 = 13%). Decimal throughout, and the
-        // result is stored as a fixed-scale string.
-        const discountRate = money(product.discount);
-        const discountedPrice = discountRate.greaterThan(0)
-            ? subtractMoney(dto.configPrice, applyRate(dto.configPrice, discountRate))
-            : money(dto.configPrice);
+        // Priced by the engine, not by a rate on the product row — the same
+        // function the storefront displays from and the admin previews with.
+        const rules = await discountsForCart(null, prisma);
+        const priced = computePricing({
+            lines: [toCartLine(product, { unitPrice: serializeMoney(dto.configPrice) })],
+            discounts: rules,
+            now: new Date(),
+        });
+        const discountRate = money(priced.subtotal).isZero()
+            ? money(0)
+            : money(priced.discountTotal).dividedBy(priced.subtotal);
+        const discountedPrice = money(priced.lines[0]?.total ?? dto.configPrice);
 
         return prisma.order.create({
             data: {

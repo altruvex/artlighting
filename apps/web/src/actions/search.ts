@@ -2,6 +2,7 @@
 import { prisma } from "@repo/database";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { serializeRowMoney } from "@/lib/serialize-money";
+import { productDiscountRates } from "@repo/catalog";
 
 export async function searchProducts(searchItem: string) {
   const products = await prisma.product.findMany({
@@ -21,15 +22,20 @@ export async function searchProducts(searchItem: string) {
       sectionType: true,
       spotlightType: true,
       images: productImageSelect(),
-      discount: true,
+      categoryId: true,
+      lightingtypeId: true,
     },
     take: 10,
   });
+  const rates = await productDiscountRates(products, prisma);
+
   // Money leaves the server as strings: a Prisma.Decimal cannot be passed
   // to a Client Component (see @repo/money).
   return products.map((product) => ({
     ...serializeRowMoney(product),
     // The ProductImage table, not the legacy array — see lib/product-images.
     productImages: imageUrls(product),
+    // From the engine, so search results agree with the product page.
+    discount: rates[product.id] ?? "0.0000",
   }));
 }

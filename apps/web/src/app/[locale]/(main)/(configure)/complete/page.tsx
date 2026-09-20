@@ -122,8 +122,10 @@ const Page = async ({ searchParams }: PagePropsTypes) => {
     configuration: localizedConfiguration,
     product: {
       ...serializeRowMoney(order.product),
-      // The view model still carries a flat list and a quantity; both come
-      // from their own tables now rather than columns on the product.
+      // The view model still carries a flat list, a quantity and a rate;
+      // all three come from elsewhere now rather than columns on the
+      // product. The rate is the one the order was placed at.
+      discount: orderDiscount,
       productImages: imageUrls(order.product),
       quantity: availableFrom(order.product.variants[0]?.inventory),
       maxIP: order.product.maxIP ?? undefined,

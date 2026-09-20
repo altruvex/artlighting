@@ -1,4 +1,5 @@
 import { money, serializeMoney, serializeRate } from "@repo/money";
+import { computePricing } from "@repo/pricing";
 import { z } from "zod";
 import { prisma, type Db } from "./client";
 import { moneySchema, rateSchema } from "./schemas";
@@ -12,7 +13,27 @@ import { moneySchema, rateSchema } from "./schemas";
  * letting two concurrent checkouts share the last use of it.
  */
 
-export const discountScopes = ["PRODUCTS", "CATEGORIES", "CART"] as const;
+export const discountScopes = ["PRODUCTS", "CATEGORIES", "FAMILIES", "CART"] as const;
+export const productFamilies = ["INDOOR", "OUTDOOR", "CHANDELIER"] as const;
+export type ProductFamily = (typeof productFamilies)[number];
+
+/**
+ * The one place that maps `Product.sectionType` to a ProductFamily.
+ *
+ * The column is still a String while the discount side is an enum. That
+ * seam is temporary — sectionType should become the enum in its own
+ * migration — and it exists in exactly one function so the conversion is a
+ * single edit rather than a hunt.
+ */
+export function familyOf(sectionType: string | null | undefined): ProductFamily | null {
+  const value = (sectionType ?? "").trim().toLowerCase();
+  if (value.startsWith("outdoor")) return "OUTDOOR";
+  if (value.startsWith("chandelier")) return "CHANDELIER";
+  if (value.startsWith("indoor")) return "INDOOR";
+  // Unknown rather than guessed: a product whose section is something else
+  // simply matches no family discount, instead of silently getting one.
+  return null;
+}
 export const discountTypes = ["PERCENTAGE", "FIXED"] as const;
 export const discountModes = ["AUTOMATIC", "COUPON"] as const;
 
@@ -45,6 +66,7 @@ export const discountInputSchema = z
     isActive: z.boolean().default(true),
     productIds: z.array(z.string()).default([]),
     categoryIds: z.array(z.string()).default([]),
+    families: z.array(z.enum(productFamilies)).default([]),
   })
   // The same rules the CHECK constraints enforce, stated here so the admin
   // gets a sentence instead of a database error.
@@ -67,6 +89,10 @@ export const discountInputSchema = z
   .refine((d) => (d.scope === "CATEGORIES" ? d.categoryIds.length > 0 : true), {
     message: "Choose at least one category",
     path: ["categoryIds"],
+  })
+  .refine((d) => (d.scope === "FAMILIES" ? d.families.length > 0 : true), {
+    message: "Choose at least one family",
+    path: ["families"],
   })
   .refine((d) => !d.startsAt || !d.endsAt || d.startsAt < d.endsAt, {
     message: "The end date must be after the start date",
@@ -107,6 +133,7 @@ function writeData(input: DiscountInput) {
 async function replaceTargets(db: Db, discountId: string, input: DiscountInput) {
   await db.discountProduct.deleteMany({ where: { discountId } });
   await db.discountCategory.deleteMany({ where: { discountId } });
+  await db.discountFamily.deleteMany({ where: { discountId } });
 
   if (input.scope === "PRODUCTS" && input.productIds.length) {
     await db.discountProduct.createMany({
@@ -116,6 +143,11 @@ async function replaceTargets(db: Db, discountId: string, input: DiscountInput) 
   if (input.scope === "CATEGORIES" && input.categoryIds.length) {
     await db.discountCategory.createMany({
       data: input.categoryIds.map((categoryId) => ({ discountId, categoryId })),
+    });
+  }
+  if (input.scope === "FAMILIES" && input.families.length) {
+    await db.discountFamily.createMany({
+      data: input.families.map((family) => ({ discountId, family })),
     });
   }
 }
@@ -171,13 +203,14 @@ export function toPricingRule(row: {
   isActive: boolean;
   products?: { productId: string }[];
   categories?: { categoryId: string }[];
+  families?: { family: string }[];
 }) {
   return {
     id: row.id,
     name: row.name,
     type: row.type as "PERCENTAGE" | "FIXED",
     mode: row.mode as "AUTOMATIC" | "COUPON",
-    scope: row.scope as "PRODUCTS" | "CATEGORIES" | "CART",
+    scope: row.scope as "PRODUCTS" | "CATEGORIES" | "FAMILIES" | "CART",
     // Decimals are serialized at this boundary like every other number
     // leaving the database (see @repo/money).
     rate: row.rate == null ? null : serializeRate(row.rate as never),
@@ -194,11 +227,16 @@ export function toPricingRule(row: {
     isActive: row.isActive,
     productIds: row.products?.map((p) => p.productId) ?? [],
     categoryIds: row.categories?.map((c) => c.categoryId) ?? [],
+    families: (row.families?.map((f) => f.family) ?? []) as ProductFamily[],
   };
 }
 
 const DISCOUNT_FOR_PRICING = {
-  include: { products: { select: { productId: true } }, categories: { select: { categoryId: true } } },
+  include: {
+    products: { select: { productId: true } },
+    categories: { select: { categoryId: true } },
+    families: { select: { family: true } },
+  },
 } as const;
 
 /**
@@ -217,6 +255,87 @@ export async function discountsForCart(coupon?: string | null, db: Db = prisma) 
     ...DISCOUNT_FOR_PRICING,
   });
   return rows.map(toPricingRule);
+}
+
+/**
+ * The Prisma select a product needs before it can be priced, and the
+ * conversion into a cart line.
+ *
+ * One place, so the product page, the checkout and the admin preview build
+ * an identical line — a discount that applies in the preview and not at
+ * checkout is worse than one that never applied at all.
+ */
+export function pricedProductSelect() {
+  return {
+    id: true,
+    price: true,
+    categoryId: true,
+    lightingtypeId: true,
+    sectionType: true,
+  };
+}
+
+export function toCartLine(
+  product: {
+    id: string;
+    price: unknown;
+    categoryId: string;
+    lightingtypeId: string;
+    sectionType: string;
+  },
+  options: { id?: string; quantity?: number; unitPrice?: string } = {},
+) {
+  return {
+    id: options.id ?? product.id,
+    productId: product.id,
+    // Both the top category and the lighting type: a discount scoped to
+    // either should find the line.
+    categoryIds: [product.categoryId, product.lightingtypeId],
+    family: familyOf(product.sectionType),
+    unitPrice: options.unitPrice ?? serializeMoney(product.price as never),
+    quantity: options.quantity ?? 1,
+  };
+}
+
+/**
+ * The effective discount rate for each product, as a customer buying one of
+ * it would get.
+ *
+ * The storefront shows "13% off" on a card and a struck-through price on a
+ * product page. Those used to read `Product.discount`, a rate on the row —
+ * which is why a promotion could not have a date window, a minimum or a
+ * scope: the display had nowhere to put them. The number now comes from
+ * the same engine that prices the checkout, so a promotion that has not
+ * started cannot be advertised.
+ *
+ * One query for the discounts, then a pure computation per product.
+ */
+export async function productDiscountRates(
+  products: {
+    id: string;
+    price: unknown;
+    categoryId: string;
+    lightingtypeId: string;
+    sectionType: string;
+  }[],
+  db: Db = prisma,
+  now = new Date(),
+): Promise<Record<string, string>> {
+  if (products.length === 0) return {};
+
+  // Automatic only: a coupon is not a price the storefront may advertise.
+  const rules = await discountsForCart(null, db);
+  if (rules.length === 0) return {};
+
+  const rates: Record<string, string> = {};
+  for (const product of products) {
+    const priced = computePricing({ lines: [toCartLine(product)], discounts: rules, now });
+    const subtotal = money(priced.subtotal);
+    if (subtotal.isZero()) continue;
+    const rate = money(priced.discountTotal).dividedBy(subtotal);
+    if (rate.greaterThan(0)) rates[product.id] = rate.toFixed(4);
+  }
+  return rates;
 }
 
 /** How many times this customer has already used each discount. */

@@ -1,7 +1,7 @@
 import { prisma } from "@repo/database";
 import { parseLocalizedInt } from "@/lib/numbers";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { availableFrom, inventorySelect } from "@repo/catalog";
+import { availableFrom, inventorySelect, productDiscountRates } from "@repo/catalog";
 import { localizeSpecGroups, specGroupSelect, type LocalizedSpecGroup } from "@/lib/spec-groups";
 import { serializeMoney, serializeRate } from "@repo/money";
 import { toViewConfiguration } from "@/lib/serialize-money";
@@ -114,7 +114,15 @@ export interface LocalizedSpecsData {
 
 export function transformToLocalizedProduct(
   product: any,
-  language: string
+  language: string,
+  /**
+   * Effective rates from the pricing engine, keyed by product id. The
+   * storefront's "13% off" used to come from `Product.discount`, a rate on
+   * the row — which is why a promotion could not have a date window, a
+   * minimum or a scope. Absent means no promotion applies to that product
+   * right now, which is a real answer, not a missing one.
+   */
+  discountRates: Record<string, string> = {}
 ): LocalizedProductData {
   const translation = product.translations?.[0];
   const specs: LocalizedSpecsData = product.specifications?.[0] ?? {};
@@ -131,7 +139,7 @@ export function transformToLocalizedProduct(
     // Money leaves the service as strings: a Prisma.Decimal cannot be passed
     // to a Client Component, and Number() would drop digits (see @repo/money).
     price: serializeMoney(product.price),
-    discount: serializeRate(product.discount ?? 0),
+    discount: discountRates[product.id] ?? serializeRate(0),
     priceIncrease: serializeMoney(product.priceIncrease ?? 0),
     productImages: imageUrls(product),
     images: imageUrls(product),
@@ -250,9 +258,10 @@ export class ProductService {
     const hasMore = rawProducts.length > safeLimit;
     const sliced = hasMore ? rawProducts.slice(0, safeLimit) : rawProducts;
     const nextCursor = hasMore ? sliced[sliced.length - 1]?.id : undefined;
+    const rates = await productDiscountRates(sliced, prisma);
 
     const result: ProductListResult<LocalizedProductData> = {
-      products: sliced.map((p) => transformToLocalizedProduct(p, language)),
+      products: sliced.map((p) => transformToLocalizedProduct(p, language, rates)),
       total,
       hasMore,
       nextCursor,
@@ -284,7 +293,8 @@ export class ProductService {
 
     if (!raw) return null;
 
-    const product = transformToLocalizedProduct(raw, language);
+    const rates = await productDiscountRates([raw], prisma);
+    const product = transformToLocalizedProduct(raw, language, rates);
     await CacheService.set(cacheKey, product, CacheTTL.FIFTEEN_MINUTES);
     return product;
   }
@@ -334,7 +344,8 @@ export class ProductService {
       orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
     });
 
-    const products = raw.map((p) => transformToLocalizedProduct(p, language));
+    const rates = await productDiscountRates(raw, prisma);
+    const products = raw.map((p) => transformToLocalizedProduct(p, language, rates));
     await CacheService.set(cacheKey, products, CacheTTL.FIVE_MINUTES);
     return products;
   }
@@ -358,6 +369,10 @@ export class ProductService {
     });
 
     if (!config) {
+      const rates = await productDiscountRates(
+        [{ id: product.id, price: product.price, categoryId: product.categoryId ?? "", lightingtypeId: product.lightingtypeId ?? "", sectionType: product.sectionType }],
+        prisma,
+      );
       config = await prisma.configuration.create({
         data: {
           productId: product.productId,
@@ -366,7 +381,9 @@ export class ProductService {
           configPrice: serializeMoney(product.price),
           priceIncrease: serializeMoney(product.priceIncrease),
           shippingPrice: 69,
-          discount: serializeRate(product.discount),
+          // The rate the engine gives right now, snapshotted onto the
+          // configuration — not a rate read off the product row.
+          discount: rates[product.id] ?? serializeRate(0),
           quantity: 1,
           totalPrice: serializeMoney(product.price),
           lampPriceIncrease: 0,
@@ -389,7 +406,8 @@ export class ProductService {
       orderBy: { createdAt: "desc" },
     });
 
-    const products = raw.map((p) => transformToLocalizedProduct(p, language));
+    const rates = await productDiscountRates(raw, prisma);
+    const products = raw.map((p) => transformToLocalizedProduct(p, language, rates));
     await CacheService.set(cacheKey, products, CacheTTL.FIVE_MINUTES);
     return products;
   }
@@ -399,7 +417,8 @@ export class ProductService {
       where: { id: { in: productIds } },
       include: buildProductInclude(language),
     });
-    return raw.map((p) => transformToLocalizedProduct(p, language));
+    const rates = await productDiscountRates(raw, prisma);
+    return raw.map((p) => transformToLocalizedProduct(p, language, rates));
   }
 
   static async invalidateProductCache(productId?: string) {

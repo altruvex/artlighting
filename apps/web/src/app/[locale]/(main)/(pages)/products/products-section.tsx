@@ -1,6 +1,6 @@
 import { PagePropsTypes } from "@/types";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { availableFrom, inventorySelect } from "@repo/catalog";
+import { availableFrom, inventorySelect, productDiscountRates } from "@repo/catalog";
 import { serializeMoney, serializeRate, type MoneyInput } from "@repo/money";
 import { prisma } from "@repo/database";
 import { notFound } from "next/navigation";
@@ -134,6 +134,10 @@ const ProductsSection = async ({ params }: PagePropsTypes) => {
       });
     }
 
+    // Priced by the engine, so a promotion that has not started is not
+    // advertised on the home page.
+    const rates = await productDiscountRates(selectedProducts, prisma);
+
     const formattedProducts = selectedProducts.map(product => {
       const primaryTranslation = product.translations?.[0];
       const primarySpec = product.specifications?.[0];
@@ -152,7 +156,7 @@ const ProductsSection = async ({ params }: PagePropsTypes) => {
         productImages: imageUrls(product),
         sectionType: product.sectionType,
         spotlightType: product.spotlightType,
-        discount: serializeRate(product.discount),
+        discount: rates[product.id] ?? serializeRate(0),
         quantity: availableFrom(product.variants[0]?.inventory),
         isActive: product.isActive,
         featured: product.featured,

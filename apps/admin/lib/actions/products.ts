@@ -178,7 +178,9 @@ export async function duplicateProduct(productId: string) {
         priceIncrease: source.priceIncrease,
         sectionType: source.sectionType,
         brand: source.brand,
-        discount: source.discount,
+        // A copy starts with no promotion: a discount is a Discount row
+        // with its own targets now, and a copy is not one of them until
+        // someone says so.
         chandelierLightingType: source.chandelierLightingType,
         hNumber: source.hNumber,
         isActive: false, // starts inactive until reviewed

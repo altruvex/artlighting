@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth-server"
+import { productDiscountRates } from "@repo/catalog";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { serializeRate } from "@repo/money";
 import { serializeRowMoney, toViewConfiguration } from "@/lib/serialize-money";
@@ -53,7 +54,8 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
         console.log(`No configuration found for ProductId: ${ProductId}, creating default`)
         const productExists = await prisma.product.findUnique({
           where: { productId: ProductId },
-          select: { productId: true, price: true, discount: true }
+          // The engine reads these to decide what applies.
+          select: { id: true, productId: true, price: true, categoryId: true, lightingtypeId: true, sectionType: true }
         })
 
         if (productExists) {
@@ -65,7 +67,9 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
               configPrice: productExists.price,
               priceIncrease: 0,
               shippingPrice: 69,
-              discount: productExists.discount,
+              // From the engine, so a configuration never captures a
+              // promotion that has ended or has not started.
+              discount: (await productDiscountRates([productExists], prisma))[productExists.id] ?? "0",
               quantity: 1,
               totalPrice: productExists.price,
             },
@@ -182,6 +186,9 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
       // Money leaves the server as strings; a Prisma.Decimal cannot cross
       // into a Client Component (see @repo/money).
       ...serializeRowMoney(product),
+      // The effective rate, from the engine — there is no rate on a
+      // product row any more.
+      discount: (await productDiscountRates([product], prisma))[product.id] ?? "0",
       // The ProductImage table, not the legacy array — see lib/product-images.
       productImages: imageUrls(product),
       productName: product.translations?.[0]?.name || product.productName,

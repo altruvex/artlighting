@@ -34,7 +34,6 @@ export async function saveConfig({
       select: {
         productId: true,
         price: true,
-        discount: true,
         priceIncrease: true,
         productIp: true,
         productChandLamp: true,
@@ -50,16 +49,17 @@ export async function saveConfig({
       select: {
         priceIncrease: true,
         lampPriceIncrease: true,
-        discount: true,
         shippingPrice: true,
         productIp: true,
+        // The configuration's own snapshot of the rate it was quoted at.
+        discount: true,
       },
     })
     if (!currentConfig) throw new Error("Configuration not found")
 
     const priceIncrease = currentConfig.priceIncrease ?? product.priceIncrease ?? 0
     const lampPriceIncrease = currentConfig.lampPriceIncrease ?? 0
-    const discount = currentConfig.discount ?? product.discount ?? 0
+    const discount = currentConfig.discount
     const shippingPrice = currentConfig.shippingPrice ?? existingConfig.shippingPrice ?? 69
 
     // One helper computes every line price (see lib/pricing.ts): the

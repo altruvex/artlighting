@@ -316,3 +316,70 @@ describe("properties", () => {
     }
   });
 });
+
+describe("family scope", () => {
+  const lines: CartLine[] = [
+    { id: "in", productId: "p1", categoryIds: ["c1"], family: "INDOOR", unitPrice: "100.00", quantity: 1 },
+    { id: "out", productId: "p2", categoryIds: ["c2"], family: "OUTDOOR", unitPrice: "200.00", quantity: 1 },
+    { id: "none", productId: "p3", categoryIds: ["c3"], family: null, unitPrice: "400.00", quantity: 1 },
+  ];
+
+  it("covers only the lines in the chosen families", () => {
+    const result = computePricing({
+      lines,
+      discounts: [rule({ scope: "FAMILIES", families: ["OUTDOOR"], rate: "0.1000" })],
+      now: NOW,
+    });
+    expect(result.discountTotal).toBe("20.00");
+    expect(result.lines.find((l) => l.id === "out")?.discount).toBe("20.00");
+    expect(result.lines.find((l) => l.id === "in")?.discount).toBe("0.00");
+  });
+
+  it("covers several families at once", () => {
+    const result = computePricing({
+      lines,
+      discounts: [rule({ scope: "FAMILIES", families: ["INDOOR", "OUTDOOR"], rate: "0.1000" })],
+      now: NOW,
+    });
+    expect(result.discountTotal).toBe("30.00");
+  });
+
+  it("leaves a line with no family alone rather than guessing one", () => {
+    const result = computePricing({
+      lines,
+      discounts: [rule({ scope: "FAMILIES", families: ["INDOOR", "OUTDOOR", "CHANDELIER"], rate: "0.5000" })],
+      now: NOW,
+    });
+    expect(result.lines.find((l) => l.id === "none")?.discount).toBe("0.00");
+  });
+
+  it("rejects a family discount when nothing in the cart is in it", () => {
+    const result = computePricing({
+      lines: [lines[0]!],
+      discounts: [rule({ scope: "FAMILIES", families: ["CHANDELIER"] })],
+      now: NOW,
+    });
+    expect(result.rejected[0]?.reason).toBe("no_matching_lines");
+  });
+});
+
+describe("the date window", () => {
+  const within = rule({ startsAt: new Date("2026-06-01"), endsAt: new Date("2026-07-01"), rate: "0.1000" });
+
+  it("applies inside the window", () => {
+    const result = computePricing({ lines: [line()], discounts: [within], now: NOW });
+    expect(result.grandTotal).toBe("90.00");
+  });
+
+  it("is exclusive at the end, so a window can meet the next one without overlapping", () => {
+    const atEnd = computePricing({ lines: [line()], discounts: [within], now: new Date("2026-07-01T00:00:00Z") });
+    expect(atEnd.rejected[0]?.reason).toBe("expired");
+    const justBefore = computePricing({ lines: [line()], discounts: [within], now: new Date("2026-06-30T23:59:59Z") });
+    expect(justBefore.applied).toHaveLength(1);
+  });
+
+  it("is inclusive at the start", () => {
+    const atStart = computePricing({ lines: [line()], discounts: [within], now: new Date("2026-06-01T00:00:00Z") });
+    expect(atStart.applied).toHaveLength(1);
+  });
+});

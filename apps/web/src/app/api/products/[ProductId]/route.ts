@@ -34,7 +34,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         productName: true,
         price: true,
         images: productImageSelect(),
-        discount: true,
         sectionType: true,
         spotlightType: true,
         brand: true,

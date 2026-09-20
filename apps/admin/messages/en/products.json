@@ -458,7 +458,8 @@
     "scope": {
       "PRODUCTS": "Chosen products",
       "CATEGORIES": "Chosen categories",
-      "CART": "The whole order"
+      "CART": "The whole order",
+      "FAMILIES": "A product family"
     },
     "type": {
       "PERCENTAGE": "Percentage off",
@@ -510,7 +511,11 @@
       "perCustomerLimit": "Uses per customer",
       "unlimited": "Unlimited",
       "stackable": "Can combine with other discounts",
-      "stackableHint": "Discounts that cannot combine compete, and the best one for the customer wins."
+      "stackableHint": "Discounts that cannot combine compete, and the best one for the customer wins.",
+      "families": "Families",
+      "startsAt": "Starts",
+      "endsAt": "Ends",
+      "endsAtHint": "The discount stops the moment this time is reached."
     },
     "preview": {
       "title": "What would this cart pay?",
@@ -541,6 +546,11 @@
       "productNotFound": "That product no longer exists.",
       "productRequired": "Choose at least one product.",
       "categoryRequired": "Choose at least one category."
+    },
+    "family": {
+      "INDOOR": "Indoor",
+      "OUTDOOR": "Outdoor",
+      "CHANDELIER": "Chandeliers"
     }
   }
 }

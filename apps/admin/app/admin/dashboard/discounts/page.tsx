@@ -18,6 +18,7 @@ export default async function DiscountsPage() {
       include: {
         products: { select: { product: { select: { id: true, productName: true } } } },
         categories: { select: { category: { select: { id: true, name: true } } } },
+        families: { select: { family: true } },
         _count: { select: { redemptions: true } },
       },
     }),
@@ -56,9 +57,11 @@ export default async function DiscountsPage() {
     isActive: discount.isActive,
     productIds: discount.products.map((link) => link.product.id),
     categoryIds: discount.categories.map((link) => link.category.id),
+    families: discount.families.map((link) => link.family),
     targetNames: [
       ...discount.products.map((link) => link.product.productName),
       ...discount.categories.map((link) => link.category.name),
+      ...discount.families.map((link) => t(`family.${link.family}` as const)),
     ],
   }));
 

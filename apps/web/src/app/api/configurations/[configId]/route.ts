@@ -81,7 +81,6 @@ export async function POST(
                 productId: true,
                 productName: true,
                 price: true,
-                discount: true,
                 priceIncrease: true,
                 isActive: true
             }
@@ -114,8 +113,9 @@ export async function POST(
             select: {
                 priceIncrease: true,
                 lampPriceIncrease: true,
-                discount: true,
                 shippingPrice: true,
+                // The configuration's own snapshot of the rate it was quoted at.
+                discount: true,
             }
         })
         if (!currentConfig) {
@@ -124,7 +124,9 @@ export async function POST(
 
         const priceIncrease = currentConfig.priceIncrease ?? product.priceIncrease ?? 0
         const lampPriceIncrease = currentConfig.lampPriceIncrease ?? 0
-        const discount = currentConfig.discount ?? product.discount ?? 0
+        // The configuration's own snapshot. There is no rate on a product
+        // row to fall back to: promotions live in Discount rows now.
+        const discount = currentConfig.discount
         const shippingPrice = currentConfig.shippingPrice ?? existingConfig.shippingPrice ?? 69
         
         // One helper owns line pricing (lib/pricing.ts): Decimal arithmetic,

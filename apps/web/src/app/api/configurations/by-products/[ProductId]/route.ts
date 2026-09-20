@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth-server"
+import { productDiscountRates } from "@repo/catalog";
 import { publicConfiguration, readGuestToken } from "@/lib/guest-token"
 import { prisma } from "@repo/database"
 import { type NextRequest, NextResponse } from "next/server"
@@ -33,7 +34,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       // Try to create a default configuration if product exists
       const product = await prisma.product.findUnique({
         where: { productId: ProductId },
-        select: { productId: true, price: true, discount: true }
+        // The engine reads these to decide what applies.
+        select: { id: true, productId: true, price: true, categoryId: true, lightingtypeId: true, sectionType: true }
       })
 
       if (product) {
@@ -46,7 +48,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             configPrice: product.price,
             priceIncrease: 0,
             shippingPrice: 69,
-            discount: product.discount,
+            // From the engine, so a configuration never captures a
+            // promotion that has ended or has not started.
+            discount: (await productDiscountRates([product], prisma))[product.id] ?? "0",
             quantity: 1,
             totalPrice: product.price,
           },

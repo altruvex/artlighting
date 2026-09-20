@@ -1,6 +1,9 @@
 import { auth } from "@/lib/auth-server";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { discountedUnitPrice, priceLine } from "@/lib/pricing";
+import { computePricing } from "@repo/pricing";
+import { money, multiplyMoney, roundMoney, serializeMoney } from "@repo/money";
+import { discountsForCart, toCartLine } from "@repo/catalog";
+
 import { prisma } from "@repo/database";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -38,26 +41,42 @@ export async function GET() {
       return NextResponse.json([]);
     }
 
-    const cartItems = cart.items.map((item) => ({
-      id: item.id,
-      productId: item.product.productId,
-      productName: item.product.productName,
-      quantity: item.quantity,
-      // Money leaves as strings; `discount` is a rate (0.13 = 13%), which
-      // this line used to divide by 100 again — charging 0.13% off.
-      price: item.product.price.toFixed(2),
-      unitPriceAfterDiscount: discountedUnitPrice(item.product.price, item.product.discount),
-      totalPrice: priceLine({
-        unitPrice: item.product.price,
+    // The whole cart through the engine, not each line on its own: a
+    // cart-scoped promotion or a minimum order only means anything when
+    // the lines are priced together.
+    const rules = await discountsForCart(null, prisma);
+    const priced = computePricing({
+      lines: cart.items.map((item) =>
+        toCartLine(item.product, { id: item.id, quantity: item.quantity }),
+      ),
+      discounts: rules,
+      customer: { userId },
+      now: new Date(),
+    });
+    const byLine = new Map(priced.lines.map((line) => [line.id, line]));
+
+    const cartItems = cart.items.map((item) => {
+      const line = byLine.get(item.id);
+      const lineDiscount = money(line?.discount ?? 0);
+      const lineSubtotal = multiplyMoney(item.product.price, item.quantity);
+      return {
+        id: item.id,
+        productId: item.product.productId,
+        productName: item.product.productName,
         quantity: item.quantity,
-        discountRate: item.product.discount,
-      }).total,
-      productImages: imageUrls(item.product),
-      discount: item.product.discount.toString(),
-      sectionType: item.product.sectionType,
-      spotlightType: item.product.spotlightType,
-      brand: item.product.brand,
-    }));
+        price: serializeMoney(item.product.price),
+        unitPriceAfterDiscount: serializeMoney(
+          roundMoney(money(line?.total ?? lineSubtotal).dividedBy(Math.max(1, item.quantity))),
+        ),
+        totalPrice: line?.total ?? serializeMoney(lineSubtotal),
+        productImages: imageUrls(item.product),
+        // The effective rate for this line, from the engine.
+        discount: lineSubtotal.isZero() ? "0" : lineDiscount.dividedBy(lineSubtotal).toFixed(4),
+        sectionType: item.product.sectionType,
+        spotlightType: item.product.spotlightType,
+        brand: item.product.brand,
+      };
+    });
 
     return NextResponse.json(cartItems);
   } catch (error) {
@@ -109,12 +128,18 @@ export async function PATCH(request: NextRequest) {
       include: { product: { include: { images: productImageSelect() } } },
     });
 
-    // Calculate total price with discount
-    const totalPrice = priceLine({
-      unitPrice: updatedItem.product.price,
-      quantity: updatedItem.quantity,
-      discountRate: updatedItem.product.discount,
-    }).total;
+    // Through the engine, like the GET above: the line's price is whatever
+    // the promotions say it is, not a rate on the product row.
+    const rules = await discountsForCart(null, prisma);
+    const priced = computePricing({
+      lines: [toCartLine(updatedItem.product, { id: updatedItem.id, quantity: updatedItem.quantity })],
+      discounts: rules,
+      customer: { userId },
+      now: new Date(),
+    });
+    const pricedLine = priced.lines[0]!;
+    const totalPrice = pricedLine.total;
+    const lineSubtotal = multiplyMoney(updatedItem.product.price, updatedItem.quantity);
 
     return NextResponse.json({
       id: updatedItem.id,
@@ -124,7 +149,7 @@ export async function PATCH(request: NextRequest) {
       price: updatedItem.product.price.toFixed(2),
       totalPrice,
       productImages: imageUrls(updatedItem.product),
-      discount: updatedItem.product.discount.toString(),
+      discount: lineSubtotal.isZero() ? "0" : money(pricedLine.discount).dividedBy(lineSubtotal).toFixed(4),
       sectionType: updatedItem.product.sectionType,
       spotlightType: updatedItem.product.spotlightType,
       brand: updatedItem.product.brand,
@@ -176,21 +201,26 @@ export async function PUT(request: NextRequest) {
       include: { product: { include: { images: productImageSelect() } } },
     });
 
-    const totalPrice = priceLine({
-      unitPrice: updatedItem.product.price,
-      quantity: updatedItem.quantity,
-      discountRate: updatedItem.product.discount,
-    }).total;
+    // Through the engine, like the other two handlers.
+    const rules = await discountsForCart(null, prisma);
+    const priced = computePricing({
+      lines: [toCartLine(updatedItem.product, { id: updatedItem.id, quantity: updatedItem.quantity })],
+      discounts: rules,
+      customer: { userId },
+      now: new Date(),
+    });
+    const pricedLine = priced.lines[0]!;
+    const lineSubtotal = multiplyMoney(updatedItem.product.price, updatedItem.quantity);
 
     return NextResponse.json({
       id: updatedItem.id,
       productId: updatedItem.product.productId,
       productName: updatedItem.product.productName,
       quantity: updatedItem.quantity,
-      price: updatedItem.product.price.toFixed(2),
-      totalPrice,
+      price: serializeMoney(updatedItem.product.price),
+      totalPrice: pricedLine.total,
       productImages: imageUrls(updatedItem.product),
-      discount: updatedItem.product.discount.toString(),
+      discount: lineSubtotal.isZero() ? "0" : money(pricedLine.discount).dividedBy(lineSubtotal).toFixed(4),
       sectionType: updatedItem.product.sectionType,
       spotlightType: updatedItem.product.spotlightType,
       brand: updatedItem.product.brand,

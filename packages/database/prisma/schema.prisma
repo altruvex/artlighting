@@ -10,6 +10,138 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── Inventory ───────────────────────────────────────────────
+// Stock used to be a single Int on ProductVariant. A number with no history
+// cannot answer the questions an ERP is for: why did it change, who changed
+// it, what is promised to an order that has not shipped, and what can a
+// customer still buy. These four models answer those.
+
+/// Where stock physically sits. One row today, but a quantity that cannot
+/// say *where* it is cannot survive a second warehouse or a showroom.
+model InventoryLocation {
+  id        String   @id @default(cuid())
+  /// Stable and language-neutral, e.g. "main".
+  code      String   @unique
+  /// Fallback name; the translations carry what the admin actually sees.
+  name      String
+  isDefault Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items        InventoryItem[]
+  translations InventoryLocationTranslation[]
+
+  @@index([isActive])
+  @@map("inventory_locations")
+}
+
+model InventoryLocationTranslation {
+  id         String @id @default(cuid())
+  locationId String
+  language   String
+  name       String
+
+  location InventoryLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, language])
+  @@index([language])
+  @@map("inventory_location_translations")
+}
+
+/// The stock of one variant at one location.
+model InventoryItem {
+  id         String @id @default(cuid())
+  variantId  String
+  locationId String
+
+  /// Physically present, including whatever is reserved.
+  onHand   Int @default(0)
+  /// Promised to orders that have not shipped yet. Kept separate from
+  /// onHand because the units are still in the building: a stock count
+  /// must match onHand, not what is sellable.
+  reserved Int @default(0)
+  /// On a purchase order and not yet arrived. Informational — it is not
+  /// sellable and never counts towards onHand.
+  incoming Int @default(0)
+
+  /// Below this, the admin flags the row. Null falls back to the product's
+  /// lowStockThreshold.
+  reorderPoint    Int?
+  /// How many to order when it drops, so a reorder is one click and not a
+  /// judgement call every time.
+  reorderQuantity Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  variant   ProductVariant    @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  location  InventoryLocation @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  movements StockMovement[]
+
+  // Available to sell is `onHand - reserved`, computed on read and never
+  // stored: a stored copy is one more number that can disagree with the
+  // two it is derived from.
+  @@unique([variantId, locationId])
+  @@index([variantId])
+  @@index([locationId])
+  @@map("inventory_items")
+}
+
+/// Why stock moved. Append-only: a row is never updated and never deleted,
+/// because the point of a ledger is that it still says what it said.
+enum StockMovementKind {
+  /// Arrived from a supplier.
+  RECEIPT
+  /// Left with a customer order.
+  SALE
+  /// Came back from a customer.
+  RETURN
+  /// A stock count disagreed with the system, and the count won.
+  ADJUSTMENT
+  /// Promised to an order that has not shipped.
+  RESERVE
+  /// A reservation that will not be fulfilled after all.
+  RELEASE
+  TRANSFER_IN
+  TRANSFER_OUT
+}
+
+model StockMovement {
+  id     String            @id @default(cuid())
+  itemId String
+  kind   StockMovementKind
+
+  /// Signed: +10 for a receipt, -3 for a sale. Signed rather than positive
+  /// with the sign implied by `kind`, so a running total is a plain SUM and
+  /// cannot be got wrong by forgetting a case.
+  quantity      Int
+  /// What onHand became after this movement. Stored so one row explains
+  /// itself without replaying the ledger from the beginning.
+  onHandAfter   Int
+  /// What reserved became. A RESERVE moves this, not onHand — the units
+  /// have not left the building yet.
+  reservedAfter Int
+
+  /// Free text for an ADJUSTMENT ("annual count", "damaged in transit").
+  reason  String?
+  /// The order that caused a SALE, RESERVE, RELEASE or RETURN.
+  orderId Int?
+  /// The admin who did it, or "system" for anything the app did on its own.
+  actorId String?
+
+  createdAt DateTime @default(now())
+
+  item  InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  order Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([itemId])
+  @@index([itemId, createdAt(sort: Desc)])
+  @@index([orderId])
+  @@index([kind])
+  @@map("stock_movements")
+}
+
 // ─── Configuration ──────────────────────────────────────────
 model Configuration {
   id                String    @id @default(cuid())
@@ -177,6 +309,7 @@ model Order {
   shippingAddressId      String?
 
   orderItems      OrderItem[]
+  stockMovements  StockMovement[]
   product         Product          @relation(fields: [productId], references: [id])
   shippingAddress ShippingAddress? @relation(fields: [shippingAddressId], references: [id])
   user            User             @relation(fields: [userId], references: [id])
@@ -347,8 +480,9 @@ model ProductVariant {
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
-  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product    Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
   orderItems OrderItem[]
+  inventory  InventoryItem[]
 
   @@index([productId])
   @@index([productId, position])

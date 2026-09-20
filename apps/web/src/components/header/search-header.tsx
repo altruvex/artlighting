@@ -8,7 +8,7 @@ import { Link } from "@/i18n/navigation"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Loader2, Search } from "lucide-react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import Image from "next/image"
 import { useEffect, useRef, useState } from "react"
 import { useDebounce } from "use-debounce"
@@ -46,6 +46,7 @@ export function SearchHeader({ isMobile = false, isMobileSheet = false }: Search
     const [showResults, setShowResults] = useState(false)
     const searchRef = useRef<HTMLDivElement>(null)
     const t = useTranslations("search")
+    const locale = useLocale()
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -71,7 +72,7 @@ export function SearchHeader({ isMobile = false, isMobileSheet = false }: Search
             setIsSearching(true)
             setShowResults(true)
             try {
-                const results = await searchProducts(debouncedSearchTerm)
+                const results = await searchProducts(debouncedSearchTerm, locale)
                 const formattedResults: Product[] = results.map((product: any) => ({
                     ...product,
                     ProductId: product.productId,

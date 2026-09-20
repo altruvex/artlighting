@@ -33,13 +33,19 @@ const COMPARATOR_PREFIX: Record<SpecComparator, string> = {
 };
 
 /**
- * Units are written the same in both scripts — "W", "lm", "K" are symbols,
- * not English words, and an Arabic datasheet shows them unchanged. The
- * exception is the ones that really are words, which get a translation.
+ * A unit that is a word gets translated; a unit that is a symbol does not.
+ *
+ * "°" and "°C" are notation and read the same in any script. "W", "lm" and
+ * "K" abbreviate words an Arabic reader says in Arabic — a spec table that
+ * writes "١٥ W" beside a sentence saying "بقدرة ١٥ وات" is two answers to
+ * one question, so both come from here.
  */
 const UNIT_LABELS: Record<string, { en: string; ar: string }> = {
+  W: { en: "W", ar: "وات" },
+  lm: { en: "lm", ar: "لومن" },
+  K: { en: "K", ar: "كلفن" },
   h: { en: "h", ar: "ساعة" },
-  "lm/m": { en: "lm/m", ar: "lm/m" },
+  "lm/m": { en: "lm/m", ar: "لومن/م" },
 };
 
 function formatNumber(value: string, locale: string): string {
@@ -104,8 +110,10 @@ export function specValueParts(value: SpecValueForDisplay, locale: string): Spec
         const text = `${prefix}${joinUnit(formatNumber(measurement.value, locale))}`;
         if (measurement.conditionValue == null) return { text };
         return {
+          // Through the same table: a condition is a measurement too, and
+          // it used to print its unit raw.
           condition: `${formatNumber(measurement.conditionValue, locale)}${
-            measurement.conditionUnit ? ` ${measurement.conditionUnit}` : ""
+            measurement.conditionUnit ? ` ${unitFor(measurement.conditionUnit, locale)}` : ""
           }`,
           text,
         };
@@ -167,7 +175,7 @@ export function formatSpecValue(value: SpecValueForDisplay, locale: string): str
       const parts = measurements.map((measurement) => {
         const body = `${prefix}${joinUnit(formatNumber(measurement.value, locale))}`;
         const condition = `${formatNumber(measurement.conditionValue!, locale)}${
-          measurement.conditionUnit ? ` ${measurement.conditionUnit}` : ""
+          measurement.conditionUnit ? ` ${unitFor(measurement.conditionUnit, locale)}` : ""
         }`;
         return `${body} (${condition})`;
       });

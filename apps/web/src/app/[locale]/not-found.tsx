@@ -11,7 +11,7 @@ import { Contact, Home, Search, ShoppingBag } from "lucide-react";
 import { Link } from '@/i18n/navigation';
 import { useEffect, useState } from "react";
 import { useDebounce } from "use-debounce";
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 interface Product {
   productId: string;
@@ -33,6 +33,10 @@ interface Product {
 }
 
 export default function NotFound() {
+  // Declared before the search effect below uses it: a const read above its
+  // declaration throws at run time, which tsc does not catch across a
+  // closure.
+  const locale = useLocale();
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -45,7 +49,7 @@ export default function NotFound() {
       }
       setIsSearching(true);
       try {
-        const results = await searchProducts(debouncedSearchTerm);
+        const results = await searchProducts(debouncedSearchTerm, locale);
 
         const formattedResults: Product[] = results.map((product): Product => ({
           ...product,
@@ -54,7 +58,7 @@ export default function NotFound() {
           brand: product.brand,
           discount: product.discount ?? serializeRate(0),
           chandelierLightingType: "",
-          hNumber: 0,
+          hNumber: product.hNumber ?? 0,
           maximumWattage: "",
           lampBase: "",
           mainMaterial: "",

@@ -130,11 +130,40 @@ describe("formatSpecValue", () => {
   });
 
   it("translates the units that are words and leaves the symbols alone", () => {
-    const hours = { kind: "MEASUREMENT" as const, unit: "h", comparator: "EXACT" as const, measurements: [{ value: "50000" }] };
-    expect(formatSpecValue(hours, "en")).toBe("50,000 h");
-    expect(formatSpecValue(hours, "ar")).toContain("ساعة");
-    const watts = { kind: "MEASUREMENT" as const, unit: "W", comparator: "EXACT" as const, measurements: [{ value: "15" }] };
-    expect(formatSpecValue(watts, "ar")).toContain("W");
+    const measurement = (unit: string, value: string) => ({
+      kind: "MEASUREMENT" as const,
+      unit,
+      comparator: "EXACT" as const,
+      measurements: [{ value }],
+    });
+
+    // A word an Arabic reader says in Arabic.
+    expect(formatSpecValue(measurement("h", "50000"), "en")).toBe("50,000 h");
+    expect(formatSpecValue(measurement("h", "50000"), "ar")).toContain("ساعة");
+    expect(formatSpecValue(measurement("W", "15"), "ar")).toBe("١٥ وات");
+    expect(formatSpecValue(measurement("lm", "1320"), "ar")).toBe("١٬٣٢٠ لومن");
+    expect(formatSpecValue(measurement("K", "3000"), "ar")).toBe("٣٬٠٠٠ كلفن");
+
+    // English is unchanged: these are its own abbreviations.
+    expect(formatSpecValue(measurement("W", "15"), "en")).toBe("15 W");
+    expect(formatSpecValue(measurement("lm", "1320"), "en")).toBe("1,320 lm");
+
+    // Notation, not words — the same in either script.
+    expect(formatSpecValue(measurement("°", "53"), "ar")).toBe("٥٣°");
+    expect(formatSpecValue(measurement("°C", "45"), "ar")).toBe("٤٥ °C");
+  });
+
+  it("puts a condition's unit through the same table", () => {
+    // "١٬٣٢٠ لومن (٣٬٠٠٠ K)" was half translated: the condition printed
+    // its unit raw while the figure beside it did not.
+    const flux = {
+      kind: "MEASUREMENT" as const,
+      unit: "lm",
+      comparator: "EXACT" as const,
+      measurements: [{ value: "1320", conditionValue: "3000", conditionUnit: "K" }],
+    };
+    expect(formatSpecValue(flux, "ar")).toBe("١٬٣٢٠ لومن (٣٬٠٠٠ كلفن)");
+    expect(formatSpecValue(flux, "en")).toBe("1,320 lm (3,000 K)");
   });
 
   it("collapses a figure repeated for several conditions", () => {

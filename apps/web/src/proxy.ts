@@ -11,13 +11,28 @@ export default function middleware(req: NextRequest) {
   // API routes live outside the [locale] segment — they serve JSON, not
   // localized pages. Without this the intl middleware redirects /api/cart to
   // /en/api/cart, which costs a round trip on every call.
-  const response = req.nextUrl.pathname.startsWith("/api/")
-    ? NextResponse.next()
-    : unknownFamily(req.nextUrl.pathname)
-      ? NextResponse.rewrite(req.nextUrl, { status: 404 })
-      : intlMiddleware(req);
+  if (req.nextUrl.pathname.startsWith("/api/")) {
+    return withGuestToken(req, NextResponse.next());
+  }
+
+  const response = intlMiddleware(req);
+
+  // The status is forced on top of what next-intl decided, not instead of
+  // it. Returning a bare rewrite here skipped the intl middleware
+  // altogether, and the locale it passes downstream went with it: an
+  // Arabic 404 came back with its heading in English.
+  if (unknownFamily(req.nextUrl.pathname) && !isRedirect(response)) {
+    const notFound = NextResponse.rewrite(req.nextUrl, { status: 404 });
+    response.headers.forEach((value, key) => notFound.headers.set(key, value));
+    return withGuestToken(req, notFound);
+  }
 
   return withGuestToken(req, response);
+}
+
+/** next-intl sends a locale-less URL to its prefixed form; leave that alone. */
+function isRedirect(response: NextResponse): boolean {
+  return response.status >= 300 && response.status < 400;
 }
 
 /**

@@ -1,3 +1,4 @@
+import { money, type MoneyInput } from "@repo/money";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "./generated/prisma/client";
 
@@ -32,7 +33,10 @@ function createClient() {
     name: "product-price-history",
     model: {
       product: {
-        async updatePrice(productId: string, newPrice: number, changedBy: string) {
+        async updatePrice(productId: string, newPrice: MoneyInput, changedBy: string) {
+          // Money is Decimal now: parse once, compare with Decimal semantics
+          // (`!==` on two Decimal objects compares identity, not value).
+          const nextPrice = money(newPrice);
           return base.$transaction(async (tx) => {
             const current = await tx.product.findUniqueOrThrow({
               where: { id: productId },
@@ -41,12 +45,17 @@ function createClient() {
 
             const updated = await tx.product.update({
               where: { id: productId },
-              data: { price: newPrice },
+              data: { price: nextPrice.toFixed(2) },
             });
 
-            if (current.price !== newPrice) {
+            if (!money(current.price).equals(nextPrice)) {
               await tx.priceHistory.create({
-                data: { productId, oldPrice: current.price, newPrice, changedBy },
+                data: {
+                  productId,
+                  oldPrice: current.price,
+                  newPrice: nextPrice.toFixed(2),
+                  changedBy,
+                },
               });
             }
 

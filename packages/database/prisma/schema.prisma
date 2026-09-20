@@ -23,13 +23,13 @@ model Configuration {
   /// counter and a per-process constant, so they are not a secret — this is
   /// what actually binds an anonymous configuration to its visitor.
   guestToken        String?
-  configPrice       Float
-  priceIncrease     Float     @default(0)
-  shippingPrice     Float     @default(0)
-  discount          Float     @default(0)
+  configPrice       Decimal   @db.Decimal(12, 2)
+  priceIncrease     Decimal   @default(0) @db.Decimal(12, 2)
+  shippingPrice     Decimal   @default(0) @db.Decimal(12, 2)
+  discount          Decimal   @default(0) @db.Decimal(5, 4)
   quantity          Int       @default(1)
-  lampPriceIncrease Float?    @default(0)
-  totalPrice        Float
+  lampPriceIncrease Decimal?  @default(0) @db.Decimal(12, 2)
+  totalPrice        Decimal   @db.Decimal(12, 2)
   currency          String    @default("EGP")
   productIp         ProductIP @default(IP20)
   createdAt         DateTime  @default(now())
@@ -130,7 +130,7 @@ model OrderItem {
   productId        String
   productVariantId String?
   quantity         Int
-  configPrice      Float
+  configPrice      Decimal @db.Decimal(12, 2)
   configurationId  String?
   localizedName    String?
 
@@ -162,14 +162,14 @@ model Order {
   customerLanguage       String      @default("ar")
   createdAt              DateTime    @default(now())
   updatedAt              DateTime    @updatedAt
-  productPrice           Float
-  discountedPrice        Float?
+  productPrice           Decimal     @db.Decimal(12, 2)
+  discountedPrice        Decimal?    @db.Decimal(12, 2)
   discountApplied        Boolean     @default(false)
-  discountRate           Float       @default(0)
-  totalPrice             Float
-  configPrice            Float
-  priceIncrease          Float       @default(0)
-  shippingPrice          Float       @default(0)
+  discountRate           Decimal     @default(0) @db.Decimal(5, 4)
+  totalPrice             Decimal     @db.Decimal(12, 2)
+  configPrice            Decimal     @db.Decimal(12, 2)
+  priceIncrease          Decimal     @default(0) @db.Decimal(12, 2)
+  shippingPrice          Decimal     @default(0) @db.Decimal(12, 2)
   brand                  String?
   chandelierLightingType String?
   orderTimeReceived      DateTime?
@@ -253,43 +253,43 @@ model CartItem {
 // chandelierLightingType → static.chandelierLightingType (LED / lamp)
 model Product {
   id                     String           @id @default(cuid())
-  productId              String           @unique  // e.g. "jy-202-15w"
+  productId              String           @unique // e.g. "jy-202-15w"
   productName            String
   productImages          String[]
-  specSheetUrl           String?          // downloadable PDF datasheet — URL-based, same rationale as ProductImage (no storage provider chosen yet)
-  maxIP                  Int?             // Max IP rating integer (20/44/54/65/68)
-  spotlightType          String           // e.g. "cob", "track-light", "mc15c"
-  price                  Float
-  priceIncrease          Float            @default(0)
-  sectionType            String           // "indoor" | "outdoor" | "chandelier"
+  specSheetUrl           String? // downloadable PDF datasheet — URL-based, same rationale as ProductImage (no storage provider chosen yet)
+  maxIP                  Int? // Max IP rating integer (20/44/54/65/68)
+  spotlightType          String // e.g. "cob", "track-light", "mc15c"
+  price                  Decimal          @db.Decimal(12, 2)
+  priceIncrease          Decimal          @default(0) @db.Decimal(12, 2)
+  sectionType            String // "indoor" | "outdoor" | "chandelier"
   quantity               Int              @default(0)
-  brand                  String           // "balcom" | "mister-led"
-  discount               Float            @default(0)
-  chandelierLightingType String?          // "LED" | "lamp"
-  hNumber                Int?             // Number of heads/lights (chandeliers)
+  brand                  String // "balcom" | "mister-led"
+  discount               Decimal          @default(0) @db.Decimal(5, 4)
+  chandelierLightingType String? // "LED" | "lamp"
+  hNumber                Int? // Number of heads/lights (chandeliers)
   isActive               Boolean          @default(true)
   featured               Boolean          @default(false)
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
-  deletedAt              DateTime?        // soft-delete: never hard-delete, historical orders reference products
+  deletedAt              DateTime? // soft-delete: never hard-delete, historical orders reference products
   categoryId             String
   lightingtypeId         String
   productColor           ProductColorTemp @default(warm)
-  productIp              ProductIP        @default(IP20)  // Base IP enum derived from EN specs
+  productIp              ProductIP        @default(IP20) // Base IP enum derived from EN specs
   productChandLamp       ProductChandLamp @default(lamp9w)
 
   cartItems         CartItem[]
-  orders             Order[]
-  orderItems         OrderItem[]
-  category           Category                @relation("ProductTopCategory", fields: [categoryId], references: [id])
-  lightingtype       Category                @relation("ProductSubCategory", fields: [lightingtypeId], references: [id])
-  specifications     ProductSpecification[]
-  translations       ProductTranslation[]
-  variants           ProductVariant[]
-  images             ProductImage[]
-  productCategories  ProductCategory[]
-  discounts          Discount[]
-  priceHistory       PriceHistory[]
+  orders            Order[]
+  orderItems        OrderItem[]
+  category          Category               @relation("ProductTopCategory", fields: [categoryId], references: [id])
+  lightingtype      Category               @relation("ProductSubCategory", fields: [lightingtypeId], references: [id])
+  specifications    ProductSpecification[]
+  translations      ProductTranslation[]
+  variants          ProductVariant[]
+  images            ProductImage[]
+  productCategories ProductCategory[]
+  discounts         Discount[]
+  priceHistory      PriceHistory[]
 
   @@index([productId])
   @@index([categoryId])
@@ -300,7 +300,7 @@ model Product {
   @@index([isActive])
   @@index([featured])
   @@index([deletedAt])
-  @@index([brand, sectionType, isActive, featured],     name: "idx_product_brand_section_active_featured")
+  @@index([brand, sectionType, isActive, featured], name: "idx_product_brand_section_active_featured")
   @@index([brand, sectionType, spotlightType, isActive], name: "idx_product_brand_section_spotlight_active")
   @@map("products")
 }
@@ -320,7 +320,7 @@ model ProductVariant {
   finish        String?
   size          String?
   stock         Int               @default(0)
-  priceOverride Float?
+  priceOverride Decimal?          @db.Decimal(12, 2)
   isDefault     Boolean           @default(true)
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
@@ -341,7 +341,7 @@ model ProductImage {
   id         String   @id @default(cuid())
   productId  String
   url        String
-  providerId String?  // Cloudinary public_id — needed to delete the asset later; parsing it back out of the URL is fragile, so it's stored directly. Null for images added by pasting an external URL.
+  providerId String? // Cloudinary public_id — needed to delete the asset later; parsing it back out of the URL is fragile, so it's stored directly. Null for images added by pasting an external URL.
   altText    String?
   order      Int      @default(0)
   isPrimary  Boolean  @default(false)
@@ -358,7 +358,7 @@ model ProductImage {
 model ProductTranslation {
   id          String   @id @default(cuid())
   productId   String
-  language    String   // "en" | "ar"
+  language    String // "en" | "ar"
   name        String
   description String?
   createdAt   DateTime @default(now())
@@ -377,27 +377,27 @@ model ProductTranslation {
 model ProductSpecification {
   id                 String   @id @default(cuid())
   productId          String
-  language           String   // "en" | "ar"
+  language           String // "en" | "ar"
   // Balcom (LED spotlights, panels, strips, etc.)
-  input              String?  // AC voltage / input type
-  maximumWattage     String?  // watts
-  brandOfLed         String?  // LED chip brand (Epistar, etc.)
-  luminousFlux       String?  // lumens (may include /M for strips)
+  input              String? // AC voltage / input type
+  maximumWattage     String? // watts
+  brandOfLed         String? // LED chip brand (Epistar, etc.)
+  luminousFlux       String? // lumens (may include /M for strips)
   mainMaterial       String?
-  cri                String?  // Color Rendering Index
+  cri                String? // Color Rendering Index
   beamAngle          String?
   workingTemperature String?
   fixtureDimmable    String?
-  electrical         String?  // driver info
+  electrical         String? // driver info
   powerFactor        String?
-  colorTemperature   String?  // e.g. "3000K / 4000K / 6500K"
-  ip                 String?  // Base IP as stored in spec (string)
+  colorTemperature   String? // e.g. "3000K / 4000K / 6500K"
+  ip                 String? // Base IP as stored in spec (string)
   energySaving       String?
   lifeTime           String?
   // Mister LED chandeliers only
-  finish             String?  // e.g. "Brushed Nickel"
-  lampBase           String?  // e.g. "E27"
-  bulb               String?  // "Yes" | "No"
+  finish             String? // e.g. "Brushed Nickel"
+  lampBase           String? // e.g. "E27"
+  bulb               String? // "Yes" | "No"
   // Extra / future use
   customSpecs        Json?
   createdAt          DateTime @default(now())
@@ -422,14 +422,14 @@ model ProductSpecification {
 // child row here instead of the old LightingType table — both are plain Category
 // rows post-merge. ProductCategory below is the new, genuinely many-to-many surface.
 model Category {
-  id           String                @id @default(cuid())
-  name         String                @unique
-  slug         String                @unique
-  parentId     String?
-  order        Int                   @default(0)
-  isActive     Boolean               @default(true)
-  createdAt    DateTime              @default(now())
-  updatedAt    DateTime              @updatedAt
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  parentId  String?
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   parent            Category?             @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children          Category[]            @relation("CategoryHierarchy")
@@ -488,7 +488,7 @@ model Discount {
   id         String        @id @default(cuid())
   type       DiscountType
   scope      DiscountScope
-  value      Float
+  value      Decimal       @db.Decimal(12, 2)
   code       String?       @unique // null = automatic discount, set = coupon code
   productId  String?
   categoryId String?
@@ -515,9 +515,9 @@ model Discount {
 model PriceHistory {
   id        String   @id @default(cuid())
   productId String
-  oldPrice  Float
-  newPrice  Float
-  changedBy String   // Admin.id, or "system" for non-admin-initiated changes
+  oldPrice  Decimal  @db.Decimal(12, 2)
+  newPrice  Decimal  @db.Decimal(12, 2)
+  changedBy String // Admin.id, or "system" for non-admin-initiated changes
   changedAt DateTime @default(now())
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -613,7 +613,7 @@ model CurrencyRate {
   id           String   @id @default(cuid())
   fromCurrency String
   toCurrency   String
-  rate         Float
+  rate         Decimal  @db.Decimal(18, 8)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -623,12 +623,11 @@ model CurrencyRate {
   @@map("currency_rates")
 }
 
-
 // ─── Enums ───────────────────────────────────────────────────
 enum ProductColorTemp {
-  warm   // 3000K
-  cool   // 6500K
-  white  // 4000K / neutral
+  warm // 3000K
+  cool // 6500K
+  white // 4000K / neutral
 
   @@map("ProductColorTemp")
 }

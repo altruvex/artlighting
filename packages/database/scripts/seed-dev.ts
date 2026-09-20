@@ -20,6 +20,7 @@ assertNotProduction();
 
 const { prisma } = await import("../index");
 const { OrderStatus } = await import("../index");
+const { addMoney, money, multiplyMoney } = await import("@repo/money");
 const { betterAuth } = await import("better-auth");
 const { prismaAdapter } = await import("better-auth/adapters/prisma");
 
@@ -165,16 +166,16 @@ async function main() {
       const customer = customers[index % customers.length];
       const quantity = (index % 3) + 1;
       const shippingPrice = index % 4 === 0 ? 0 : 150;
-      const configPrice = product.price;
-      const totalPrice = configPrice * quantity + shippingPrice;
+      const configPrice = money(product.price);
+      const totalPrice = addMoney(multiplyMoney(configPrice, quantity), shippingPrice);
       const placedAt = daysAgo(index * 2 + 1);
 
       const configuration = await prisma.configuration.create({
         data: {
           productId: product.productId,
-          configPrice,
+          configPrice: configPrice.toFixed(2),
           quantity,
-          totalPrice,
+          totalPrice: totalPrice.toFixed(2),
           shippingPrice,
           productIp: product.productIp,
           createdAt: placedAt,
@@ -195,9 +196,9 @@ async function main() {
           chandelierLightingType: product.chandelierLightingType,
           quantity,
           productPrice: product.price,
-          configPrice,
+          configPrice: configPrice.toFixed(2),
           shippingPrice,
-          totalPrice,
+          totalPrice: totalPrice.toFixed(2),
           status: OrderStatus[plan.status],
           isCompleted: plan.completed,
           customerLanguage: customer.preferredLanguage,

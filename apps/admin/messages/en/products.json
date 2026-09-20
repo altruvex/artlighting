@@ -33,6 +33,60 @@
     "empty": {
       "title": "No products yet",
       "description": "Add your first product to start building the catalog."
+    },
+    "bulkPrice": {
+      "trigger": "{count, plural, one {Edit price} other {Edit # prices}}",
+      "title": "Bulk price edit",
+      "description": "{count, plural, one {# product selected} other {# products selected}}. Nothing changes until you preview and apply.",
+      "modeLabel": "Change",
+      "percentLabel": "Percent",
+      "amountLabel": "Amount (EGP)",
+      "modes": {
+        "set": "Set price to",
+        "increase_percent": "Increase by percent",
+        "decrease_percent": "Decrease by percent",
+        "increase_amount": "Increase by amount",
+        "decrease_amount": "Decrease by amount"
+      },
+      "columns": {
+        "product": "Product",
+        "oldPrice": "Current",
+        "newPrice": "New"
+      },
+      "unchanged": "No change",
+      "previewSummary": "{changed} of {total} prices would change.",
+      "preview": "Preview",
+      "apply": "{count, plural, =0 {Apply} one {Apply to # product} other {Apply to # products}}",
+      "applied": "{count, plural, one {# price updated} other {# prices updated}}",
+      "cancel": "Cancel",
+      "errors": {
+        "valueRequired": "Enter a value first.",
+        "missing": "{count, plural, one {# selected product no longer exists} other {# selected products no longer exist}}. Refresh and try again."
+      }
+    },
+    "sheet": {
+      "export": "Export",
+      "import": "Import",
+      "exported": "{count, plural, one {# product exported} other {# products exported}}",
+      "importTitle": "Import products from Excel",
+      "importDescription": "Export first, edit the sheet, then bring it back. Rows are matched by SKU.",
+      "choose": "Choose an .xlsx file",
+      "chooseHint": "Nothing is written until you have seen the preview below.",
+      "counts": {
+        "update": "{count, plural, one {# row to update} other {# rows to update}}",
+        "unchanged": "{count, plural, one {# row unchanged} other {# rows unchanged}}",
+        "error": "{count, plural, one {# row with an error} other {# rows with errors}}"
+      },
+      "columns": {
+        "row": "Row",
+        "sku": "SKU",
+        "change": "Change"
+      },
+      "noChange": "No change",
+      "neverDeletes": "Import never deletes. A product missing from the sheet is left exactly as it is.",
+      "apply": "{count, plural, =0 {Apply} one {Apply # row} other {Apply # rows}}",
+      "applied": "{count, plural, one {# product updated} other {# products updated}}",
+      "cancel": "Cancel"
     }
   },
   "ProductEditor": {

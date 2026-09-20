@@ -33,6 +33,60 @@
     "empty": {
       "title": "لا توجد منتجات بعد",
       "description": "أضف أول منتج لبدء بناء الكتالوج."
+    },
+    "bulkPrice": {
+      "trigger": "{count, plural, one {تعديل السعر} other {تعديل # سعر}}",
+      "title": "تعديل الأسعار بالجملة",
+      "description": "{count, plural, one {تم تحديد منتج واحد} other {تم تحديد # منتج}}. لن يتغير شيء قبل المعاينة والتطبيق.",
+      "modeLabel": "نوع التغيير",
+      "percentLabel": "النسبة",
+      "amountLabel": "المبلغ (ج.م)",
+      "modes": {
+        "set": "تعيين السعر إلى",
+        "increase_percent": "زيادة بنسبة",
+        "decrease_percent": "خصم بنسبة",
+        "increase_amount": "زيادة بمبلغ",
+        "decrease_amount": "خصم بمبلغ"
+      },
+      "columns": {
+        "product": "المنتج",
+        "oldPrice": "السعر الحالي",
+        "newPrice": "السعر الجديد"
+      },
+      "unchanged": "بدون تغيير",
+      "previewSummary": "سيتغير {changed} من {total} سعر.",
+      "preview": "معاينة",
+      "apply": "{count, plural, =0 {تطبيق} one {تطبيق على منتج واحد} other {تطبيق على # منتج}}",
+      "applied": "{count, plural, one {تم تحديث سعر واحد} other {تم تحديث # سعر}}",
+      "cancel": "إلغاء",
+      "errors": {
+        "valueRequired": "أدخل قيمة أولاً.",
+        "missing": "{count, plural, one {منتج محدد لم يعد موجوداً} other {# منتجات محددة لم تعد موجودة}}. حدّث الصفحة وحاول مرة أخرى."
+      }
+    },
+    "sheet": {
+      "export": "تصدير",
+      "import": "استيراد",
+      "exported": "{count, plural, one {تم تصدير منتج واحد} other {تم تصدير # منتج}}",
+      "importTitle": "استيراد المنتجات من إكسل",
+      "importDescription": "صدّر أولاً، عدّل الملف، ثم أعده. تتم المطابقة عن طريق رمز المنتج (SKU).",
+      "choose": "اختر ملف ‎.xlsx",
+      "chooseHint": "لن يُكتب شيء قبل أن ترى المعاينة بالأسفل.",
+      "counts": {
+        "update": "{count, plural, one {صف واحد سيُحدَّث} other {# صف سيُحدَّث}}",
+        "unchanged": "{count, plural, one {صف واحد بدون تغيير} other {# صف بدون تغيير}}",
+        "error": "{count, plural, one {صف واحد به خطأ} other {# صف بها أخطاء}}"
+      },
+      "columns": {
+        "row": "الصف",
+        "sku": "رمز المنتج",
+        "change": "التغيير"
+      },
+      "noChange": "بدون تغيير",
+      "neverDeletes": "الاستيراد لا يحذف أبداً. المنتج غير الموجود في الملف يبقى كما هو.",
+      "apply": "{count, plural, =0 {تطبيق} one {تطبيق صف واحد} other {تطبيق # صف}}",
+      "applied": "{count, plural, one {تم تحديث منتج واحد} other {تم تحديث # منتج}}",
+      "cancel": "إلغاء"
     }
   },
   "ProductEditor": {

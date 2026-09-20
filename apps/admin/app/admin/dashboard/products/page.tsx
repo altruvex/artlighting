@@ -3,17 +3,19 @@ import { serializeMoney } from "@repo/money";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { requireAdminOrRedirect } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { prisma } from "@repo/database";
 import { AlertTriangleIcon, CircleCheckIcon, PackageIcon } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import BulkGenerateSheet from "./bulk-generate-sheet";
+import { CatalogSheetActions } from "./catalog-sheet";
 import { ProductsTable, type ProductRow } from "./products-table";
 
 const LOW_STOCK_THRESHOLD = 5;
 
 export default async function ProductsPage() {
-  await requireAdminOrRedirect();
+  const admin = await requireAdminOrRedirect();
 
   const [t, locale] = await Promise.all([getTranslations("Products"), getLocale()]);
 
@@ -63,6 +65,7 @@ export default async function ProductsPage() {
         description={t("subtitle")}
         actions={
           <>
+            <CatalogSheetActions canWrite={can(admin.role, "price:write")} />
             <BulkGenerateSheet topCategories={topCategories.map((c) => ({ id: c.id, name: c.translations[0]?.name ?? c.name }))} />
             <Button asChild size="sm">
               <Link href="/admin/dashboard/products/new">{t("newProduct")}</Link>
@@ -82,7 +85,11 @@ export default async function ProductsPage() {
         />
       </div>
 
-      <ProductsTable products={rows} categories={topCategories.map((c) => ({ id: c.id, label: c.translations[0]?.name ?? c.name }))} />
+      <ProductsTable
+        products={rows}
+        categories={topCategories.map((c) => ({ id: c.id, label: c.translations[0]?.name ?? c.name }))}
+        canEditPrices={can(admin.role, "price:write")}
+      />
     </PageShell>
   );
 }

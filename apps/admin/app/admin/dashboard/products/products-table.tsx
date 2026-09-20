@@ -3,6 +3,7 @@
 import { type AdminColumn, ColumnHeader, DataTable } from "@/components/data-table";
 import { formatMoney, moneySortKey } from "@/lib/money";
 import { EmptyState } from "@/components/empty-state";
+import { BulkPriceDialog } from "./bulk-price-dialog";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { PackageIcon } from "lucide-react";
@@ -29,9 +30,12 @@ export interface ProductRow extends Record<string, unknown> {
 export function ProductsTable({
   products,
   categories,
+  canEditPrices,
 }: {
   products: ProductRow[];
   categories: { id: string; label: string }[];
+  /** ADMIN only: price:write. STAFF sees the table without the selection column. */
+  canEditPrices: boolean;
 }) {
   const t = useTranslations("Products");
   const tCommon = useTranslations("Common");
@@ -170,6 +174,13 @@ export function ProductsTable({
           ],
         },
       ]}
+      // Passing bulkActions is what turns the selection column on, so STAFF
+      // simply never sees a checkbox they could not act on.
+      bulkActions={
+        canEditPrices
+          ? (selected, clear) => <BulkPriceDialog selected={selected} clear={clear} />
+          : undefined
+      }
       emptyState={
         <EmptyState
           icon={PackageIcon}

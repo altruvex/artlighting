@@ -22,6 +22,11 @@ Written 2026-09-19 after reading the monorepo and the Altruvex admin (`/Users/al
 | D12 | Document export formats (2026-09-19) | **Every generated document offers both PowerPoint (.pptx) and PDF downloads**: quotations, datasheets, catalogues and invoices. Quotations also export to Excel (.xlsx). The pipeline builds the PPTX first and converts it to PDF, so both come from the same render and always match. Both files are stored as `GeneratedFile` rows. |
 | D11 | Generated output language (scope change, 2026-09-19) | **English only** for every generated artifact: quotation, datasheet, catalogue and invoice PDFs and Excel files, and **all emails** (one English template each, no per-customer locale). Documents use the **English** translation of product names, descriptions and specs. This overrides the brief's requirement for Arabic documents and localized emails. The UI stays ar/en (storefront **and** admin). |
 
+### Migration approval rule (agreed 2026-09-20)
+- **Dev (Neon `dev` branch):** show the SQL and apply in the same turn.
+- **Production:** show the SQL and **stop** until Ali explicitly approves. Production then receives exactly the committed migration folders through `prisma migrate deploy` — never `db execute`, never `db push`.
+- Every migration lives as a folder in `packages/database/prisma/migrations` (with `migration_lock.toml`), and `migrate diff --from-migrations … --to-schema` must be empty before a phase closes.
+
 ### Order of work
 1. **Hotfix (before Phase 0), done: `ac174d7`.** `completeOrder` is scoped to the order owner, and BETTER_AUTH_SECRET is enforced in production (≥ 32 chars). It is a separate commit directly on top of `pre-erp-upgrade`, so it can be deployed alone.
 2. Phase 0, with **Prisma 6 → 7 last, in its own commit**, only after everything else builds and typechecks.

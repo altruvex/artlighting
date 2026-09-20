@@ -895,5 +895,43 @@
             "OUTDOOR": "الإضاءة الخارجية",
             "CHANDELIER": "النجف"
         }
+    },
+    "shop": {
+        "metaTitle": "تسوّق كل الإضاءة",
+        "metaDescription": "كل النجف والكشافات ووحدات الإضاءة الخارجية في مكان واحد — فلتر بالفئة والماركة والسعر.",
+        "title": "المتجر",
+        "count": "{count, plural, zero{لا منتجات} one{منتج واحد} two{منتجان} few{{formatted} منتجات} many{{formatted} منتجًا} other{{formatted} منتج}}",
+        "results": "المنتجات",
+        "activeFilters": "الفلاتر المستخدمة",
+        "remove": "إزالة الفلتر",
+        "clearAll": "مسح الكل",
+        "filter": "فلترة",
+        "close": "إغلاق الفلاتر",
+        "onSale": "عليه خصم",
+        "priceChip": "نطاق السعر",
+        "priceMin": "أقل سعر",
+        "priceMax": "أعلى سعر",
+        "applyPrice": "تطبيق السعر",
+        "sortBy": "ترتيب حسب",
+        "emptyTitle": "مافيش منتجات بالفلاتر دي",
+        "emptyBody": "جرّب تشيل واحد منهم — أو امسحهم كلهم وشوف كل حاجة.",
+        "group": {
+            "sale": "العروض",
+            "family": "الفئة",
+            "brand": "الماركة",
+            "price": "السعر",
+            "type": "النوع"
+        },
+        "brand": {
+            "balcom": "بالكوم",
+            "misterLed": "مستر ليد"
+        },
+        "sort": {
+            "featured": "المميّز",
+            "price-asc": "السعر: من الأقل",
+            "price-desc": "السعر: من الأعلى",
+            "discount": "أكبر خصم",
+            "newest": "الأحدث"
+        }
     }
 }

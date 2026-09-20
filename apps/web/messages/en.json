@@ -1108,5 +1108,43 @@
             "OUTDOOR": "outdoor lighting",
             "CHANDELIER": "chandeliers"
         }
+    },
+    "shop": {
+        "metaTitle": "Shop all lighting",
+        "metaDescription": "Every chandelier, spotlight and outdoor fixture in one place — filter by family, brand and price.",
+        "title": "Shop",
+        "count": "{count, plural, one{# product} other{# products}}",
+        "results": "Products",
+        "activeFilters": "Active filters",
+        "remove": "Remove filter",
+        "clearAll": "Clear all",
+        "filter": "Filter",
+        "close": "Close filters",
+        "onSale": "On sale",
+        "priceChip": "Price range",
+        "priceMin": "Minimum price",
+        "priceMax": "Maximum price",
+        "applyPrice": "Apply price",
+        "sortBy": "Sort by",
+        "emptyTitle": "Nothing matches these filters",
+        "emptyBody": "Try removing one of them — or clear them all to see everything.",
+        "group": {
+            "sale": "Offers",
+            "family": "Category",
+            "brand": "Brand",
+            "price": "Price",
+            "type": "Type"
+        },
+        "brand": {
+            "balcom": "Balcom",
+            "misterLed": "Mister LED"
+        },
+        "sort": {
+            "featured": "Featured",
+            "price-asc": "Price: low to high",
+            "price-desc": "Price: high to low",
+            "discount": "Biggest discount",
+            "newest": "Newest"
+        }
     }
 }

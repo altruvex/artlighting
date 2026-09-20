@@ -196,12 +196,13 @@ model User {
   updatedAt         DateTime @updatedAt
   shippingAddressId String?  @unique
 
-  shippingAddress ShippingAddress?
-  configurations  Configuration[]  @relation("ConfigurationOwner")
-  cart            Cart?
-  orders          Order[]
-  sessions        Session[]
-  accounts        Account[]
+  shippingAddress     ShippingAddress?
+  configurations      Configuration[]      @relation("ConfigurationOwner")
+  cart                Cart?
+  orders              Order[]
+  sessions            Session[]
+  accounts            Account[]
+  discountRedemptions DiscountRedemption[]
 
   @@map("users")
 }
@@ -311,12 +312,13 @@ model Order {
   configurationId        String?
   shippingAddressId      String?
 
-  orderItems      OrderItem[]
-  stockMovements  StockMovement[]
-  product         Product          @relation(fields: [productId], references: [id])
-  shippingAddress ShippingAddress? @relation(fields: [shippingAddressId], references: [id])
-  user            User             @relation(fields: [userId], references: [id])
-  configuration   Configuration?   @relation("ConfigurationToOrder", fields: [configurationId], references: [id])
+  orderItems          OrderItem[]
+  stockMovements      StockMovement[]
+  product             Product              @relation(fields: [productId], references: [id])
+  shippingAddress     ShippingAddress?     @relation(fields: [shippingAddressId], references: [id])
+  user                User                 @relation(fields: [userId], references: [id])
+  configuration       Configuration?       @relation("ConfigurationToOrder", fields: [configurationId], references: [id])
+  discountRedemptions DiscountRedemption[]
 
   @@index([userId])
   @@index([productId])
@@ -435,7 +437,7 @@ model Product {
   variants          ProductVariant[]
   images            ProductImage[]
   productCategories ProductCategory[]
-  discounts         Discount[]
+  discounts         DiscountProduct[]
   priceHistory      PriceHistory[]
 
   @@index([productId])
@@ -596,8 +598,8 @@ model Category {
   products          Product[]             @relation("ProductTopCategory")
   subProducts       Product[]             @relation("ProductSubCategory")
   productCategories ProductCategory[]
-  discounts         Discount[]
   translations      CategoryTranslation[]
+  discounts         DiscountCategory[]
 
   @@index([isActive])
   @@index([slug])
@@ -645,28 +647,113 @@ model ProductCategory {
 
 // ─── Discount ────────────────────────────────────────────────
 model Discount {
-  id         String        @id @default(cuid())
-  type       DiscountType
-  scope      DiscountScope
-  value      Decimal       @db.Decimal(12, 2)
-  code       String?       @unique // null = automatic discount, set = coupon code
-  productId  String?
-  categoryId String?
-  startsAt   DateTime?
-  endsAt     DateTime?
-  isActive   Boolean       @default(true)
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  id   String @id @default(cuid())
+  /// What the admin calls it. Shown in the list, on the order and on an
+  /// invoice line, so it is not optional.
+  name String
 
-  product  Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  category Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  type  DiscountType
+  mode  DiscountMode
+  scope DiscountScope
+
+  /// FIXED only: an amount off. Null for a percentage.
+  amount Decimal? @db.Decimal(12, 2)
+  /// PERCENTAGE only: a **rate**, 0.1300 = 13%, the same convention as
+  /// every other rate in this schema. Deliberately a separate column from
+  /// `amount`: one column whose meaning depends on another column's value
+  /// is how a cart came to charge 0.13% instead of 13%. A CHECK constraint
+  /// enforces that exactly the right one is set.
+  rate   Decimal? @db.Decimal(5, 4)
+
+  /// Upper-cased on write and unique, so lookup is case-insensitive without
+  /// a function index. Required for COUPON, forbidden for AUTOMATIC.
+  code String? @unique
+
+  /// The cart must reach this before the discount applies.
+  minOrderValue Decimal? @db.Decimal(12, 2)
+
+  /// Total redemptions allowed across all customers; null is unlimited.
+  usageLimit       Int?
+  /// Redemptions allowed per customer; null is unlimited.
+  perCustomerLimit Int?
+  /// Maintained under a row lock at checkout, so concurrent orders cannot
+  /// push it past usageLimit.
+  usageCount       Int  @default(0)
+
+  /// Whether this can combine with others. Non-stackable discounts compete
+  /// and the best one for the customer wins.
+  stackable Boolean @default(false)
+  /// Order in which stackable discounts apply. Lower runs first.
+  priority  Int     @default(0)
+
+  startsAt  DateTime?
+  endsAt    DateTime?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  products    DiscountProduct[]
+  categories  DiscountCategory[]
+  redemptions DiscountRedemption[]
 
   @@index([scope])
-  @@index([productId])
-  @@index([categoryId])
+  @@index([mode])
   @@index([code])
-  @@index([startsAt, endsAt])
+  @@index([isActive, startsAt, endsAt])
   @@map("discounts")
+}
+
+/// Which products a PRODUCTS-scoped discount covers. A join table rather
+/// than a single productId: a promotion almost never covers exactly one
+/// product, and the old shape forced one Discount row per product.
+model DiscountProduct {
+  discountId String
+  productId  String
+
+  discount Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([discountId, productId])
+  @@index([productId])
+  @@map("discount_products")
+}
+
+model DiscountCategory {
+  discountId String
+  categoryId String
+
+  discount Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([discountId, categoryId])
+  @@index([categoryId])
+  @@map("discount_categories")
+}
+
+/// One use of a discount on one order. This is what enforces the usage
+/// limits, and what answers "what did this promotion actually cost us".
+model DiscountRedemption {
+  id            String   @id @default(cuid())
+  discountId    String
+  orderId       Int
+  /// Null for a guest checkout; the email is kept either way so a
+  /// per-customer limit still means something without an account.
+  userId        String?
+  customerEmail String
+  /// What this discount took off this order, in money.
+  amount        Decimal  @db.Decimal(12, 2)
+  createdAt     DateTime @default(now())
+
+  discount Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  /// A discount cannot be redeemed twice on the same order.
+  @@unique([discountId, orderId])
+  @@index([discountId, userId])
+  @@index([discountId, customerEmail])
+  @@index([orderId])
+  @@map("discount_redemptions")
 }
 
 // ─── PriceHistory ────────────────────────────────────────────
@@ -994,16 +1081,25 @@ enum OrderStatus {
 }
 
 enum DiscountType {
-  percentage
-  fixed
+  PERCENTAGE
+  FIXED
 
   @@map("DiscountType")
 }
 
+/// AUTOMATIC applies on its own; COUPON needs the customer to type a code.
+enum DiscountMode {
+  AUTOMATIC
+  COUPON
+}
+
 enum DiscountScope {
-  product
-  category
-  global
+  /// Applies to the lines whose product is listed.
+  PRODUCTS
+  /// Applies to the lines whose product is in one of the categories.
+  CATEGORIES
+  /// Applies to the order total rather than to any line.
+  CART
 
   @@map("DiscountScope")
 }

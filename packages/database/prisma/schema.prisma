@@ -403,7 +403,9 @@ model Product {
   /// leaves the admin and is never sent to the storefront.
   cost                   Decimal?         @db.Decimal(12, 2)
   priceIncrease          Decimal          @default(0) @db.Decimal(12, 2)
-  sectionType            String // "indoor" | "outdoor" | "chandelier"
+  /// The broad shelf this product sits on. The URL segment is derived
+  /// from it (see FAMILY_SLUGS in @repo/catalog), not equal to it.
+  sectionType            ProductFamily
   brand                  String // "balcom" | "mister-led"
   chandelierLightingType String? // "LED" | "lamp"
   hNumber                Int? // Number of heads/lights (chandeliers)

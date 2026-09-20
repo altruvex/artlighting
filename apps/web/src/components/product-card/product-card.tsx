@@ -1,6 +1,7 @@
 "use client"
 
 import { addToCart } from "@/actions/cart";
+import type { ProductFamily } from "@repo/catalog/families";
 import NormalPrice from "@/components/normal-price";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,7 @@ interface Product {
   /** Serialized money (see @repo/money): a string, never a float. */
   price: string;
   productImages: string[];
-  sectionType: string;
+  sectionType: ProductFamily;
   spotlightType: string;
   /** Rate, not percent: 0.13 = 13%. */
   discount: string;
@@ -124,7 +125,7 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
     }
 
     if (product.brand === "balcom" &&
-      (product.sectionType === "indoor" || product.sectionType === 'إضاءة داخلية')) {
+      product.sectionType === "INDOOR") {
       return t('descriptions.indoorSpotlight', {
         material: mainMaterial,
         beamAngle: beamAngle,
@@ -133,7 +134,7 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
     }
 
     if (product.brand === "balcom" &&
-      (product.sectionType === "outdoor" || product.sectionType === 'إضاءة خارجية')) {
+      product.sectionType === "OUTDOOR") {
       return t('descriptions.outdoorSpotlight', {
         spotlightType: spotlightType,
         wattage: maximumWattage,

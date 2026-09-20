@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth-server"
-import { productDiscountRates } from "@repo/catalog";
+import { familySlug, productDiscountRates } from "@repo/catalog";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { serializeRate } from "@repo/money";
 import { serializeRowMoney, toViewConfiguration } from "@/lib/serialize-money";
@@ -277,25 +277,27 @@ export const generateMetadata = async ({ params }: PagePropsTypes): Promise<Meta
     const localizedName = product.translations?.[0]?.name || product.productName
     const specification = product.specifications?.[0]
 
-    let titleToSectionType = product.sectionType
+    // The enum is a value, not a label: if a family ever loses its copy below,
+    // the slug is what shows, never "INDOOR".
+    let titleToSectionType: string = familySlug(product.sectionType)
     let typeOfSpotlight = ""
 
     const sectionTypeTranslations = {
-      indoor: {
+      INDOOR: {
         en: { title: "Indoor lighting", description: "Ideal for homes and offices" },
         ar: { title: "الإضاءة الداخلية", description: "مثالية للمنازل والمكاتب" }
       },
-      outdoor: {
+      OUTDOOR: {
         en: { title: "Outdoor lighting", description: "Create the perfect ambiance for outdoor entertaining" },
         ar: { title: "الإضاءة الخارجية", description: "اخلق الأجواء المثالية للترفيه في الهواء الطلق" }
       },
-      chandelier: {
+      CHANDELIER: {
         en: { title: "Chandelier", description: "A chandelier is a branched, decorative lighting fixture designed to be hung from the ceiling." },
         ar: { title: "ثريا", description: "الثريا هي تركيبة إضاءة زخرفية متفرعة مصممة للتعليق من السقف." }
       }
     } as const
 
-    const sectionData = sectionTypeTranslations[product.sectionType as keyof typeof sectionTypeTranslations]
+    const sectionData = sectionTypeTranslations[product.sectionType]
     if (sectionData) {
       const localeData = sectionData[locale as keyof typeof sectionData] || sectionData.en
       titleToSectionType = localeData.title

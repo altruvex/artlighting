@@ -1,3 +1,4 @@
+export * from "./families";
 export * from "./schemas";
 export * from "./inventory";
 export * from "./discounts";

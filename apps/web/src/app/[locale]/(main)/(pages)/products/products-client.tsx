@@ -1,6 +1,7 @@
 "use client";
 
 import { Container } from "@/components/container";
+import type { ProductFamily } from "@repo/catalog/families";
 import type { MoneyInput } from "@repo/money";
 import ProductCard from "@/components/product-card/product-card";
 import {
@@ -23,7 +24,7 @@ interface Product {
   brand: string;
   price: string;
   productImages: string[];
-  sectionType: string;
+  sectionType: ProductFamily;
   spotlightType: string;
   discount: string;
   chandelierLightingType?: string;

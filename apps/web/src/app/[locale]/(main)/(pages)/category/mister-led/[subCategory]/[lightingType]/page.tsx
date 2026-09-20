@@ -1,4 +1,5 @@
 import Breadcrumb from "@/components/breadcrumb/custom-breadcrumb";
+import { familyFromSlug } from "@repo/catalog";
 import { getLocaleFromParams, getServerI18n } from "@/lib/i18n/utils";
 import { constructMetadata } from "@/lib/metadata";
 import { PagePropsTypes } from "@/types";
@@ -15,8 +16,13 @@ export default async function Page({ params }: PagePropsTypes) {
   if (!subCategory || !lightingType) {
     notFound();
   }
+  // The URL segment is a slug, not the stored value. Parsing it here means
+  // an unknown section 404s instead of querying for something that cannot
+  // exist — which is what the old string column quietly allowed.
+  const family = familyFromSlug(subCategory);
+  if (!family) notFound();
   try {
-    const lightingTypes = await service.getLocalizedLightingTypes("mister-led", subCategory, locale) as any[];
+    const lightingTypes = await service.getLocalizedLightingTypes("mister-led", family, locale) as any[];
 
     const currentLightingType = lightingTypes.find(
       (lt: any) => lt.slug === lightingType || lt.localizedSlug === lightingType || lt.spotlightType === lightingType
@@ -29,7 +35,7 @@ export default async function Page({ params }: PagePropsTypes) {
     const { products, total } = await service.getLocalizedProducts(
       {
         brand: "mister-led",
-        sectionType: subCategory,
+        sectionType: family,
         spotlightType: currentLightingType.spotlightType,
       },
       locale,

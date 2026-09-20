@@ -1,6 +1,7 @@
 "use client"
 
 import { addMoney, applyRate, clampNonNegative, money, type MoneyInput, multiplyMoney, subtractMoney } from "@repo/money"
+import type { ProductFamily } from "@repo/catalog/families";
 import { formatNumberWithConversion } from "@/lib/numbers"
 import { useLocale } from "next-intl"
 
@@ -12,7 +13,7 @@ interface DiscountPriceProps {
   discount?: MoneyInput
   quantity?: number
   shippingPrice?: MoneyInput
-  sectionType?: string
+  sectionType?: ProductFamily
   priceIncrease?: MoneyInput
   lampPriceIncrease?: MoneyInput
 }

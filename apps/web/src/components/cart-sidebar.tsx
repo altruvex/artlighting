@@ -1,6 +1,7 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
+import type { ProductFamily } from "@repo/catalog/families";
 import { money, type MoneyInput, serializeMoney, sumMoney } from "@repo/money";
 import { priceLine } from "@/lib/pricing";
 import { formatPercent } from "@/lib/numbers";
@@ -26,7 +27,7 @@ interface CartItem {
   discount: string
   price: string
   brand: string
-  sectionType: string
+  sectionType: ProductFamily
   spotlightType: string
   totalPrice: string
 }

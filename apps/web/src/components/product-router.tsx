@@ -29,13 +29,13 @@ export default function ProductRouter({
         )
     }
 
-    if (product.brand === "mister-led" && product.sectionType === "chandelier") {
+    if (product.brand === "mister-led" && product.sectionType === "CHANDELIER") {
         return (
             <ChandelierProducts
                 product={product as any}
                 relatedProducts={
                     relatedProducts.filter(
-                        (p) => p.brand === "mister-led" && p.sectionType === "chandelier"
+                        (p) => p.brand === "mister-led" && p.sectionType === "CHANDELIER"
                     ) as any
                 }
                 configuration={configuration}

@@ -1,6 +1,7 @@
 "use client";
 
 import { searchProducts } from "@/actions/search";
+import type { ProductFamily } from "@repo/catalog/families";
 import { serializeRate } from "@repo/money";
 import type { MoneyInput } from "@repo/money";
 import ProductCard from "@/components/product-card/product-card";
@@ -19,7 +20,7 @@ interface Product {
   brand: string;
   price: string;
   productImages: string[];
-  sectionType: string;
+  sectionType: ProductFamily;
   spotlightType: string;
   discount: string;
   ProductId: string;

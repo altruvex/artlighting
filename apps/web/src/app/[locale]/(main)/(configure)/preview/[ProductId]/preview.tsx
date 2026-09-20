@@ -2,6 +2,7 @@
 "use client";
 
 import { Container } from "@/components/container";
+import type { ProductFamily } from "@repo/catalog/families";
 import type { MoneyInput } from "@repo/money";
 import LoginModal from "@/components/login-model";
 import NormalPrice from "@/components/normal-price";
@@ -30,7 +31,7 @@ export interface ProductWithSpecs {
   price: string;
   productImages: string[];
   discount: string;
-  sectionType: string;
+  sectionType: ProductFamily;
   spotlightType: string;
   brand: string;
   productColor: string;

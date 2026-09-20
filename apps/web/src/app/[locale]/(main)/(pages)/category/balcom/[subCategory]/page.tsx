@@ -1,4 +1,5 @@
 import Breadcrumb from "@/components/breadcrumb/custom-breadcrumb";
+import { familyFromSlug } from "@repo/catalog";
 import { getLocaleFromParams, getServerI18n } from "@/lib/i18n/utils";
 import { constructMetadata } from "@/lib/metadata";
 import { notFound } from "next/navigation";
@@ -10,12 +11,14 @@ export default async function Page({ params }: PagePropsTypes) {
   const locale = getLocaleFromParams(await params);
   const { service } = await getServerI18n(locale);
   if (!subCategory) {
-    notFound();
+    notFound()
   }
+  const family = familyFromSlug(subCategory)
+  if (!family) notFound()
   try {
     const localizedLightingTypes = await service.getLocalizedLightingTypes(
       "balcom",
-      subCategory,
+      family,
       locale
     ) as any[];
 
@@ -55,13 +58,14 @@ export async function generateMetadata({ params }: PagePropsTypes) {
   const { subCategory } = await params;
   const locale = getLocaleFromParams(await params);
   const { service } = await getServerI18n(locale);
-  if (!subCategory) {
+  const family = familyFromSlug(subCategory);
+  if (!subCategory || !family) {
     notFound();
   }
   try {
     const localizedLightingTypes = await service.getLocalizedLightingTypes(
       "balcom",
-      subCategory,
+      family,
       locale
     ) as any[];
 

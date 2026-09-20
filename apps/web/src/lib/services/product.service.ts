@@ -1,7 +1,7 @@
 import { prisma } from "@repo/database";
 import { parseLocalizedInt } from "@/lib/numbers";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { availableFrom, inventorySelect, productDiscountRates } from "@repo/catalog";
+import { availableFrom, familiesMatching, inventorySelect, productDiscountRates, type ProductFamily } from "@repo/catalog";
 import { localizeSpecGroups, specGroupSelect, type LocalizedSpecGroup } from "@/lib/spec-groups";
 import { serializeMoney, serializeRate } from "@repo/money";
 import { toViewConfiguration } from "@/lib/serialize-money";
@@ -10,7 +10,7 @@ import { CacheService, CacheTTL, CachePrefix } from "@/lib/cache/redis.service";
 
 export interface ProductFilters {
   brand?: string;
-  sectionType?: string;
+  sectionType?: ProductFamily;
   spotlightType?: string;
   categoryId?: string;
   lightingtypeId?: string;
@@ -45,7 +45,7 @@ export interface LocalizedProductData {
   productImages: string[];
   images: string[];
   specGroups: LocalizedSpecGroup[];
-  sectionType: string;
+  sectionType: ProductFamily;
   spotlightType: string;
   quantity: number;
   isActive: boolean;
@@ -227,6 +227,8 @@ export class ProductService {
     const cached = await CacheService.get<ProductListResult<LocalizedProductData>>(cacheKey);
     if (cached) return cached;
 
+    const searchFamilies = familiesMatching(filters.searchQuery);
+
     const where: Prisma.ProductWhereInput = {
       isActive: filters.isActive !== undefined ? filters.isActive : true,
       ...(filters.brand && { brand: filters.brand }),
@@ -239,7 +241,9 @@ export class ProductService {
         OR: [
           { productName: { contains: filters.searchQuery, mode: "insensitive" } },
           { brand: { contains: filters.searchQuery, mode: "insensitive" } },
-          { sectionType: { contains: filters.searchQuery, mode: "insensitive" } },
+          // An enum takes no `contains`; the substring match runs over the
+          // family slugs and comes back as exact values.
+          ...(searchFamilies.length ? [{ sectionType: { in: searchFamilies } }] : []),
         ],
       }),
     };
@@ -306,7 +310,7 @@ export class ProductService {
   static async getRelatedProducts(
     productId: string,
     brand: string,
-    sectionType: string,
+    sectionType: ProductFamily,
     language: string,
     opts: { spotlightType?: string; maxIP?: number; limit?: number } = {}
   ): Promise<LocalizedProductData[]> {

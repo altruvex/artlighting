@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import type { ProductFamily } from "@repo/catalog/families";
 import { SupportedLanguage } from "@/types/products";
 import { I18nService } from "./services";
 
@@ -99,7 +100,7 @@ export function getLocalizedProductDescription(
         specifications?: Record<string, string>;
         chandelierLightingType?: string;
         hNumber?: number;
-        sectionType: string;
+        sectionType: ProductFamily;
         spotlightType: string;
     },
     language: SupportedLanguage
@@ -112,11 +113,11 @@ export function getLocalizedProductDescription(
             return `ثريا ${name} من ${specs.mainMaterial || 'مواد عالية الجودة'} مع قاعدة ${specs.lampBase || 'قياسية'} وقوة ${product.hNumber ? product.hNumber * 12 : specs.maximumWattage || 'غير محدد'}W`;
         }
 
-        if (product.brand === "balcom" && product.sectionType === "indoor") {
+        if (product.brand === "balcom" && product.sectionType === "INDOOR") {
             return `كشاف داخلي ${name} من ${specs.mainMaterial || 'مواد متينة'} بزاوية إضاءة ${specs.beamAngle || 'قياسية'}`;
         }
 
-        if (product.brand === "balcom" && product.sectionType === "outdoor") {
+        if (product.brand === "balcom" && product.sectionType === "OUTDOOR") {
             return `كشاف خارجي ${name} من نوع ${product.spotlightType}`;
         }
 
@@ -132,11 +133,11 @@ export function getLocalizedProductDescription(
             return `${name} chandelier made from ${specs.mainMaterial || 'high-quality materials'} with ${specs.lampBase || 'standard'} base and ${product.hNumber ? product.hNumber * 12 : specs.maximumWattage || 'unspecified'} watts power`;
         }
 
-        if (product.brand === "balcom" && product.sectionType === "indoor") {
+        if (product.brand === "balcom" && product.sectionType === "INDOOR") {
             return `${name} indoor spotlight made from ${specs.mainMaterial || 'durable materials'} with ${specs.beamAngle || 'standard'} beam angle`;
         }
 
-        if (product.brand === "balcom" && product.sectionType === "outdoor") {
+        if (product.brand === "balcom" && product.sectionType === "OUTDOOR") {
             return `${name} outdoor spotlight of ${product.spotlightType} type`;
         }
 

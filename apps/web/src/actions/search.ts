@@ -2,15 +2,19 @@
 import { prisma } from "@repo/database";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { serializeRowMoney } from "@/lib/serialize-money";
-import { productDiscountRates } from "@repo/catalog";
+import { familiesMatching, productDiscountRates } from "@repo/catalog";
 
 export async function searchProducts(searchItem: string) {
+  // sectionType is an enum: it is matched against whole families whose slug
+  // contains the term, not with a `contains` the column cannot take.
+  const families = familiesMatching(searchItem);
+
   const products = await prisma.product.findMany({
     where: {
       OR: [
         { productName: { contains: searchItem, mode: "insensitive" } },
         { brand: { contains: searchItem, mode: "insensitive" } },
-        { sectionType: { contains: searchItem, mode: "insensitive" } },
+        ...(families.length ? [{ sectionType: { in: families } }] : []),
       ],
     },
     select: {

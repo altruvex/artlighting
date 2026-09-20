@@ -1,6 +1,7 @@
 "use client"
 
 import { addToCart } from "@/actions/cart"
+import type { ProductFamily } from "@repo/catalog/families";
 import { addMoney, applyRate, clampNonNegative, money, type MoneyInput, multiplyMoney, serializeMoney, subtractMoney } from "@repo/money"
 import { updateProductIP } from "@/actions/product-ip"
 import { saveConfig as _saveConfig, type SaveConfigArgs } from "@/components/action"
@@ -53,8 +54,8 @@ interface ProductMainInfoProps {
   configuration?: Configuration
   ip?: PrismaProductIP
   maxIP?: number
-  sectionTypes?: string[]
-  sectionType: string
+  sectionTypes?: ProductFamily[]
+  sectionType: ProductFamily
   maximumWattage?: string
   mainMaterial?: string
   beamAngle?: string
@@ -164,7 +165,7 @@ export default function ProductMainInfo({
 
   const showIP20Text = useMemo(() => PRODUCTS_WITH_IP20_TEXT.includes(productId), [productId])
   const showMaxIpText = useMemo(() => PRODUCTS_WITH_MAX_IP_TEXT.includes(productId), [productId])
-  const showOutdoorText = useMemo(() => sectionTypes?.includes("outdoor") ?? false, [sectionTypes])
+  const showOutdoorText = useMemo(() => sectionTypes?.includes("OUTDOOR") ?? false, [sectionTypes])
 
   useEffect(() => {
     try {
@@ -314,10 +315,10 @@ export default function ProductMainInfo({
       lampBase: lampBase ?? "N/A",
     }
     if (Brand === "balcom")
-      return sectionType === "indoor"
+      return sectionType === "INDOOR"
         ? tDescription("balcomIndoor", params)
         : tDescription("balcomOutdoor", params)
-    if (Brand === "mister-led" && sectionType === "chandelier")
+    if (Brand === "mister-led" && sectionType === "CHANDELIER")
       return chandelierLightingType === "LED"
         ? tDescription("misterLedChandelierLED", params)
         : tDescription("misterLedChandelierLamp", params)
@@ -348,10 +349,10 @@ export default function ProductMainInfo({
       lampBase: lampBase ?? "N/A",
     }
     if (Brand === "balcom")
-      return sectionType === "indoor"
+      return sectionType === "INDOOR"
         ? tFullDescription("balcomIndoor", params)
         : tFullDescription("balcomOutdoor", params)
-    if (Brand === "mister-led" && sectionType === "chandelier")
+    if (Brand === "mister-led" && sectionType === "CHANDELIER")
       return chandelierLightingType === "LED"
         ? tFullDescription("misterLedChandelierLED", params)
         : tFullDescription("misterLedChandelierLamp", params)

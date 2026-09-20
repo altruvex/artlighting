@@ -1,6 +1,6 @@
 import { PagePropsTypes } from "@/types";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { availableFrom, inventorySelect, productDiscountRates } from "@repo/catalog";
+import { availableFrom, inventorySelect, productDiscountRates, type ProductFamily } from "@repo/catalog";
 import { serializeMoney, serializeRate, type MoneyInput } from "@repo/money";
 import { prisma } from "@repo/database";
 import { notFound } from "next/navigation";
@@ -12,7 +12,7 @@ interface ProductTranslationData {
   brand: string;
   price: string;
   productImages: string[];
-  sectionType: string;
+  sectionType: ProductFamily;
   spotlightType: string;
   discount: string;
   chandelierLightingType?: string;

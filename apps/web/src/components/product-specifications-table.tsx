@@ -1,4 +1,5 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import type { ProductFamily } from "@repo/catalog/families";
 import { Fragment } from "react"
 import { SpecificationsTable } from "@/types/products"
 import { cn } from "@/lib/utils"
@@ -18,7 +19,7 @@ interface ProductSpecificationsTableProps {
   Brand?: string
   chandelierLightingType?: string | undefined
   hNumber?: number | null
-  sectionType?: string
+  sectionType?: ProductFamily
   locale: string
 }
 
@@ -61,7 +62,7 @@ export default function ProductSpecificationsTable({
 
   const formatValue = (key: string, value: string): string => {
     if (key.includes("Maximum wattage") || key.includes("أقصى قوة")) {
-      if (sectionType === "chandelier") {
+      if (sectionType === "CHANDELIER") {
         const wattageText = locale === 'ar' ? "W (لمبة 12W)" : "W (12W lamp)";
         return hNumber ? `${hNumber * 12}${wattageText}` : "15W/M";
       } else {

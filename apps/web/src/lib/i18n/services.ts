@@ -1,6 +1,6 @@
 import type { LocalizedCategory, LocalizedProduct, SectionType, SupportedLanguage } from "@/types/products";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { availableFrom, inventorySelect, productDiscountRates } from "@repo/catalog";
+import { availableFrom, inventorySelect, productDiscountRates, type ProductFamily } from "@repo/catalog";
 import { serializeMoney, serializeRate } from "@repo/money";
 import { prisma } from "@repo/database";
 import { CacheService, CacheTTL } from "@/lib/cache/redis.service";
@@ -94,7 +94,7 @@ export class I18nService {
      */
     async getLocalizedLightingTypes(
         brand: string,
-        sectionType: string,
+        sectionType: ProductFamily,
         language: SupportedLanguage = "en"
     ) {
         const cacheKey = this.getCacheKey("lightingTypes", language, brand, sectionType);
@@ -197,7 +197,7 @@ export class I18nService {
     async getLocalizedProducts(
         filters: {
             brand?: string;
-            sectionType?: string;
+            sectionType?: ProductFamily;
             spotlightType?: string;
             categoryId?: string;
             lightingtypeId?: string;

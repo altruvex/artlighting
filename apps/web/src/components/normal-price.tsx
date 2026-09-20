@@ -1,6 +1,7 @@
 "use client"
 
 import { addMoney, type MoneyInput, multiplyMoney } from "@repo/money"
+import type { ProductFamily } from "@repo/catalog/families";
 import { formatNumberWithConversion } from "@/lib/numbers"
 import { cn } from "@/lib/utils"
 import { useLocale } from "next-intl"
@@ -9,7 +10,7 @@ type ProductPrices = {
   price: MoneyInput
   quantity?: number
   shippingPrice?: MoneyInput
-  sectionType?: string
+  sectionType?: ProductFamily
   className?: string
 }
 

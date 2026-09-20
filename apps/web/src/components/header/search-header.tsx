@@ -1,6 +1,7 @@
 "use client"
 
 import { searchProducts } from "@/actions/search"
+import type { ProductFamily } from "@repo/catalog/families";
 import { money, type MoneyInput } from "@repo/money";
 import { Input } from "@/components/ui/input"
 import { Link } from "@/i18n/navigation"
@@ -20,7 +21,7 @@ interface Product {
     brand: string
     price: string
     productImages: string[]
-    sectionType: string
+    sectionType: ProductFamily
     spotlightType: string
     discount: string
     ProductId: string

@@ -8,6 +8,7 @@ import { ProductService } from "@/lib/services/product.service"
 import { PagePropsTypes } from "@/types"
 import { prisma } from "@repo/database"
 import { Metadata } from "next"
+import { familyFromSlug } from "@repo/catalog"
 import { notFound } from "next/navigation"
 
 
@@ -38,8 +39,13 @@ export default async function Page({ params }: PagePropsTypes) {
 
   if (!subCategory || !lightingType || !ProductId) notFound()
 
+  // The URL segment is a slug; the column is an enum. An unknown section
+  // 404s here rather than becoming a query for a value that cannot exist.
+  const family = familyFromSlug(subCategory)
+  if (!family) notFound()
+
   const product = await ProductService.getLocalizedProductDetail(ProductId, locale, {
-    sectionType: subCategory,
+    sectionType: family,
     spotlightType: lightingType,
     brand: "mister-led",
     isActive: true,
@@ -49,7 +55,7 @@ export default async function Page({ params }: PagePropsTypes) {
 
   const [configuration, relatedProducts] = await Promise.all([
     ProductService.getOrCreateConfiguration(product, (await auth()).userId, await readGuestToken()),
-    ProductService.getRelatedProducts(product.productId, "mister-led", subCategory, locale, {
+    ProductService.getRelatedProducts(product.productId, "mister-led", family, locale, {
       spotlightType: product.spotlightType,
       maxIP: product.maxIP ?? undefined,
     }),
@@ -75,7 +81,8 @@ export async function generateMetadata({ params }: PagePropsTypes): Promise<Meta
   const ProductId = awaitedParams.ProductId as string
   const locale = getLocaleFromParams(awaitedParams)
 
-  if (!subCategory || !lightingType || !ProductId) {
+  const family = familyFromSlug(subCategory)
+  if (!subCategory || !lightingType || !ProductId || !family) {
     return constructMetadata({
       title: locale === "ar" ? "المنتج غير موجود" : "Product Not Found",
       description: "",
@@ -84,7 +91,7 @@ export async function generateMetadata({ params }: PagePropsTypes): Promise<Meta
   }
 
   const product = await ProductService.getLocalizedProductDetail(ProductId, locale, {
-    sectionType: subCategory,
+    sectionType: family,
     spotlightType: lightingType,
     brand: "mister-led",
   })

@@ -1,5 +1,6 @@
 import { money } from "@repo/money";
 import { z } from "zod";
+import { productFamilies } from "./families";
 
 /**
  * Validation for every way a product can be written: the admin forms, the
@@ -93,7 +94,9 @@ export const createProductSchema = z.object({
   productId: skuSchema,
   productName: z.string().trim().min(1).max(200),
   brand: z.string().trim().min(1).max(80),
-  sectionType: z.string().trim().min(1).max(80),
+  /// The family the product sits in. An enum, so a typo is rejected here
+  /// rather than becoming a row nothing can query.
+  sectionType: z.enum(productFamilies),
   spotlightType: z.string().trim().min(1).max(80),
   categoryId: z.string().min(1),
   lightingtypeId: z.string().min(1),
@@ -105,7 +108,7 @@ export type CreateProductInput = z.infer<typeof createProductSchema>;
 export const updateProductGeneralSchema = z.object({
   productName: z.string().trim().min(1).max(200).optional(),
   brand: z.string().trim().min(1).max(80).optional(),
-  sectionType: z.string().trim().min(1).max(80).optional(),
+  sectionType: z.enum(productFamilies).optional(),
   spotlightType: z.string().trim().min(1).max(80).optional(),
   categoryId: z.string().min(1).optional(),
   lightingtypeId: z.string().min(1).optional(),

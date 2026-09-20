@@ -1,4 +1,5 @@
 import type { LocalizedSpecGroup } from "@/lib/specs-view"
+import type { ProductFamily } from "@repo/catalog/families";
 /**
  * Money and rates travel as strings in these view models.
  *
@@ -111,7 +112,7 @@ export interface LocalizedCategory {
   slug: string
   localizedName: string
   localizedSlug: string
-  sectionType: string
+  sectionType: ProductFamily
   productCount: number
   image: string
 }
@@ -167,7 +168,7 @@ export interface BaseProduct {
   spotlightType: string
   price: string
   priceIncrease?: string
-  sectionType: string
+  sectionType: ProductFamily
   quantity: number
   brand: string
   discount: string
@@ -222,7 +223,7 @@ export interface LocalizedProduct {
   quantity: number;
   images: string[];
   productImages?: string[];
-  sectionType: string;
+  sectionType: ProductFamily;
   spotlightType: string;
   categoryId?: string;
   lightingtypeId?: string;
@@ -295,7 +296,7 @@ export interface ProductCardProps {
   quantity?: number
   maxIP?: number
   spotlightType: string
-  sectionType: string
+  sectionType: ProductFamily
   chandelierLightingType?: string
   hNumber?: number
   specification?: ProductSpecification

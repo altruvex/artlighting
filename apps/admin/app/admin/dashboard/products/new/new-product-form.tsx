@@ -19,6 +19,7 @@ import {
 import { Loader2Icon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createProduct } from "@/lib/actions/products";
+import { familyFromSlug } from "@repo/catalog/families";
 import Link from "next/link";
 
 type Category = { id: string; name: string; slug: string; parentId: string | null };
@@ -60,6 +61,9 @@ export default function NewProductForm({
 
   const availableChildren = childCategories.filter((c) => c.parentId === categoryId);
   const selectedTop = topCategories.find((c) => c.id === categoryId);
+  // The top category's slug is what names the family; the column is an enum,
+  // so an unrecognised slug is caught here rather than at the server action.
+  const family = selectedTop ? familyFromSlug(selectedTop.slug) : null;
   const selectedChild = childCategories.find((c) => c.id === lightingtypeId);
 
   function clearError(field: FieldName) {
@@ -76,6 +80,7 @@ export default function NewProductForm({
     if (!Number.isInteger(Number(quantity)) || Number(quantity) < 0)
       next.stock = t("errors.stockInvalid");
     if (!categoryId || !selectedTop) next.category = t("errors.categoryRequired");
+    else if (!family) next.category = t("errors.categoryNotAFamily");
     if (!lightingtypeId || !selectedChild) next.subcategory = t("errors.subcategoryRequired");
     return next;
   }
@@ -89,7 +94,7 @@ export default function NewProductForm({
       toast.error(t("errors.summary", { count }));
       return;
     }
-    if (!selectedTop || !selectedChild) return;
+    if (!selectedTop || !selectedChild || !family) return;
 
     startTransition(async () => {
       try {
@@ -97,7 +102,7 @@ export default function NewProductForm({
           productId: productId.trim(),
           productName: productName.trim(),
           brand,
-          sectionType: selectedTop.slug,
+          sectionType: family,
           spotlightType: selectedChild.slug,
           categoryId,
           lightingtypeId,

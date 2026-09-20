@@ -305,6 +305,7 @@
       "priceInvalid": "Price must be a number of 0 or more",
       "stockInvalid": "Stock must be a whole number of 0 or more",
       "categoryRequired": "Select a category",
+      "categoryNotAFamily": "That category is not one of the three families (indoor, outdoor, chandelier) — a product has to sit under one of them",
       "subcategoryRequired": "Select a subcategory",
       "summary": "{count, plural, one {Fix # field before creating the product} other {Fix # fields before creating the product}}"
     }

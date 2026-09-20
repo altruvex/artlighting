@@ -2,6 +2,7 @@ import { money, serializeMoney, serializeRate } from "@repo/money";
 import { computePricing } from "@repo/pricing";
 import { z } from "zod";
 import { prisma, type Db } from "./client";
+import { productFamilies, type ProductFamily } from "./families";
 import { moneySchema, rateSchema } from "./schemas";
 
 /**
@@ -14,26 +15,7 @@ import { moneySchema, rateSchema } from "./schemas";
  */
 
 export const discountScopes = ["PRODUCTS", "CATEGORIES", "FAMILIES", "CART"] as const;
-export const productFamilies = ["INDOOR", "OUTDOOR", "CHANDELIER"] as const;
-export type ProductFamily = (typeof productFamilies)[number];
 
-/**
- * The one place that maps `Product.sectionType` to a ProductFamily.
- *
- * The column is still a String while the discount side is an enum. That
- * seam is temporary — sectionType should become the enum in its own
- * migration — and it exists in exactly one function so the conversion is a
- * single edit rather than a hunt.
- */
-export function familyOf(sectionType: string | null | undefined): ProductFamily | null {
-  const value = (sectionType ?? "").trim().toLowerCase();
-  if (value.startsWith("outdoor")) return "OUTDOOR";
-  if (value.startsWith("chandelier")) return "CHANDELIER";
-  if (value.startsWith("indoor")) return "INDOOR";
-  // Unknown rather than guessed: a product whose section is something else
-  // simply matches no family discount, instead of silently getting one.
-  return null;
-}
 export const discountTypes = ["PERCENTAGE", "FIXED"] as const;
 export const discountModes = ["AUTOMATIC", "COUPON"] as const;
 
@@ -281,7 +263,7 @@ export function toCartLine(
     price: unknown;
     categoryId: string;
     lightingtypeId: string;
-    sectionType: string;
+    sectionType: ProductFamily;
   },
   options: { id?: string; quantity?: number; unitPrice?: string } = {},
 ) {
@@ -291,7 +273,8 @@ export function toCartLine(
     // Both the top category and the lighting type: a discount scoped to
     // either should find the line.
     categoryIds: [product.categoryId, product.lightingtypeId],
-    family: familyOf(product.sectionType),
+    // sectionType *is* the family now; there is nothing left to map.
+    family: product.sectionType,
     unitPrice: options.unitPrice ?? serializeMoney(product.price as never),
     quantity: options.quantity ?? 1,
   };
@@ -316,7 +299,7 @@ export async function productDiscountRates(
     price: unknown;
     categoryId: string;
     lightingtypeId: string;
-    sectionType: string;
+    sectionType: ProductFamily;
   }[],
   db: Db = prisma,
   now = new Date(),

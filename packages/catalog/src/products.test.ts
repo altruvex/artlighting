@@ -55,8 +55,11 @@ describe("moneySchema", () => {
 describe("rateSchema", () => {
   it("keeps four decimals and rejects a percent written as a whole number", () => {
     expect(rateSchema.parse("0.13")).toBe("0.1300");
-    // 13 would mean 1300% — the mistake this convention exists to prevent.
-    expect(rateSchema.safeParse("13").success).toBe(false);
+    // 13 would mean 1300% — the mistake this convention exists to prevent,
+    // and the message has to say so rather than report a range error.
+    const result = rateSchema.safeParse("13");
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe("Discount is a rate, not a percent: write 0.13 for 13%");
   });
 });
 
@@ -81,6 +84,11 @@ describe("importRowSchema", () => {
     const result = importRowSchema.safeParse({ sku: "jy-202-15w", price: "12.345" });
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]?.path).toEqual(["price"]);
+    // The admin reads this message beside the row number in the import
+    // preview, so it has to be a sentence, not an internal code.
+    expect(result.error?.issues[0]?.message).toBe(
+      "Amount has more than 2 decimal places — round it to 2",
+    );
   });
 });
 

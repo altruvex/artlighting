@@ -13,7 +13,7 @@ export const skuSchema = z
   .trim()
   .min(1)
   .max(120)
-  .regex(/^[a-z0-9][a-z0-9._-]*$/, "sku_invalid_characters")
+  .regex(/^[a-z0-9][a-z0-9._-]*$/, "SKU may only contain lowercase letters, digits, dot, underscore and hyphen")
   .describe("lowercase letters, digits, dot, underscore and hyphen");
 
 /**
@@ -31,12 +31,18 @@ function decimalSchema({
   scale,
   max,
   allowAboveOne = true,
-  prefix,
+  noun,
 }: {
   scale: number;
   max: string;
   allowAboveOne?: boolean;
-  prefix: string;
+  /**
+   * What the value is called in the message. These messages are shown to
+   * the admin as-is — the Excel preview prints them beside the row number
+   * — so they are sentences, not codes. "price:
+   * money_more_than_2_decimals" told nobody what to do about it.
+   */
+  noun: string;
 }) {
   return z
     .union([z.string().trim(), z.number()])
@@ -46,30 +52,40 @@ function decimalSchema({
       try {
         parsed = money(value);
       } catch {
-        ctx.addIssue({ code: "custom", message: `${prefix}_not_a_number` });
+        ctx.addIssue({ code: "custom", message: `${noun} must be a number` });
         return;
       }
       if (!parsed.isFinite()) {
-        ctx.addIssue({ code: "custom", message: `${prefix}_not_a_number` });
+        ctx.addIssue({ code: "custom", message: `${noun} must be a number` });
         return;
       }
       if (parsed.decimalPlaces() > scale) {
-        ctx.addIssue({ code: "custom", message: `${prefix}_more_than_${scale}_decimals` });
+        ctx.addIssue({
+          code: "custom",
+          // Says what to do, not only what is wrong.
+          message: `${noun} has more than ${scale} decimal places — round it to ${scale}`,
+        });
       }
       if (parsed.isNegative()) {
-        ctx.addIssue({ code: "custom", message: `${prefix}_negative` });
+        ctx.addIssue({ code: "custom", message: `${noun} cannot be negative` });
       }
-      if (parsed.greaterThanOrEqualTo(max) || (!allowAboveOne && parsed.greaterThan(1))) {
-        ctx.addIssue({ code: "custom", message: `${prefix}_out_of_range` });
+      if (!allowAboveOne && parsed.greaterThan(1)) {
+        ctx.addIssue({
+          code: "custom",
+          // The 0.13-versus-13 trap, said plainly.
+          message: `${noun} is a rate, not a percent: write 0.13 for 13%`,
+        });
+      } else if (parsed.greaterThanOrEqualTo(max)) {
+        ctx.addIssue({ code: "custom", message: `${noun} is too large` });
       }
     })
     .transform((value) => money(value).toFixed(scale));
 }
 
-export const moneySchema = decimalSchema({ scale: 2, max: "10000000000", prefix: "money" });
+export const moneySchema = decimalSchema({ scale: 2, max: "10000000000", noun: "Amount" });
 
 /** A discount rate, not a percent: 0.13 = 13%. Four decimals, as the column stores. */
-export const rateSchema = decimalSchema({ scale: 4, max: "10000000000", allowAboveOne: false, prefix: "rate" });
+export const rateSchema = decimalSchema({ scale: 4, max: "10000000000", allowAboveOne: false, noun: "Discount" });
 
 export const stockSchema = z.number().int().min(0).max(1_000_000);
 

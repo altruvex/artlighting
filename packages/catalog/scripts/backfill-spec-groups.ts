@@ -26,6 +26,7 @@ loadEnv(new URL("../../database", import.meta.url).pathname);
 assertNotProduction();
 
 const { prisma } = await import("@repo/database");
+const { CHOICE_COLUMNS, optionKeyFor, parseSpecValue } = await import("../src/specs");
 
 /** A spec column, with the label it gets in each language and its unit. */
 interface SpecField {
@@ -104,12 +105,60 @@ let groupsWritten = 0;
 let itemsWritten = 0;
 let skippedEmptyGroups = 0;
 let written = 0;
+let structured = 0;
+const unparsed: { sku: string; column: string; english: string | null; arabic: string | null }[] = [];
+
+/**
+ * The shared option vocabulary, built as we go: "die_casting_aluminum" is
+ * created once and pointed at by every product that uses it, so the material
+ * is translated in one place instead of on 117 products.
+ */
+const optionIdByKey = new Map<string, string>();
+
+async function optionIdFor(key: string, english: string | null, arabic: string | null): Promise<string> {
+  const cached = optionIdByKey.get(key);
+  if (cached) return cached;
+
+  const option = await prisma.specOption.upsert({
+    where: { key },
+    update: {},
+    create: { key },
+    select: { id: true },
+  });
+  for (const [language, label] of [["en", english], ["ar", arabic]] as const) {
+    if (!label) continue;
+    await prisma.specOptionTranslation.upsert({
+      where: { optionId_language: { optionId: option.id, language } },
+      update: { label },
+      create: { optionId: option.id, language, label },
+    });
+  }
+  optionIdByKey.set(key, option.id);
+  return option.id;
+}
 
 for (const product of products) {
   const plannedGroups: { id: string; productId: string; position: number }[] = [];
   const plannedGroupTranslations: { id: string; groupId: string; language: string; name: string }[] = [];
-  const plannedItems: { id: string; groupId: string; position: number; unit: string | null }[] = [];
-  const plannedItemTranslations: { id: string; itemId: string; language: string; label: string; value: string }[] = [];
+  const plannedItems: {
+    id: string;
+    groupId: string;
+    position: number;
+    unit: string | null;
+    kind: "MEASUREMENT" | "RANGE" | "CHOICE" | "TEXT";
+    comparator: "EXACT" | "AT_LEAST" | "AT_MOST" | "APPROX";
+    optionId: string | null;
+  }[] = [];
+  const plannedMeasurements: {
+    id: string;
+    itemId: string;
+    position: number;
+    value: string;
+    valueMax: string | null;
+    conditionValue: string | null;
+    conditionUnit: string | null;
+  }[] = [];
+  const plannedItemTranslations: { id: string; itemId: string; language: string; label: string; value: string | null }[] = [];
 
   const byLanguage = new Map(product.specifications.map((spec) => [spec.language, spec as Record<string, unknown>]));
   const english = byLanguage.get("en");
@@ -133,7 +182,6 @@ for (const product of products) {
 
     if (options.dryRun) {
       console.log(`  ${product.productId.padEnd(22)} ${layout.en} (${present.length} items): ${present.map((f) => f.column).join(", ")}`);
-      continue;
     }
 
     // Deterministic ids: the same product and position always produce the
@@ -154,17 +202,59 @@ for (const product of products) {
 
     for (const [itemPosition, field] of present.entries()) {
       const itemId = `si_${groupId}_${itemPosition}`;
-      plannedItems.push({ id: itemId, groupId, position: itemPosition, unit: field.unit ?? null });
+      const rawEn = typeof english?.[field.column] === "string" ? (english[field.column] as string).trim() || null : null;
+      const rawAr = typeof arabic?.[field.column] === "string" ? (arabic[field.column] as string).trim() || null : null;
+
+      // The value stops being a sentence and becomes a number, a range or a
+      // vocabulary entry. Anything the parser cannot read confidently stays
+      // TEXT and is reported — a wrong number on a datasheet is worse than
+      // an unconverted string.
+      const parsed = parseSpecValue(field.column, rawEn, rawAr);
+      if (parsed.kind === "TEXT") {
+        unparsed.push({ sku: product.productId, column: field.column, english: rawEn, arabic: rawAr });
+      } else {
+        structured += 1;
+      }
+
+      let optionId: string | null = null;
+      if (parsed.kind === "CHOICE" && parsed.optionKey && !options.dryRun) {
+        optionId = await optionIdFor(parsed.optionKey, rawEn, rawAr);
+      }
+
+      plannedItems.push({
+        id: itemId,
+        groupId,
+        position: itemPosition,
+        // The parser knows the unit; the layout's unit is the fallback for
+        // anything that stayed TEXT.
+        unit: parsed.unit ?? field.unit ?? null,
+        kind: parsed.kind,
+        comparator: parsed.comparator,
+        optionId,
+      });
+
+      for (const [measurementPosition, measurement] of parsed.measurements.entries()) {
+        plannedMeasurements.push({
+          id: `sm_${itemId}_${measurementPosition}`,
+          itemId,
+          position: measurementPosition,
+          value: measurement.value,
+          valueMax: measurement.valueMax ?? null,
+          conditionValue: measurement.conditionValue ?? null,
+          conditionUnit: measurement.conditionUnit ?? null,
+        });
+      }
+
       for (const language of ["en", "ar"] as const) {
-        const source = language === "en" ? english : arabic;
-        const raw = source?.[field.column];
-        const value = typeof raw === "string" && raw.trim() !== "" ? raw.trim() : "—";
+        const raw = language === "en" ? rawEn : rawAr;
         plannedItemTranslations.push({
           id: `sit_${itemId}_${language}`,
           itemId,
           language,
           label: field[language],
-          value,
+          // Only TEXT keeps a per-language string; everything else renders
+          // from the measurements or the shared option.
+          value: parsed.kind === "TEXT" ? (raw ?? "—") : null,
         });
       }
     }
@@ -178,6 +268,7 @@ for (const product of products) {
       prisma.specGroup.createMany({ data: plannedGroups }),
       prisma.specGroupTranslation.createMany({ data: plannedGroupTranslations }),
       prisma.specItem.createMany({ data: plannedItems }),
+      prisma.specMeasurement.createMany({ data: plannedMeasurements }),
       prisma.specItemTranslation.createMany({ data: plannedItemTranslations }),
     ]);
     written += 1;
@@ -190,6 +281,33 @@ console.log(`  products:                 ${products.length}`);
 console.log(`  groups ${options.dryRun ? "to write" : "written"}:${" ".repeat(options.dryRun ? 11 : 12)}${groupsWritten}`);
 console.log(`  items  ${options.dryRun ? "to write" : "written"}:${" ".repeat(options.dryRun ? 11 : 12)}${itemsWritten}`);
 console.log(`  empty groups skipped:     ${skippedEmptyGroups}`);
+console.log(`  values parsed into numbers/options: ${structured}`);
+console.log(`  values left as free text: ${unparsed.length}`);
+if (unparsed.length > 0) {
+  // Reported, never guessed at: these are the only values that can still
+  // disagree between the two languages.
+  const byColumn = new Map<string, number>();
+  for (const row of unparsed) byColumn.set(row.column, (byColumn.get(row.column) ?? 0) + 1);
+  console.log("\n  still free text, by column:");
+  for (const [column, count] of [...byColumn].sort((a, b) => b[1] - a[1])) {
+    const sample = unparsed.find((row) => row.column === column)!;
+    console.log(`    ${column.padEnd(20)} ${String(count).padStart(4)}   e.g. ${sample.sku}: ${JSON.stringify(sample.english ?? sample.arabic)}`);
+  }
+}
+if (!options.dryRun && !options.limit) {
+  // Vocabulary nothing points at any more — left behind when a value or the
+  // keying changes. Only safe to sweep on a full run: a --limit run has not
+  // looked at every product, so an option may simply not have been reached.
+  const orphaned = await prisma.specOption.findMany({
+    where: { items: { none: {} } },
+    select: { id: true, key: true },
+  });
+  if (orphaned.length > 0) {
+    await prisma.specOption.deleteMany({ where: { id: { in: orphaned.map((option) => option.id) } } });
+    console.log(`  unused options removed:   ${orphaned.length} (${orphaned.map((o) => o.key).join(", ")})`);
+  }
+}
+
 console.log("\n  ProductSpecification is left untouched.");
 
 await prisma.$disconnect();

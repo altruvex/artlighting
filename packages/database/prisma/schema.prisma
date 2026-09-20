@@ -687,34 +687,120 @@ model SpecGroupTranslation {
 }
 
 model SpecItem {
-  id        String   @id @default(cuid())
-  groupId   String
-  position  Int      @default(0)
+  id         String         @id @default(cuid())
+  groupId    String
+  position   Int            @default(0)
   /// Language-neutral, so "15" + "W" reads correctly in both locales.
-  unit      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  unit       String?
+  /// What sort of value this is, which decides how it renders and what it
+  /// is stored in. The whole point of the split: a figure is a number, not
+  /// a sentence someone typed twice.
+  kind       SpecValueKind  @default(TEXT)
+  /// "≥ 80" is a comparator and a number, not the string "≥ 80".
+  comparator SpecComparator @default(EXACT)
+  /// CHOICE only: which entry of the shared vocabulary this is.
+  optionId   String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 
   group        SpecGroup             @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  option       SpecOption?           @relation(fields: [optionId], references: [id], onDelete: SetNull)
+  measurements SpecMeasurement[]
   translations SpecItemTranslation[]
 
   @@index([groupId])
   @@index([groupId, position])
+  @@index([optionId])
   @@map("spec_items")
 }
 
-model SpecItemTranslation {
+/// One figure. A spec can carry several — luminous flux is measured once per
+/// colour temperature, which is why "1320LM (3000k) / 1400LM (6500k)" was a
+/// single hand-typed string before, and why it disagreed with its own Arabic.
+model SpecMeasurement {
+  id             String   @id @default(cuid())
+  itemId         String
+  position       Int      @default(0)
+  value          Decimal  @db.Decimal(14, 4)
+  /// Set only for a RANGE: -10 .. 45 °C.
+  valueMax       Decimal? @db.Decimal(14, 4)
+  /// What this figure was measured at, e.g. 3000 K. Unit kept beside it
+  /// because the condition's unit is rarely the measurement's.
+  conditionValue Decimal? @db.Decimal(14, 4)
+  conditionUnit  String?
+
+  item SpecItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@index([itemId, position])
+  @@map("spec_measurements")
+}
+
+/// A shared vocabulary for the values that are a choice, not a number:
+/// material, driver, lamp base, finish. Defined once and translated once, so
+/// "Die-Casting Aluminum" and "ألمنيوم مصبوب بالقالب" are two renderings of
+/// one fact instead of two independently editable strings.
+model SpecOption {
+  id        String   @id @default(cuid())
+  /// Language-neutral and stable, e.g. "die_cast_aluminium".
+  key       String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items        SpecItem[]
+  translations SpecOptionTranslation[]
+
+  @@map("spec_options")
+}
+
+model SpecOptionTranslation {
   id       String @id @default(cuid())
+  optionId String
+  language String
+  label    String
+
+  option SpecOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@unique([optionId, language])
+  @@index([language])
+  @@map("spec_option_translations")
+}
+
+model SpecItemTranslation {
+  id       String  @id @default(cuid())
   itemId   String
   language String
   label    String
-  value    String
+  /// Only a TEXT item stores its value here. Everything else renders from
+  /// the measurements or the shared option, so the two languages cannot
+  /// drift apart.
+  value    String?
 
   item SpecItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@unique([itemId, language])
   @@index([language])
   @@map("spec_item_translations")
+}
+
+/// How a spec value is stored, and therefore how it renders.
+enum SpecValueKind {
+  /// One or more numbers with a unit, optionally one per condition.
+  MEASUREMENT
+  /// A minimum and a maximum with a unit.
+  RANGE
+  /// An entry from the shared SpecOption vocabulary.
+  CHOICE
+  /// Genuinely free text. Last resort: it is the only kind that can differ
+  /// between languages, so anything stored here is a translation risk.
+  TEXT
+}
+
+enum SpecComparator {
+  EXACT
+  AT_LEAST
+  AT_MOST
+  APPROX
 }
 
 /// DRAFT: never shown. ACTIVE: on the storefront. ARCHIVED: hidden, but

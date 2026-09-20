@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useTextDirection } from "@/helpers/language";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
+import { formatPercent } from "@/lib/numbers";
 import { money, type MoneyInput } from "@repo/money";
 import { useAuth } from "@/lib/auth-hooks";
 import { useTranslations } from 'next-intl';
@@ -176,7 +177,7 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
             isRTL ? "left-[5px]" : "right-[5px]"
           )}>
             <Badge className="rounded-none text-sm" variant={"destructive"}>
-              -{money(product.discount).times(100).toNearest(1).toNumber()}%
+              -{formatPercent(product.discount, locale ?? "en")}
             </Badge>
           </div>
         )}

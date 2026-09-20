@@ -3,12 +3,13 @@
 import { Badge } from "@/components/ui/badge"
 import { money, type MoneyInput, serializeMoney, sumMoney } from "@repo/money";
 import { priceLine } from "@/lib/pricing";
+import { formatPercent } from "@/lib/numbers";
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/lib/auth-hooks"
 import { Loader2, ShoppingBag, ShoppingCart, Trash2, Plus, Minus } from "lucide-react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import Image from "next/image"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -282,6 +283,7 @@ function CartItemCard({
   onCloseSheet: () => void
 }) {
   const t = useTranslations("cart")
+  const locale = useLocale()
 
   return (
     <div className="group relative bg-card border border-border/50 rounded-xl p-4 hover:border-primary/30 hover:shadow-md transition-all duration-300 hover:scale-[1.01]">
@@ -311,7 +313,7 @@ function CartItemCard({
                 variant="destructive"
                 className="absolute -top-2 -left-2 text-xs px-2 py-1 font-bold shadow-md"
               >
-                -{money(item.discount).times(100).toNearest(1).toNumber()}%
+                -{formatPercent(item.discount, locale)}
               </Badge>
             )}
           </div>

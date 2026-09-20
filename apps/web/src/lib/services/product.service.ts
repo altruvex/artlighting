@@ -1,4 +1,5 @@
 import { prisma } from "@repo/database";
+import { parseLocalizedInt } from "@/lib/numbers";
 import { serializeMoney, serializeRate } from "@repo/money";
 import { toViewConfiguration } from "@/lib/serialize-money";
 import type { Prisma } from "@repo/database";
@@ -147,7 +148,7 @@ export function transformToLocalizedProduct(
     updatedAt: product.updatedAt,
     specifications: specs,
     localizedSpecs: specs,
-    maximumWattage: specs.maximumWattage ? parseInt(specs.maximumWattage) : undefined,
+    maximumWattage: parseLocalizedInt(specs.maximumWattage),
     mainMaterial: specs.mainMaterial ?? undefined,
     beamAngle: specs.beamAngle ?? undefined,
     lampBase: specs.lampBase ?? undefined,
@@ -163,7 +164,7 @@ export function transformToLocalizedProduct(
     electrical: specs.electrical ?? undefined,
     powerFactor: specs.powerFactor ?? undefined,
     energySaving: specs.energySaving ?? undefined,
-    ip: specs.ip ? parseInt(specs.ip) : (product.maxIP ?? undefined),
+    ip: parseLocalizedInt(specs.ip) ?? product.maxIP ?? undefined,
     bulb: specs.bulb ?? undefined,
     category: product.category,
     lightingtype: product.lightingtype,

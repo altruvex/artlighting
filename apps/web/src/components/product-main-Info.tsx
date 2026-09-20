@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog"
 import { useRouter } from "@/i18n/navigation"
 import { cn } from "@/lib/utils"
+import { formatPercent } from "@/lib/numbers"
 import { ProductIP, type Configuration, type Order, type SupportedCurrency } from "@/types/products"
 import { useAuth } from "@/lib/auth-hooks"
 import type { ProductIP as PrismaProductIP, ProductChandLamp, ProductColorTemp } from "@repo/database"
@@ -424,7 +425,7 @@ export default function ProductMainInfo({
                 <NormalPrice price={totalPriceBeforeDiscount} quantity={currentQuantity} />
               </s>
               <span className="bg-green-100 text-green-800 px-2 py-1 rounded-md text-sm font-medium">
-                {money(discount).times(100).toNumber()}% {t("off")}
+                {formatPercent(discount, locale)} {t("off")}
               </span>
             </>
           ) : (

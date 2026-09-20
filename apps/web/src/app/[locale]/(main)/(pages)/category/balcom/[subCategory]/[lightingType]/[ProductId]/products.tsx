@@ -1,6 +1,7 @@
 "use client";
 
 import ColorTemperatureSection from "@/components/color-temperature-section";
+import { parseLocalizedInt } from "@/lib/numbers";
 import { multiplyMoney, serializeMoney, serializeRate } from "@repo/money"
 import { Container } from "@/components/container";
 import ProductCard from "@/components/product-card/product-card";
@@ -187,7 +188,7 @@ export default function BalcomProducts({
       productId: relatedProduct.productId,
       language: locale,
       input: specs.input || relatedProduct.input || null,
-      maximumWattage: specs.maximumWattage ? parseInt(specs.maximumWattage) : (relatedProduct.maximumWattage ?? undefined),
+      maximumWattage: parseLocalizedInt(specs.maximumWattage) ?? relatedProduct.maximumWattage ?? undefined,
       brandOfLed: specs.brandOfLed || relatedProduct.brandOfLed || null,
       luminousFlux: specs.luminousFlux || relatedProduct.luminousFlux || null,
       mainMaterial: specs.mainMaterial || relatedProduct.mainMaterial || null,
@@ -220,7 +221,7 @@ export default function BalcomProducts({
       chandelierLightingType: relatedProduct.chandelierLightingType || "",
       sectionType: relatedProduct.sectionType,
       specification: mockSpecification,
-      maximumWattage: specs.maximumWattage ? parseInt(specs.maximumWattage) : (relatedProduct.maximumWattage ?? undefined),
+      maximumWattage: parseLocalizedInt(specs.maximumWattage) ?? relatedProduct.maximumWattage ?? undefined,
       mainMaterial: specs.mainMaterial || (relatedProduct.mainMaterial ?? undefined),
       beamAngle: specs.beamAngle || (relatedProduct.beamAngle ?? undefined),
       spotlightType: relatedProduct.spotlightType,
@@ -234,7 +235,7 @@ export default function BalcomProducts({
       finish: specs.finish || (relatedProduct.finish ?? undefined),
       input: specs.input || (relatedProduct.input ?? undefined),
       lampBase: specs.lampBase || (relatedProduct.lampBase ?? undefined),
-      ip: specs.ip ? parseInt(specs.ip) : (relatedProduct.ip ?? undefined),
+      ip: parseLocalizedInt(specs.ip) ?? relatedProduct.ip ?? undefined,
       hNumber: relatedProduct.hNumber ?? undefined,
     };
   };

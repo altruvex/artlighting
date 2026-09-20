@@ -1,4 +1,4 @@
-import { serializeMoney, type MoneyInput } from "@repo/money";
+import { serializeMoney, serializeRate, type MoneyInput } from "@repo/money";
 import { Locale } from "next-intl";
 
 export function convertArabicToEnglishNumbers(str: string): string {
@@ -55,4 +55,28 @@ export function formatNumberWithConversion(amount: MoneyInput, locale: string): 
     } else {
         return `${config.symbol} ${formattedNumber}`;
     }
+}
+
+/**
+ * Reads a whole number out of a spec value that may be written in either
+ * digit system. The Arabic ProductSpecification rows store "١٥", and
+ * `parseInt("١٥")` is NaN — which is how "بقدرة NaN وات" reached the
+ * Arabic product pages. Returns undefined when there is no number to read,
+ * so callers fall back instead of rendering NaN.
+ */
+export function parseLocalizedInt(value: string | null | undefined): number | undefined {
+    if (value == null) return undefined;
+    const parsed = Number.parseInt(convertArabicToEnglishNumbers(value), 10);
+    return Number.isNaN(parsed) ? undefined : parsed;
+}
+
+/**
+ * Formats a discount rate (0.13 = 13%) as a percentage in the page's own
+ * digits and percent sign: "13%" in English, "١٣٪" in Arabic. Writing a
+ * literal "%" next to Arabic-Indic digits mixes the two scripts.
+ */
+export function formatPercent(rate: MoneyInput, locale: string): string {
+    const options: Intl.NumberFormatOptions = { style: "percent", maximumFractionDigits: 2 };
+    if (locale.startsWith("ar")) options.numberingSystem = "arab";
+    return new Intl.NumberFormat(locale, options).format(serializeRate(rate) as unknown as number);
 }

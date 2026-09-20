@@ -17,7 +17,8 @@
     "fix:arabic-specs": "tsx scripts/fix-arabic-spec-values.ts",
     "backfill:inventory": "tsx scripts/backfill-inventory.ts",
     "fix:wattage": "tsx scripts/fix-wattage.ts",
-    "seed:bulbs": "tsx scripts/seed-bulbs.ts"
+    "seed:bulbs": "tsx scripts/seed-bulbs.ts",
+    "fix:lamp-base": "tsx scripts/fix-lamp-base.ts"
   },
   "dependencies": {
     "@repo/database": "workspace:*",

@@ -690,6 +690,11 @@ model SpecItem {
   id         String         @id @default(cuid())
   groupId    String
   position   Int            @default(0)
+  /// Language-neutral name for *which* spec this is ("luminousFlux", "ip").
+  /// Without it a spec can only be found by its translated label or by its
+  /// position, which is how the storefront came to look up "Energy Saving"
+  /// by an English string and find nothing at all on the Arabic page.
+  key        String?
   /// Language-neutral, so "15" + "W" reads correctly in both locales.
   unit       String?
   /// What sort of value this is, which decides how it renders and what it
@@ -711,6 +716,7 @@ model SpecItem {
   @@index([groupId])
   @@index([groupId, position])
   @@index([optionId])
+  @@index([key])
   @@map("spec_items")
 }
 

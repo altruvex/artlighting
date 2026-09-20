@@ -1,6 +1,7 @@
 "use client";
 
 import ColorTemperatureSection from "@/components/color-temperature-section";
+import { specNumbersByKey, specsByKey } from "@/lib/specs-view";
 import { parseLocalizedInt } from "@/lib/numbers";
 import { multiplyMoney, serializeMoney, serializeRate } from "@repo/money"
 import { Container } from "@/components/container";
@@ -179,6 +180,9 @@ export default function BalcomProducts({
   };
 
   const specificationsTable = buildBalcomSpecificationsTable();
+  // Addressed by language-neutral key, so a lookup works in either locale.
+  const specs = specsByKey(product.specGroups ?? []);
+  const specNumbers = specNumbersByKey(product.specGroups ?? []);
 
   const transformToBalcomProductCardProps = (relatedProduct: LocalizedProductWithRelations): ProductCardProps => {
     const specs = relatedProduct.localizedSpecs || {};
@@ -285,6 +289,7 @@ export default function BalcomProducts({
             <div className="space-y-12">
               <ProductSpecifications
                 specificationsTable={specificationsTable}
+                specGroups={product.specGroups}
                 Brand={product.brand}
                 chandelierLightingType={undefined}
                 hNumber={undefined}
@@ -293,10 +298,13 @@ export default function BalcomProducts({
               />
               <ProductFeatures
                 specificationsTable={specificationsTable}
+                specs={specs}
+                specNumbers={specNumbers}
               />
-              {specificationsTable["Color Temperature"] && (
+              {(specs.colorTemperature || specificationsTable["Color Temperature"]) && (
                 <ColorTemperatureSection
                   specificationsTable={specificationsTable as any}
+                  specs={specs}
                 />
               )}
               <section className="space-y-8">

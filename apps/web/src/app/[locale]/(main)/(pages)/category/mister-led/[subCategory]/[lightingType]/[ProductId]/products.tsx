@@ -1,6 +1,7 @@
 "use client";
 
 import ProductCard from "@/components/product-card/product-card";
+import { specNumbersByKey, specsByKey } from "@/lib/specs-view";
 import { multiplyMoney, serializeMoney, serializeRate } from "@repo/money"
 import ProductImages from "@/components/product-images-for-chand";
 import ProductMainInfo from "@/components/product-main-Info";
@@ -138,6 +139,9 @@ export default function ChandelierProducts({
   };
 
   const specificationsTable = buildChandelierSpecificationsTable();
+  // Addressed by language-neutral key, so a lookup works in either locale.
+  const specs = specsByKey(product.specGroups ?? []);
+  const specNumbers = specNumbersByKey(product.specGroups ?? []);
   const transformToChandelierProductCardProps = (relatedProduct: LocalizedProductWithRelations): ProductCardProps => {
     const specs = relatedProduct.localizedSpecs || {};
 
@@ -237,6 +241,7 @@ export default function ChandelierProducts({
             <div className="space-y-12">
               <ProductSpecifications
                 specificationsTable={specificationsTable}
+                specGroups={product.specGroups}
                 Brand={product.brand}
                 chandelierLightingType={product.chandelierLightingType || undefined}
                 hNumber={product.hNumber}

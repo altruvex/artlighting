@@ -4,6 +4,13 @@ import { cn } from "@/lib/utils"
 
 interface ProductSpecificationsTableProps {
   specificationsTable: SpecificationsTable
+  /**
+   * The structured specs. When a product has them, they are used instead of
+   * the flat map: the figures come from stored numbers rather than from a
+   * string typed once per language, and they arrive grouped. The flat map
+   * stays as the fallback for products the spec backfill has not reached.
+   */
+  specGroups?: { name: string; items: { label: string; value: string }[] }[]
   Brand?: string
   chandelierLightingType?: string | undefined
   hNumber?: number | null
@@ -13,6 +20,7 @@ interface ProductSpecificationsTableProps {
 
 export default function ProductSpecificationsTable({
   specificationsTable,
+  specGroups,
   Brand,
   chandelierLightingType,
   hNumber,
@@ -64,6 +72,46 @@ export default function ProductSpecificationsTable({
   const filteredSpecs = Object.entries(specificationsTable).filter(([, value]) =>
     value && String(value).trim() !== ""
   );
+
+  if (specGroups && specGroups.length > 0) {
+    return (
+      <div className="space-y-6" dir={locale === "ar" ? "rtl" : "ltr"}>
+        <h2 className="text-xl md:text-2xl font-semibold">{currentLabels.title}</h2>
+        {specGroups.map((group) => (
+          <div key={group.name} className="space-y-2">
+            <h3 className="text-base font-semibold text-muted-foreground">{group.name}</h3>
+            <div className="overflow-x-auto">
+              <Table className="w-full border">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="font-semibold text-foreground text-base text-start">
+                      {currentLabels.specification}
+                    </TableHead>
+                    <TableHead className="font-semibold text-foreground text-base text-start">
+                      {currentLabels.value}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {group.items.map((item) => (
+                    <TableRow key={item.label}>
+                      <TableCell className="font-medium text-base text-start">{item.label}</TableCell>
+                      {/* dir="ltr" on the value: a figure like "1,320 lm
+                          (3,000 K)" is a number followed by a Latin symbol,
+                          and bidi reordering would move the unit. */}
+                      <TableCell className="text-base text-start" dir="ltr">
+                        {item.value}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4" dir={locale === 'ar' ? 'rtl' : 'ltr'}>

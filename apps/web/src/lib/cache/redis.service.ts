@@ -2,6 +2,48 @@ import { Redis } from "@upstash/redis";
 
 const redis = Redis.fromEnv();
 
+/**
+ * A circuit breaker around the cache.
+ *
+ * The cache is an optimisation: when it is unreachable every page still
+ * renders from the database. Without this, each miss waits on its own failed
+ * DNS lookup, and a product page that makes a handful of cache calls took
+ * ~19 seconds to answer instead of under one — the cache was costing more
+ * than it saved. After a few consecutive failures the calls are skipped
+ * outright, and one probe is allowed through every COOLDOWN_MS to notice
+ * when it comes back.
+ */
+const FAILURES_BEFORE_OPEN = 3;
+const COOLDOWN_MS = 30_000;
+
+let consecutiveFailures = 0;
+let openedAt = 0;
+
+function cacheUnavailable(): boolean {
+  if (consecutiveFailures < FAILURES_BEFORE_OPEN) return false;
+  if (Date.now() - openedAt < COOLDOWN_MS) return true;
+  // Cooldown elapsed: let the next call through as a probe.
+  consecutiveFailures = FAILURES_BEFORE_OPEN - 1;
+  return false;
+}
+
+function recordFailure(operation: string, key: string, error: unknown): void {
+  consecutiveFailures += 1;
+  if (consecutiveFailures === FAILURES_BEFORE_OPEN) {
+    openedAt = Date.now();
+    console.error(
+      `Cache unavailable after ${FAILURES_BEFORE_OPEN} failures; skipping it for ${COOLDOWN_MS / 1000}s. Last error on ${operation} ${key}:`,
+      error,
+    );
+  } else if (consecutiveFailures < FAILURES_BEFORE_OPEN) {
+    console.error(`Cache ${operation} error for key ${key}:`, error);
+  }
+}
+
+function recordSuccess(): void {
+  consecutiveFailures = 0;
+}
+
 export const CacheTTL = {
   ONE_MINUTE: 60,
   FIVE_MINUTES: 300,
@@ -30,8 +72,10 @@ export const CachePrefix = {
 
 export class CacheService {
   static async get<T>(key: string): Promise<T | null> {
+    if (cacheUnavailable()) return null;
     try {
       const raw = await redis.get(key);
+      recordSuccess();
       if (raw === null || raw === undefined) return null;
 
       // If value is already an object/array/number, return it directly
@@ -46,7 +90,7 @@ export class CacheService {
         return raw as T;
       }
     } catch (error) {
-      console.error(`Cache GET error for key ${key}:`, error);
+      recordFailure("GET", key, error);
       return null;
     }
   }
@@ -56,12 +100,14 @@ export class CacheService {
     data: T,
     ttl: number = CacheTTL.FIVE_MINUTES
   ): Promise<boolean> {
+    if (cacheUnavailable()) return false;
     try {
       const payload = JSON.stringify(data);
       await redis.setex(key, ttl, payload);
+      recordSuccess();
       return true;
     } catch (error) {
-      console.error(`Cache SET error for key ${key}:`, error);
+      recordFailure("SET", key, error);
       return false;
     }
   }
@@ -71,7 +117,7 @@ export class CacheService {
       await redis.del(key);
       return true;
     } catch (error) {
-      console.error(`Cache DELETE error for key ${key}:`, error);
+      recordFailure("DELETE", key, error);
       return false;
     }
   }
@@ -94,7 +140,7 @@ export class CacheService {
       const result = await redis.exists(key);
       return result === 1;
     } catch (error) {
-      console.error(`Cache EXISTS error for key ${key}:`, error);
+      recordFailure("EXISTS", key, error);
       return false;
     }
   }
@@ -103,7 +149,7 @@ export class CacheService {
     try {
       return await redis.ttl(key);
     } catch (error) {
-      console.error(`Cache TTL error for key ${key}:`, error);
+      recordFailure("TTL", key, error);
       return -1;
     }
   }
@@ -112,7 +158,7 @@ export class CacheService {
     try {
       return await redis.incrby(key, amount);
     } catch (error) {
-      console.error(`Cache INCREMENT error for key ${key}:`, error);
+      recordFailure("INCREMENT", key, error);
       return 0;
     }
   }

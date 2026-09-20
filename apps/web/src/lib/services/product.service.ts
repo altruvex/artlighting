@@ -1,6 +1,7 @@
 import { prisma } from "@repo/database";
 import { parseLocalizedInt } from "@/lib/numbers";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
+import { localizeSpecGroups, specGroupSelect, type LocalizedSpecGroup } from "@/lib/spec-groups";
 import { serializeMoney, serializeRate } from "@repo/money";
 import { toViewConfiguration } from "@/lib/serialize-money";
 import type { Prisma } from "@repo/database";
@@ -42,6 +43,7 @@ export interface LocalizedProductData {
   priceIncrease: string;
   productImages: string[];
   images: string[];
+  specGroups: LocalizedSpecGroup[];
   sectionType: string;
   spotlightType: string;
   quantity: number;
@@ -132,6 +134,9 @@ export function transformToLocalizedProduct(
     priceIncrease: serializeMoney(product.priceIncrease ?? 0),
     productImages: imageUrls(product),
     images: imageUrls(product),
+    // Grouped, localized and already formatted — the page no longer builds
+    // this table by hand with a label written out in each language.
+    specGroups: localizeSpecGroups(product.specGroups ?? [], language),
     sectionType: product.sectionType,
     spotlightType: product.spotlightType,
     quantity: product.variants?.[0]?.stock ?? product.quantity ?? 0,
@@ -179,6 +184,8 @@ function buildProductInclude(language: string, withRelations = false) {
     specifications: { where: { language }, take: 1 },
     // The ProductImage table, not Product.productImages[] — see lib/product-images.
     images: productImageSelect(),
+    // The structured specs; see lib/spec-groups.
+    specGroups: specGroupSelect(language),
     // Stock's source of truth is the default variant; Product.quantity is
     // the legacy mirror (see @repo/catalog's stock module).
     variants: { where: { isDefault: true }, select: { stock: true }, take: 1 },

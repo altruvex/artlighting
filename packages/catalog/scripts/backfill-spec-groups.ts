@@ -143,6 +143,7 @@ for (const product of products) {
   const plannedItems: {
     id: string;
     groupId: string;
+    key: string;
     position: number;
     unit: string | null;
     kind: "MEASUREMENT" | "RANGE" | "CHOICE" | "TEXT";
@@ -224,6 +225,9 @@ for (const product of products) {
       plannedItems.push({
         id: itemId,
         groupId,
+        // The language-neutral name, so a reader can ask for "ip" rather
+        // than for whatever the label happens to be in its locale.
+        key: field.column,
         position: itemPosition,
         // The parser knows the unit; the layout's unit is the fallback for
         // anything that stayed TEXT.

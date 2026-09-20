@@ -1,3 +1,4 @@
+import type { LocalizedSpecGroup } from "@/lib/specs-view"
 /**
  * Money and rates travel as strings in these view models.
  *
@@ -275,6 +276,12 @@ export interface LocalizedProductWithRelations extends BaseProduct {
   specifications: ProductSpecification[]
   translations: ProductTranslation[]
   localizedSpecs?: LocalizedSpecs
+  /**
+   * The structured specs, grouped and rendered for this locale. Optional
+   * because a product the spec backfill has not reached still falls back to
+   * the flat table the page builds by hand.
+   */
+  specGroups?: LocalizedSpecGroup[]
 }
 
 export interface ProductCardProps {

@@ -1,6 +1,7 @@
 "use client";
 
 import { searchProducts } from "@/actions/search";
+import { serializeRate } from "@repo/money";
 import type { MoneyInput } from "@repo/money";
 import ProductCard from "@/components/product-card/product-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,11 +17,11 @@ interface Product {
   productName: string;
   Brand: string;
   brand: string;
-  price: MoneyInput;
+  price: string;
   productImages: string[];
   sectionType: string;
   spotlightType: string;
-  discount: MoneyInput;
+  discount: string;
   ProductId: string;
   chandelierLightingType: string;
   hNumber: number;
@@ -50,7 +51,7 @@ export default function NotFound() {
           ProductId: product.productId,
           Brand: product.brand,
           brand: product.brand,
-          discount: product.discount || 0,
+          discount: product.discount ?? serializeRate(0),
           chandelierLightingType: "",
           hNumber: 0,
           maximumWattage: "",

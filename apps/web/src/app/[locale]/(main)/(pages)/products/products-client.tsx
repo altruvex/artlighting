@@ -21,18 +21,18 @@ interface Product {
   productId: string;
   productName: string;
   brand: string;
-  price: MoneyInput;
+  price: string;
   productImages: string[];
   sectionType: string;
   spotlightType: string;
-  discount: MoneyInput;
+  discount: string;
   chandelierLightingType?: string;
   hNumber?: number;
   maxIP?: number;
   quantity: number;
   isActive: boolean;
   featured: boolean;
-  priceIncrease?: MoneyInput;
+  priceIncrease?: string;
   maximumWattage?: string;
   lampBase?: string;
   mainMaterial?: string;
@@ -244,7 +244,7 @@ export default function ProductsClient({ products, locale: propLocale = 'ar' }: 
       quantity: product.quantity ?? 0,
       isActive: product.isActive ?? true,
       featured: product.featured ?? false,
-      priceIncrease: product.priceIncrease ?? 0,
+      priceIncrease: product.priceIncrease ?? undefined,
     };
   };
 

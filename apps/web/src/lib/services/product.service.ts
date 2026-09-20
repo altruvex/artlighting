@@ -1,5 +1,6 @@
 import { prisma } from "@repo/database";
-import { type MoneyInput, serializeMoney, serializeRate } from "@repo/money";
+import { serializeMoney, serializeRate } from "@repo/money";
+import { toViewConfiguration } from "@/lib/serialize-money";
 import type { Prisma } from "@repo/database";
 import { CacheService, CacheTTL, CachePrefix } from "@/lib/cache/redis.service";
 
@@ -34,9 +35,9 @@ export interface LocalizedProductData {
   localizedName: string;
   localizedDescription?: string | null;
   brand: string;
-  price: MoneyInput;
-  discount: MoneyInput;
-  priceIncrease: MoneyInput;
+  price: string;
+  discount: string;
+  priceIncrease: string;
   productImages: string[];
   images: string[];
   sectionType: string;
@@ -122,9 +123,11 @@ export function transformToLocalizedProduct(
     localizedName,
     localizedDescription: translation?.description ?? null,
     brand: product.brand,
-    price: product.price,
-    discount: product.discount ?? 0,
-    priceIncrease: product.priceIncrease ?? 0,
+    // Money leaves the service as strings: a Prisma.Decimal cannot be passed
+    // to a Client Component, and Number() would drop digits (see @repo/money).
+    price: serializeMoney(product.price),
+    discount: serializeRate(product.discount ?? 0),
+    priceIncrease: serializeMoney(product.priceIncrease ?? 0),
     productImages: product.productImages ?? [],
     images: product.productImages ?? [],
     sectionType: product.sectionType,
@@ -355,12 +358,7 @@ export class ProductService {
       });
     }
 
-    return {
-      ...config,
-      lampPriceIncrease: config.lampPriceIncrease ?? undefined,
-      productIp: config.productIp ?? undefined,
-      currency: config.currency as any,
-    };
+    return toViewConfiguration(config);
   }
 
   static async getFeaturedProducts(language: string, limit = 10) {

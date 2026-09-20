@@ -1,4 +1,5 @@
 import { constructMetadata } from "@/lib/metadata";
+import { serializeRate } from "@repo/money";
 import { prisma } from "@repo/database";
 import { Metadata } from "next";
 import { getLocale } from "next-intl/server";
@@ -47,7 +48,7 @@ const Page = async ({ searchParams }: ThankYouProps) => {
     return notFound();
   }
 
-  const discount = order.configuration?.discount ?? 0;
+  const discount = serializeRate(order.configuration?.discount ?? 0);
 
   const localizedProductName =
     order.product.translations[0]?.name || order.product.productName;

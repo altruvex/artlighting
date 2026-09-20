@@ -29,19 +29,19 @@ type Order = {
   userId: string
   configurationId: string
   quantity: number
-  totalPrice: MoneyInput
-  configPrice: MoneyInput
-  productPrice: MoneyInput
-  discountRate: MoneyInput
-  discountedPrice: MoneyInput
+  totalPrice: string
+  configPrice: string
+  productPrice: string
+  discountRate: string
+  discountedPrice: string
   productName: string
   productImages: string[]
   product: {
     id: string
     productName: string
     productImages: string[]
-    price: MoneyInput
-    discount: MoneyInput
+    price: string
+    discount: string
   }
   shippingAddress: {
     fullName: string
@@ -54,10 +54,10 @@ type Order = {
   }
   configuration?: {
     id: string
-    configPrice: MoneyInput
-    totalPrice: MoneyInput
+    configPrice: string
+    totalPrice: string
     quantity: number
-    discount: MoneyInput
+    discount: string
   }
 }
 

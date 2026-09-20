@@ -24,12 +24,12 @@ interface Product {
   productName: string;
   brand: string;
   /** Serialized money (see @repo/money): a string, never a float. */
-  price: MoneyInput;
+  price: string;
   productImages: string[];
   sectionType: string;
   spotlightType: string;
   /** Rate, not percent: 0.13 = 13%. */
-  discount: MoneyInput;
+  discount: string;
   chandelierLightingType?: string;
   hNumber?: number;
   maximumWattage?: string;

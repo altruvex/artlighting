@@ -22,12 +22,12 @@ interface CartItem {
   productName: string
   quantity: number
   productImages: string[]
-  discount: MoneyInput
-  price: MoneyInput
+  discount: string
+  price: string
   brand: string
   sectionType: string
   spotlightType: string
-  totalPrice: MoneyInput
+  totalPrice: string
 }
 
 export function CartSidebar() {

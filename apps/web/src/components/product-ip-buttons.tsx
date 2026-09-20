@@ -58,9 +58,9 @@ interface ProductIPButtonsProps {
   productIp: ProductIP;
   maxIP: number;
   /** Serialized money (see @repo/money): never a float. */
-  basePrice: MoneyInput;
+  basePrice: string;
   /** Rate, not percent: 0.13 = 13%. */
-  discount: MoneyInput;
+  discount: string;
   onProductIpChange: (newProductIp: ProductIP, priceIncrease: string) => void;
 }
 

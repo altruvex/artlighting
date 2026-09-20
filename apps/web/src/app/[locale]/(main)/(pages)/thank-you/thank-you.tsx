@@ -34,14 +34,14 @@ type OrderWithRelations = Order & {
   }
   shippingAddress: ShippingAddress | null
   configuration: Configuration | null
-  discount: MoneyInput | null
+  discount: string | null
 }
 
 export default function ThankYou({
   discount,
   initialOrder
 }: {
-  discount: MoneyInput,
+  discount: string,
   initialOrder: OrderWithRelations
 }) {
   // Animation variants for Framer Motion

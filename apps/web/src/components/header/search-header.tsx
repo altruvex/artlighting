@@ -18,11 +18,11 @@ interface Product {
     productId: string
     productName: string
     brand: string
-    price: MoneyInput
+    price: string
     productImages: string[]
     sectionType: string
     spotlightType: string
-    discount: MoneyInput
+    discount: string
     ProductId: string
     chandelierLightingType: string
     hNumber: number

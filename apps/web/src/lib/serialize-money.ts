@@ -1,4 +1,5 @@
 import { serializeMoney, serializeRate } from "@repo/money";
+import type { Configuration, ProductIP, SupportedCurrency } from "@/types/products";
 
 /**
  * Turns the Decimal money/rate fields of a database row into the strings the
@@ -57,4 +58,43 @@ export function serializeRowMoney<T extends Record<string, unknown>>(row: T): Se
     if (isDecimalish(value)) out[field] = serializeRate(value as never);
   }
   return out as SerializedRow<T>;
+}
+
+/**
+ * Builds the Configuration view model a Client Component receives: money
+ * serialized, the enums narrowed to the view's unions, and `guestToken`
+ * dropped — it lives in an httpOnly cookie precisely so page scripts can't
+ * read it (see lib/guest-token.ts).
+ */
+export function toViewConfiguration(row: {
+  id: string;
+  productId: string;
+  configPrice: unknown;
+  priceIncrease: unknown;
+  shippingPrice: unknown;
+  discount: unknown;
+  quantity: number;
+  lampPriceIncrease: unknown;
+  totalPrice: unknown;
+  currency: string;
+  productIp: string;
+  createdAt: Date;
+  updatedAt: Date;
+}): Configuration {
+  const serialized = serializeRowMoney(row as Record<string, unknown>);
+  return {
+    id: row.id,
+    productId: row.productId,
+    configPrice: serialized.configPrice as string,
+    priceIncrease: serialized.priceIncrease as string,
+    shippingPrice: serialized.shippingPrice as string,
+    discount: serialized.discount as string,
+    quantity: row.quantity,
+    lampPriceIncrease: (serialized.lampPriceIncrease as string | null) ?? undefined,
+    totalPrice: serialized.totalPrice as string,
+    currency: row.currency as SupportedCurrency,
+    productIp: row.productIp as ProductIP,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
 }

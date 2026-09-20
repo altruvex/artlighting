@@ -24,10 +24,10 @@ interface ProductChandelierLampButtonsProps {
   productChandLamp: ProductChandLamp;
   hNumber: number;
   /** Serialized money (see @repo/money): never a float. */
-  basePrice: MoneyInput;
+  basePrice: string;
   /** Rate, not percent: 0.13 = 13%. */
-  discount?: MoneyInput;
-  priceIncrease?: MoneyInput;
+  discount?: string;
+  priceIncrease?: string;
   onProductLampChange: (newProductLamp: ProductChandLamp, lampPriceIncrease: string) => void;
 }
 
@@ -37,7 +37,7 @@ export default function ProductChandelierLampButtons({
   productChandLamp,
   hNumber,
   basePrice,
-  priceIncrease = 0,
+  priceIncrease = "0",
   onProductLampChange,
 }: ProductChandelierLampButtonsProps) {
   const t = useTranslations("ProductChandLampButtons");

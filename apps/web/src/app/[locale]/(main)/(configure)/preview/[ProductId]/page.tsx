@@ -1,4 +1,6 @@
 import { auth } from "@/lib/auth-server"
+import { serializeRate } from "@repo/money";
+import { serializeRowMoney, toViewConfiguration } from "@/lib/serialize-money";
 import { readGuestToken } from "@/lib/guest-token"
 import { getLocaleFromParams, getServerI18n } from "@/lib/i18n/utils"
 import { PagePropsTypes } from "@/types"
@@ -168,7 +170,9 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
     const primarySpecification = product.specifications?.[0] || productSpecification || undefined
 
     const localizedProduct: ProductWithSpecs = {
-      ...product,
+      // Money leaves the server as strings; a Prisma.Decimal cannot cross
+      // into a Client Component (see @repo/money).
+      ...serializeRowMoney(product),
       productName: product.translations?.[0]?.name || product.productName,
       description: product.translations?.[0]?.description ?? undefined,
       localizedSpecs: primarySpecification,
@@ -202,8 +206,8 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
 
     return (
       <Preview
-        configuration={configuration}
-        discount={configuration.discount}
+        configuration={toViewConfiguration(configuration)}
+        discount={serializeRate(configuration.discount)}
         productId={configuration.productId}
         product={localizedProduct}
         locale={locale}

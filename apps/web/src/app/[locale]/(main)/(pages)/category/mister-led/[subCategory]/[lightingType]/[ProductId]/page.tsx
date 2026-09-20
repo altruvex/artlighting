@@ -59,9 +59,9 @@ export default async function Page({ params }: PagePropsTypes) {
     <>
       <Breadcrumb />
       <ProductRouter
-        product={product as any}
-        relatedProducts={relatedProducts as any}
-        configuration={configuration as any}
+        product={product}
+        relatedProducts={relatedProducts}
+        configuration={configuration}
         locale={locale}
       />
     </>

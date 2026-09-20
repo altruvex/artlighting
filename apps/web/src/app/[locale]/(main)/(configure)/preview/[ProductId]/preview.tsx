@@ -10,7 +10,9 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRouter } from "@/i18n/navigation";
 import { useUser } from "@/lib/auth-hooks";
-import type { Configuration } from "@repo/database";
+// The serialized view model, not Prisma's row type: money reaches a
+// Client Component as a string (see @repo/money).
+import type { Configuration } from "@/types/products";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { ArrowRight, Check, Loader2 } from "lucide-react";
@@ -25,9 +27,9 @@ export interface ProductWithSpecs {
   id: string;
   productId: string;
   productName: string;
-  price: MoneyInput;
+  price: string;
   productImages: string[];
-  discount: MoneyInput;
+  discount: string;
   sectionType: string;
   spotlightType: string;
   brand: string;
@@ -86,7 +88,7 @@ const fetchConfiguration = async (productId: string): Promise<Configuration> => 
 
 interface PreviewProps {
   configuration?: Configuration;
-  discount?: MoneyInput;
+  discount?: string;
   productId: string;
   product?: ProductWithSpecs;
   locale: string;

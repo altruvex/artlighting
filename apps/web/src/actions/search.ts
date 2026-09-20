@@ -1,5 +1,6 @@
 "use server";  
 import { prisma } from "@repo/database";
+import { serializeRowMoney } from "@/lib/serialize-money";
 
 export async function searchProducts(searchItem: string) {
   const products = await prisma.product.findMany({
@@ -23,5 +24,7 @@ export async function searchProducts(searchItem: string) {
     },
     take: 10,
   });
-  return products;
+  // Money leaves the server as strings: a Prisma.Decimal cannot be passed
+  // to a Client Component (see @repo/money).
+  return products.map(serializeRowMoney);
 }

@@ -8,11 +8,11 @@ interface ProductTranslationData {
   productId: string;
   productName: string;
   brand: string;
-  price: MoneyInput;
+  price: string;
   productImages: string[];
   sectionType: string;
   spotlightType: string;
-  discount: MoneyInput;
+  discount: string;
   chandelierLightingType?: string;
   hNumber?: number;
   maximumWattage?: string;

@@ -37,14 +37,14 @@ const QUANTITY_STORAGE_KEY_PREFIX = "quantity-"
 interface ProductMainInfoProps {
   productName: string
   /** Serialized money (see @repo/money): never a float. */
-  price: MoneyInput
+  price: string
   quantity?: number
   increaseQuantity?: () => void
   decreaseQuantity?: () => void
   productId: string
   configId?: string
   /** Rate, not percent: 0.13 = 13%. */
-  discount: MoneyInput
+  discount: string
   order?: Order
   chandelierLightingType?: string
   Brand: string

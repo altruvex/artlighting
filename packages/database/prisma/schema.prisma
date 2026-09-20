@@ -260,6 +260,11 @@ model Product {
   maxIP                  Int? // Max IP rating integer (20/44/54/65/68)
   spotlightType          String // e.g. "cob", "track-light", "mc15c"
   price                  Decimal          @db.Decimal(12, 2)
+  /// The "was" price shown struck through. Display only: it is never charged.
+  compareAtPrice         Decimal?         @db.Decimal(12, 2)
+  /// What the product costs us. Feeds the margin figure in the admin; never
+  /// leaves the admin and is never sent to the storefront.
+  cost                   Decimal?         @db.Decimal(12, 2)
   priceIncrease          Decimal          @default(0) @db.Decimal(12, 2)
   sectionType            String // "indoor" | "outdoor" | "chandelier"
   quantity               Int              @default(0)
@@ -268,6 +273,13 @@ model Product {
   chandelierLightingType String? // "LED" | "lamp"
   hNumber                Int? // Number of heads/lights (chandeliers)
   isActive               Boolean          @default(true)
+  /// Replaces the isActive/deletedAt pair as the single lifecycle field.
+  /// Backfilled from them; both are kept in step until the storefront and
+  /// admin read `status`, then they go in their own migration.
+  status                 ProductStatus    @default(ACTIVE)
+  /// Below this, the admin list flags the row. Per product, because a
+  /// chandelier and a 5W spotlight do not restock at the same pace.
+  lowStockThreshold      Int              @default(5)
   featured               Boolean          @default(false)
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
@@ -284,6 +296,7 @@ model Product {
   category          Category               @relation("ProductTopCategory", fields: [categoryId], references: [id])
   lightingtype      Category               @relation("ProductSubCategory", fields: [lightingtypeId], references: [id])
   specifications    ProductSpecification[]
+  specGroups        SpecGroup[]
   translations      ProductTranslation[]
   variants          ProductVariant[]
   images            ProductImage[]
@@ -300,6 +313,7 @@ model Product {
   @@index([isActive])
   @@index([featured])
   @@index([deletedAt])
+  @@index([status])
   @@index([brand, sectionType, isActive, featured], name: "idx_product_brand_section_active_featured")
   @@index([brand, sectionType, spotlightType, isActive], name: "idx_product_brand_section_spotlight_active")
   @@map("products")
@@ -312,23 +326,32 @@ model Product {
 // configuration — this is additive, existing Product.price/quantity fields
 // are untouched so the storefront keeps reading them unchanged.
 model ProductVariant {
-  id            String            @id @default(cuid())
-  productId     String
-  sku           String            @unique
-  wattage       String?
-  colorTemp     ProductColorTemp?
-  finish        String?
-  size          String?
-  stock         Int               @default(0)
-  priceOverride Decimal?          @db.Decimal(12, 2)
-  isDefault     Boolean           @default(true)
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  id             String            @id @default(cuid())
+  productId      String
+  sku            String            @unique
+  wattage        String?
+  colorTemp      ProductColorTemp?
+  finish         String?
+  size           String?
+  stock          Int               @default(0)
+  /// Deprecated in favour of `price`; kept until the admin and storefront
+  /// read the new column, then dropped in its own migration.
+  priceOverride  Decimal?          @db.Decimal(12, 2)
+  /// This variant's own price. Null means "use the product's price".
+  price          Decimal?          @db.Decimal(12, 2)
+  compareAtPrice Decimal?          @db.Decimal(12, 2)
+  cost           Decimal?          @db.Decimal(12, 2)
+  isActive       Boolean           @default(true)
+  position       Int               @default(0)
+  isDefault      Boolean           @default(true)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 
   product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   orderItems OrderItem[]
 
   @@index([productId])
+  @@index([productId, position])
   @@map("product_variants")
 }
 
@@ -345,6 +368,12 @@ model ProductImage {
   altText    String?
   order      Int      @default(0)
   isPrimary  Boolean  @default(false)
+  /// Straight from the Cloudinary upload response, so next/image can be
+  /// given real dimensions instead of guessing an aspect ratio.
+  width      Int?
+  height     Int?
+  format     String?
+  bytes      Int?
   createdAt  DateTime @default(now())
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -624,6 +653,78 @@ model CurrencyRate {
 }
 
 // ─── Enums ───────────────────────────────────────────────────
+/// Structured, localized, grouped specifications. Replaces the fixed
+/// columns of ProductSpecification, which cannot describe a product whose
+/// datasheet has a spec the columns do not name. The old table stays until
+/// the datasheet worker and the storefront read these, then it is dropped.
+model SpecGroup {
+  id        String   @id @default(cuid())
+  productId String
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product      Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  items        SpecItem[]
+  translations SpecGroupTranslation[]
+
+  @@index([productId])
+  @@index([productId, position])
+  @@map("spec_groups")
+}
+
+model SpecGroupTranslation {
+  id       String @id @default(cuid())
+  groupId  String
+  language String
+  name     String
+
+  group SpecGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, language])
+  @@index([language])
+  @@map("spec_group_translations")
+}
+
+model SpecItem {
+  id        String   @id @default(cuid())
+  groupId   String
+  position  Int      @default(0)
+  /// Language-neutral, so "15" + "W" reads correctly in both locales.
+  unit      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  group        SpecGroup             @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  translations SpecItemTranslation[]
+
+  @@index([groupId])
+  @@index([groupId, position])
+  @@map("spec_items")
+}
+
+model SpecItemTranslation {
+  id       String @id @default(cuid())
+  itemId   String
+  language String
+  label    String
+  value    String
+
+  item SpecItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, language])
+  @@index([language])
+  @@map("spec_item_translations")
+}
+
+/// DRAFT: never shown. ACTIVE: on the storefront. ARCHIVED: hidden, but
+/// kept because historical orders reference the product.
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
 enum ProductColorTemp {
   warm // 3000K
   cool // 6500K

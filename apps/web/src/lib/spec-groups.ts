@@ -1,5 +1,5 @@
 import "server-only";
-import { formatSpecValue } from "@repo/catalog";
+import { formatSpecValue, specValueParts } from "@repo/catalog";
 import { serializeMoney } from "@repo/money";
 import type { LocalizedSpecGroup } from "@/lib/specs-view";
 
@@ -68,36 +68,40 @@ export function localizeSpecGroups(groups: RawSpecGroup[], locale: string): Loca
     .map((group) => ({
       name: group.translations[0]?.name ?? "",
       items: group.items
-        .map((item) => ({
-          key: item.key,
-          label: item.translations[0]?.label ?? "",
-          // The stored number, untouched by locale formatting.
-          numeric: item.measurements[0]
-            ? Number(serializeMoney(item.measurements[0].value as never))
-            : null,
-          value: formatSpecValue(
-            {
-              kind: item.kind as never,
-              unit: item.unit,
-              comparator: item.comparator as never,
-              // Decimals are serialized here, at the boundary, like all
-              // other numbers leaving the server (see @repo/money).
-              measurements: item.measurements.map((measurement) => ({
-                value: serializeMoney(measurement.value as never),
-                valueMax: measurement.valueMax ? serializeMoney(measurement.valueMax as never) : null,
-                conditionValue: measurement.conditionValue
-                  ? serializeMoney(measurement.conditionValue as never)
-                  : null,
-                conditionUnit: measurement.conditionUnit,
-              })),
-              optionLabel: item.option?.translations[0]?.label ?? null,
-              text: item.translations[0]?.value ?? null,
-            },
-            locale,
-          ),
-        }))
+        .map((item) => {
+          // Built once and handed to both renderers: the joined string for
+          // anything that wants one value, and the parts for the table.
+          // Decimals are serialized here, at the boundary, like every other
+          // number leaving the server (see @repo/money).
+          const displayValue = {
+            kind: item.kind as never,
+            unit: item.unit,
+            comparator: item.comparator as never,
+            measurements: item.measurements.map((measurement) => ({
+              value: serializeMoney(measurement.value as never),
+              valueMax: measurement.valueMax ? serializeMoney(measurement.valueMax as never) : null,
+              conditionValue: measurement.conditionValue
+                ? serializeMoney(measurement.conditionValue as never)
+                : null,
+              conditionUnit: measurement.conditionUnit,
+            })),
+            optionLabel: item.option?.translations[0]?.label ?? null,
+            text: item.translations[0]?.value ?? null,
+          };
+
+          return {
+            key: item.key,
+            label: item.translations[0]?.label ?? "",
+            // The stored number, untouched by locale formatting, for code
+            // that compares rather than shows.
+            numeric: item.measurements[0]
+              ? Number(serializeMoney(item.measurements[0].value as never))
+              : null,
+            value: formatSpecValue(displayValue, locale),
+            parts: specValueParts(displayValue, locale),
+          };
+        })
         .filter((item) => item.label !== "" && item.value !== "—"),
     }))
     .filter((group) => group.name !== "" && group.items.length > 0);
 }
-

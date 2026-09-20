@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatSpecValue } from "./spec-format";
+import { formatSpecValue, specValueParts } from "./spec-format";
 import { normalizeDigits, optionKeyFor, parseSpecValue } from "./specs";
 
 describe("normalizeDigits", () => {
@@ -165,5 +165,82 @@ describe("formatSpecValue", () => {
       measurements: [{ value: "53" }],
     };
     expect(formatSpecValue(angle, "en")).toBe("53°");
+  });
+});
+
+describe("specValueParts", () => {
+  it("gives each stored figure its own part, with its condition", () => {
+    const flux = {
+      kind: "MEASUREMENT" as const,
+      unit: "lm",
+      comparator: "EXACT" as const,
+      measurements: [
+        { value: "1320", conditionValue: "3000", conditionUnit: "K" },
+        { value: "1400", conditionValue: "6500", conditionUnit: "K" },
+      ],
+    };
+    expect(specValueParts(flux, "en")).toEqual([
+      { condition: "3,000 K", text: "1,320 lm" },
+      { condition: "6,500 K", text: "1,400 lm" },
+    ]);
+  });
+
+  it("gives each option its own part when there is no condition", () => {
+    const temperatures = {
+      kind: "MEASUREMENT" as const,
+      unit: "K",
+      comparator: "EXACT" as const,
+      measurements: [{ value: "3000" }, { value: "4000" }, { value: "6500" }],
+    };
+    expect(specValueParts(temperatures, "en")).toEqual([
+      { text: "3,000 K" },
+      { text: "4,000 K" },
+      { text: "6,500 K" },
+    ]);
+  });
+
+  it("keeps a figure quoted for two conditions as two parts", () => {
+    const shared = {
+      kind: "MEASUREMENT" as const,
+      unit: "lm",
+      comparator: "EXACT" as const,
+      measurements: [
+        { value: "440", conditionValue: "3000", conditionUnit: "K" },
+        { value: "440", conditionValue: "6500", conditionUnit: "K" },
+      ],
+    };
+    expect(specValueParts(shared, "en")).toHaveLength(2);
+  });
+
+  it("collapses a figure repeated with no condition", () => {
+    const same = {
+      kind: "MEASUREMENT" as const,
+      unit: "K",
+      comparator: "EXACT" as const,
+      measurements: [{ value: "3000" }, { value: "3000" }],
+    };
+    expect(specValueParts(same, "en")).toEqual([{ text: "3,000 K" }]);
+  });
+
+  it("renders the same figures in Arabic digits", () => {
+    const flux = {
+      kind: "MEASUREMENT" as const,
+      unit: "lm",
+      comparator: "EXACT" as const,
+      measurements: [{ value: "1320", conditionValue: "3000", conditionUnit: "K" }],
+    };
+    const [part] = specValueParts(flux, "ar");
+    expect(part!.text).toContain("١٬٣٢٠");
+    expect(part!.condition).toContain("٣٬٠٠٠");
+  });
+
+  it("a range stays one part — it is one figure, not two", () => {
+    const range = {
+      kind: "RANGE" as const,
+      unit: "°C",
+      comparator: "EXACT" as const,
+      measurements: [{ value: "-10", valueMax: "45" }],
+    };
+    expect(specValueParts(range, "en")).toEqual([{ text: "-10 to 45 °C" }]);
   });
 });

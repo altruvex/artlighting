@@ -17,6 +17,13 @@ export interface LocalizedSpecItem {
   /** Rendered for this locale — Arabic-Indic digits included. For display only. */
   value: string;
   /**
+   * The same value as its stored figures, one entry per SpecMeasurement, so
+   * the table can put each in its own cell instead of reading them out as
+   * "1,320 lm (3,000 K) / 1,400 lm (6,500 K)". `value` remains the joined
+   * form, which is what a card or a lookup by key wants.
+   */
+  parts: { condition?: string; text: string }[];
+  /**
    * The first measurement as a plain number, for code that needs to compare
    * rather than show. `value` cannot be used for this: it renders "44" as
    * "٤٤" on an Arabic page, and `parseInt("٤٤")` is NaN — which is how an

@@ -1,4 +1,5 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Fragment } from "react"
 import { SpecificationsTable } from "@/types/products"
 import { cn } from "@/lib/utils"
 
@@ -10,7 +11,10 @@ interface ProductSpecificationsTableProps {
    * string typed once per language, and they arrive grouped. The flat map
    * stays as the fallback for products the spec backfill has not reached.
    */
-  specGroups?: { name: string; items: { label: string; value: string }[] }[]
+  specGroups?: {
+    name: string
+    items: { label: string; value: string; parts: { condition?: string; text: string }[] }[]
+  }[]
   Brand?: string
   chandelierLightingType?: string | undefined
   hNumber?: number | null
@@ -93,17 +97,56 @@ export default function ProductSpecificationsTable({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {group.items.map((item) => (
-                    <TableRow key={item.label}>
-                      <TableCell className="font-medium text-base text-start">{item.label}</TableCell>
-                      {/* dir="ltr" on the value: a figure like "1,320 lm
-                          (3,000 K)" is a number followed by a Latin symbol,
-                          and bidi reordering would move the unit. */}
-                      <TableCell className="text-base text-start" dir="ltr">
-                        {item.value}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {group.items.map((item) => {
+                    const hasConditions = item.parts.some((part) => part.condition)
+                    return (
+                      <TableRow key={item.label}>
+                        <TableCell className="font-medium text-base text-start align-top">
+                          {item.label}
+                        </TableCell>
+                        <TableCell className="text-base text-start align-top">
+                          {/*
+                            Each stored figure gets its own cell rather than
+                            being read out as "1,320 lm (3,000 K) / 1,400 lm
+                            (6,500 K)". A figure measured at a condition is a
+                            <dt>/<dd> pair, so a screen reader hears which
+                            temperature a reading belongs to instead of
+                            relying on the two sitting next to each other.
+                            `dir="ltr"` on the figures: "1,320 lm" is a number
+                            followed by a Latin symbol, and bidi reordering
+                            would move the unit away from it.
+                          */}
+                          {hasConditions ? (
+                            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1" dir="ltr">
+                              {item.parts.map((part) => (
+                                <Fragment key={`${part.condition}-${part.text}`}>
+                                  <dt className="text-sm text-muted-foreground tabular-nums self-center">
+                                    {part.condition}
+                                  </dt>
+                                  <dd className="tabular-nums">{part.text}</dd>
+                                </Fragment>
+                              ))}
+                            </dl>
+                          ) : item.parts.length > 1 ? (
+                            <ul className="flex flex-wrap gap-x-2 gap-y-1" dir="ltr">
+                              {item.parts.map((part) => (
+                                <li
+                                  key={part.text}
+                                  className="rounded-md border px-2 py-0.5 text-sm tabular-nums"
+                                >
+                                  {part.text}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <span className="tabular-nums" dir="ltr">
+                              {item.parts[0]?.text ?? item.value}
+                            </span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </div>

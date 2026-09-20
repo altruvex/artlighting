@@ -57,6 +57,73 @@ function unitFor(unit: string | null | undefined, locale: string): string {
   return locale.startsWith("ar") ? translated.ar : translated.en;
 }
 
+/** One stored figure, ready to be placed in its own cell. */
+export interface SpecValuePart {
+  /** What the figure was measured at, e.g. "3,000 K". Absent when there is none. */
+  condition?: string;
+  /** The figure with its unit, e.g. "1,320 lm". */
+  text: string;
+}
+
+/**
+ * The value broken into its stored figures, so a table can give each one its
+ * own cell instead of reading them out as a sentence.
+ *
+ * `formatSpecValue` below joins these into a single string, which is still
+ * what a datasheet line, a card, or a lookup by key wants. The table wants
+ * the pieces.
+ */
+export function specValueParts(value: SpecValueForDisplay, locale: string): SpecValuePart[] {
+  const isArabic = locale.startsWith("ar");
+
+  switch (value.kind) {
+    case "CHOICE":
+      return value.optionLabel ? [{ text: value.optionLabel }] : [];
+
+    case "TEXT":
+      return value.text ? [{ text: value.text }] : [];
+
+    case "RANGE": {
+      const [measurement] = value.measurements ?? [];
+      if (!measurement || measurement.valueMax == null) return [];
+      const unit = unitFor(value.unit, locale);
+      const from = formatNumber(measurement.value, locale);
+      const to = formatNumber(measurement.valueMax, locale);
+      const joiner = isArabic ? " إلى " : " to ";
+      return [{ text: `${from}${joiner}${to}${unit ? ` ${unit}` : ""}` }];
+    }
+
+    case "MEASUREMENT": {
+      const measurements = value.measurements ?? [];
+      if (measurements.length === 0) return [];
+      const unit = unitFor(value.unit, locale);
+      const prefix = COMPARATOR_PREFIX[value.comparator ?? "EXACT"];
+      const joinUnit = (number: string) => (unit === "°" ? `${number}${unit}` : unit ? `${number} ${unit}` : number);
+
+      const parts = measurements.map((measurement) => {
+        const text = `${prefix}${joinUnit(formatNumber(measurement.value, locale))}`;
+        if (measurement.conditionValue == null) return { text };
+        return {
+          condition: `${formatNumber(measurement.conditionValue, locale)}${
+            measurement.conditionUnit ? ` ${measurement.conditionUnit}` : ""
+          }`,
+          text,
+        };
+      });
+
+      // The same figure quoted for two conditions is two rows; the same
+      // figure twice with no condition is one.
+      const seen = new Set<string>();
+      return parts.filter((part) => {
+        const identity = `${part.condition ?? ""}|${part.text}`;
+        if (seen.has(identity)) return false;
+        seen.add(identity);
+        return true;
+      });
+    }
+  }
+}
+
 export function formatSpecValue(value: SpecValueForDisplay, locale: string): string {
   const isArabic = locale.startsWith("ar");
 

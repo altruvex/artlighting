@@ -366,11 +366,9 @@ Two more migrations.
 **`20260921010000_discount_families`** — a discount can target a product
 family. "Every outdoor fixture" is a thing a promotion wants to say, and no
 list of categories says it as directly: a category list has to be revisited
-whenever a category is added, a family does not. `ProductFamily` mirrors
-`Product.sectionType`, which is still a String; that seam lives in exactly
-one function (`familyOf()`), so converting sectionType to the enum later is
-a single edit. **That conversion is still owed** — it touches routing and
-every catalogue query, so it is its own migration.
+whenever a category is added, a family does not. `ProductFamily` mirrored
+`Product.sectionType`, which was still a String, across one bridging
+function (`familyOf()`); the conversion below removed the bridge.
 
 **The date window** was in the schema and in `computePricing` from the
 start and missing from the admin form, which meant a scheduled promotion
@@ -394,9 +392,40 @@ is useful, but an import that tries to *change* it is told discounts are
 managed on the discounts page: a name, a window and a scope do not fit in a
 spreadsheet cell, and silently dropping the edit would be worse.
 
+#### Phase 3 follow-up: sectionType is the enum
+**`20260921030000_section_type_enum`.** 57 chandeliers, 49 indoor, 12
+outdoor, no case or whitespace variants, nothing outside the three — checked
+before writing the migration, which normalises with `lower(btrim(...))` and
+then `ALTER COLUMN … TYPE "ProductFamily" USING upper(…)`, behind a guard
+that raises on any value it does not recognise. `migrate diff` reports no
+difference afterwards.
+
+The enum values are UPPERCASE, like every other enum in the schema, and the
+URL segments stay lowercase. That is deliberate and it is the point of the
+change: the column and the URL segment used to be the *same string*, which
+is exactly what hid the fact that no page had a boundary between a stored
+value and a request — each one passed the path parameter straight into a
+`where`. Now `familyFromSlug` either parses or the route 404s.
+`FAMILY_SLUGS` is the whole bridge, with a test pinning the three segments
+because they are live public URLs.
+
+Narrowing the type is what found the work: 23 call sites, including six
+route scopes that each needed the parse twice (the page and its own
+`generateMetadata`). Two searches matched the column with `contains`, which
+an enum cannot do; `familiesMatching` now runs the substring over the slugs
+and returns exact enum values, so typing "chand" still reaches the
+chandeliers.
+
+The family vocabulary lives in `@repo/catalog/families` — its own module
+because putting it in `discounts.ts` made `schemas.ts` and `discounts.ts`
+import each other, which left `rateSchema` undefined at import time and
+stopped two test suites loading at all; its own package export because a
+Client Component importing it from the barrel pulled Prisma into the
+browser bundle and broke the admin build. `@repo/pricing` keeps its own
+copy of the three values (it is pure and cannot depend on catalog), and a
+type-level assertion in `families.ts` fails to compile if the two drift.
+
 #### Still open
-- **`Product.sectionType` should become the `ProductFamily` enum.** Its own
-  migration; `familyOf()` is the only bridge until then.
 - A photo for `mc1608-w1`.
 
 ## Production rollout runbook

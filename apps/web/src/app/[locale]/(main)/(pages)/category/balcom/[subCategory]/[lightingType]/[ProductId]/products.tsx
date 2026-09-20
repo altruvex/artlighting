@@ -264,6 +264,7 @@ export default function BalcomProducts({
                 Brand={product.brand}
                 chandelierLightingType=""
                 hNumber={undefined}
+                bulbChoices={product.bulbChoices ?? []}
                 configuration={configuration}
                 sectionTypes={[product.sectionType]}
                 sectionType={product.sectionType}

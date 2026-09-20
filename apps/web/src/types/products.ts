@@ -1,3 +1,4 @@
+import type { BulbChoice } from "@repo/catalog/bulb-pricing"
 import type { LocalizedSpecGroup } from "@/lib/specs-view"
 import type { ProductFamily } from "@repo/catalog/families";
 /**
@@ -283,6 +284,11 @@ export interface LocalizedProductWithRelations extends BaseProduct {
    * the flat table the page builds by hand.
    */
   specGroups?: LocalizedSpecGroup[]
+  /**
+   * The bulbs this fixture is sold with, priced for its arm count. Empty
+   * for anything with no arms — there is nowhere to put one.
+   */
+  bulbChoices?: BulbChoice[]
 }
 
 export interface ProductCardProps {
@@ -329,6 +335,8 @@ export interface Configuration {
   discount: string
   quantity: number
   lampPriceIncrease?: string
+  /** Which bulb that amount was for — the amount alone could not say. */
+  bulbId?: string | null
   totalPrice: string
   currency: SupportedCurrency
   productIp?: ProductIP

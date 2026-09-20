@@ -39,6 +39,14 @@ export class OrderService {
 
         const shippingAddress = await this.upsertShippingAddress(dto.userId, dto.shippingAddress);
 
+        // What the customer actually chose, taken from the configuration they
+        // are checking out. productChandLamp below is the product's unused
+        // default and says "9 W" for every order ever placed.
+        const configuration = await prisma.configuration.findUnique({
+            where: { id: dto.configurationId },
+            select: { bulbId: true },
+        });
+
         // Priced by the engine, not by a rate on the product row — the same
         // function the storefront displays from and the admin previews with.
         const rules = await discountsForCart(null, prisma);
@@ -71,6 +79,7 @@ export class OrderService {
                 productColorTemp: product.productColor || "warm",
                 productIp: product.productIp || "IP20",
                 productChandLamp: product.productChandLamp || "lamp9w",
+                ...(configuration?.bulbId ? { bulb: { connect: { id: configuration.bulbId } } } : {}),
                 brand: product.brand,
                 chandelierLightingType: product.chandelierLightingType,
                 configPrice: serializeMoney(dto.configPrice),

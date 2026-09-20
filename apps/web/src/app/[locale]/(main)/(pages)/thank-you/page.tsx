@@ -27,6 +27,9 @@ const Page = async ({ searchParams }: ThankYouProps) => {
     where: { id: parseInt(orderId, 10) },
     include: {
       configuration: true,
+      // The bulb the order was placed with, named in this locale. The old
+      // productChandLamp string is the product's unused default.
+      bulb: { select: { wattage: true, translations: { where: { language: locale }, select: { name: true } } } },
       product: {
         include: {
           specifications: {
@@ -107,6 +110,9 @@ export async function generateMetadata({
     where: { id: parseInt(orderId, 10) },
     include: {
       configuration: true,
+      // The bulb the order was placed with, named in this locale. The old
+      // productChandLamp string is the product's unused default.
+      bulb: { select: { wattage: true, translations: { where: { language: locale }, select: { name: true } } } },
       product: {
         include: {
           specifications: {

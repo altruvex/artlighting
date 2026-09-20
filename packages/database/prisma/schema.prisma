@@ -298,6 +298,12 @@ model Order {
   productImages          String[]
   productColorTemp       String
   productIp              String
+  /// Which bulb the fixture was bought with. A relation and not a string:
+  /// the name is translated, and a receipt has to render in either language
+  /// years later. productChandLamp below is the string this replaces — it
+  /// only ever held the product's unused default, so every order said 9 W
+  /// whatever the customer picked and paid for.
+  bulbId                 String?
   productChandLamp       String
   quantity               Int
   isCompleted            Boolean     @default(false)
@@ -327,6 +333,8 @@ model Order {
   user                User                 @relation(fields: [userId], references: [id])
   configuration       Configuration?       @relation("ConfigurationToOrder", fields: [configurationId], references: [id])
   discountRedemptions DiscountRedemption[]
+  // SetNull, said out loud: retiring a bulb must not delete an invoice.
+  bulb                Bulb?                @relation(fields: [bulbId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([productId])
@@ -1013,6 +1021,7 @@ model Bulb {
   translations   BulbTranslation[]
   products       ProductBulb[]
   configurations Configuration[]
+  orders         Order[]
 
   @@index([isActive, position])
   @@map("bulbs")

@@ -75,6 +75,7 @@ export function toViewConfiguration(row: {
   discount: unknown;
   quantity: number;
   lampPriceIncrease: unknown;
+  bulbId?: string | null;
   totalPrice: unknown;
   currency: string;
   productIp: string;
@@ -91,6 +92,7 @@ export function toViewConfiguration(row: {
     discount: serialized.discount as string,
     quantity: row.quantity,
     lampPriceIncrease: (serialized.lampPriceIncrease as string | null) ?? undefined,
+    bulbId: row.bulbId ?? null,
     totalPrice: serialized.totalPrice as string,
     currency: row.currency as SupportedCurrency,
     productIp: row.productIp as ProductIP,

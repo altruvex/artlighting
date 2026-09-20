@@ -27,6 +27,8 @@ export type OrderWithRelations = Order & {
   }
   shippingAddress: ShippingAddress | null
   configuration: Configuration | null
+  /** Named for the locale the receipt is rendered in. */
+  bulb?: { wattage: number; translations: { name: string }[] } | null
   /** Rate, not percent: 0.13 = 13%. Serialized; see @repo/money. */
   discount: string | null
 }
@@ -208,7 +210,8 @@ const Complete = ({ discount, brand, order: initialOrder }: CompleteProps) => {
                             )}
                             {brand === "mister-led" && order.chandelierLightingType === "lamp" && (
                               <TableCell className="font-semibold capitalize">
-                                {isProductChandLamp(order.productChandLamp) ? tLamp(order.productChandLamp) : "Unknown Lamp"}
+                                {bulbLabel(order) ??
+                                  (isProductChandLamp(order.productChandLamp) ? tLamp(order.productChandLamp) : "—")}
                               </TableCell>
                             )}
                             {brand === "mister-led" && order.chandelierLightingType === "LED" && (
@@ -447,3 +450,16 @@ const Complete = ({ discount, brand, order: initialOrder }: CompleteProps) => {
 };
 
 export default Complete;
+
+/**
+ * What the order was actually bought with.
+ *
+ * Falls back to the old productChandLamp string for orders placed before
+ * bulbs were rows — and to a dash rather than "Unknown Lamp", which is not
+ * a thing a customer should read on their own receipt.
+ */
+function bulbLabel(order: { bulb?: { wattage: number; translations: { name: string }[] } | null }) {
+  const name = order.bulb?.translations[0]?.name
+  if (!order.bulb || !name) return null
+  return `${name} ${order.bulb.wattage}W`
+}

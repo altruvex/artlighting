@@ -197,15 +197,20 @@ export async function setProductBulbs(
   });
 }
 
+/**
+ * A function, and deliberately not `as const`: Prisma rejects a readonly
+ * `orderBy` array, which is what a const assertion produces. The same trap
+ * caught productImageSelect.
+ */
 export function productBulbSelect() {
   return {
-    orderBy: [{ position: "asc" as const }],
+    orderBy: [{ position: "asc" }] as { position: "asc" }[],
     select: {
       isDefault: true,
       position: true,
       bulb: { select: bulbSelect() },
     },
-  } as const;
+  };
 }
 
 type Transactional = { $transaction: <T>(fn: (tx: unknown) => Promise<T>) => Promise<T> };

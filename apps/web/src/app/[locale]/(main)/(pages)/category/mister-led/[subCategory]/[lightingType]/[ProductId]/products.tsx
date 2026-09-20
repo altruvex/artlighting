@@ -220,6 +220,7 @@ export default function ChandelierProducts({
                 Brand={product.brand}
                 chandelierLightingType={product.chandelierLightingType || ""}
                 hNumber={product.hNumber}
+                bulbChoices={product.bulbChoices ?? []}
                 configuration={configuration}
                 sectionTypes={[product.sectionType]}
                 sectionType={product.sectionType}

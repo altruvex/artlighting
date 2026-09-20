@@ -53,6 +53,9 @@ const Page = async ({ searchParams }: PagePropsTypes) => {
       },
       user: true,
       configuration: true,
+      // The bulb the order was placed with, named in this locale. The old
+      // productChandLamp string is the product's unused default.
+      bulb: { select: { wattage: true, translations: { where: { language: locale }, select: { name: true } } } },
     },
   })
 

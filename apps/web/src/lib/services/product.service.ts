@@ -1,7 +1,8 @@
 import { prisma } from "@repo/database";
 import { parseLocalizedInt } from "@/lib/numbers";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { availableFrom, familiesMatching, inventorySelect, productDiscountRates, type ProductFamily } from "@repo/catalog";
+import { availableFrom, familiesMatching, inventorySelect, productBulbSelect, productDiscountRates, type ProductFamily } from "@repo/catalog";
+import { bulbChoices, type BulbChoice } from "@repo/catalog/bulb-pricing";
 import { localizeSpecGroups, specGroupSelect, specNumbersByKey, type LocalizedSpecGroup } from "@/lib/spec-groups";
 import { serializeMoney, serializeRate } from "@repo/money";
 import { toViewConfiguration } from "@/lib/serialize-money";
@@ -62,6 +63,7 @@ export interface LocalizedProductData {
   updatedAt: Date;
   specifications: LocalizedSpecsData | null;
   localizedSpecs: LocalizedSpecsData;
+  bulbChoices: BulbChoice[];
   maximumWattage?: number;
   mainMaterial?: string;
   beamAngle?: string;
@@ -147,6 +149,10 @@ export function transformToLocalizedProduct(
     // Grouped, localized and already formatted — the page no longer builds
     // this table by hand with a label written out in each language.
     specGroups: localizedGroups,
+    // Priced for this fixture's arms and named for this locale. Empty for
+    // anything with no arms, which is the rule: the choice appears only
+    // where a bulb goes.
+    bulbChoices: bulbChoices(product.bulbs, product.hNumber, language),
     sectionType: product.sectionType,
     spotlightType: product.spotlightType,
     quantity: availableFrom(product.variants?.[0]?.inventory),
@@ -202,6 +208,9 @@ function buildProductInclude(language: string, withRelations = false) {
     images: productImageSelect(),
     // The structured specs; see lib/spec-groups.
     specGroups: specGroupSelect(language),
+    // Which bulbs this fixture is sold with. Only fixtures with arms have
+    // any; see @repo/catalog/bulb-pricing.
+    bulbs: productBulbSelect(),
     // Stock lives in the inventory ledger. What the storefront needs is
     // what a customer can actually buy, which is on hand minus whatever is
     // already promised to unshipped orders.

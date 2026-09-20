@@ -8,7 +8,8 @@ import { saveConfig as _saveConfig, type SaveConfigArgs } from "@/components/act
 import AddToCardIcon from "@/components/add-to-card"
 import DiscountPrice from "@/components/discount-price"
 import NormalPrice from "@/components/normal-price"
-import ProductChandelierLampButtons from "@/components/product-chand-lamp-buttons"
+import ProductBulbButtons from "@/components/product-bulb-buttons"
+import type { BulbChoice } from "@repo/catalog/bulb-pricing"
 import ProductColorTempButtons from "@/components/product-color-temp-buttons"
 import ProductIPButtons from "@/components/product-ip-buttons"
 import { QuantitySelector } from "@/components/quantity-selector"
@@ -51,6 +52,8 @@ interface ProductMainInfoProps {
   chandelierLightingType?: string
   Brand: string
   hNumber?: number
+  /** Priced for this fixture's arms; empty when it has none. */
+  bulbChoices?: BulbChoice[]
   configuration?: Configuration
   ip?: PrismaProductIP
   maxIP?: number
@@ -85,6 +88,7 @@ export default function ProductMainInfo({
   chandelierLightingType,
   Brand,
   hNumber,
+  bulbChoices = [],
   configuration: initialConfiguration,
   ip,
   maxIP,
@@ -130,12 +134,20 @@ export default function ProductMainInfo({
     "IP20"
   )
 
-  const [selectedProductChandelierLamp, setSelectedProductChandelierLamp] =
-    useState<ProductChandLamp>((order?.productChandLamp as ProductChandLamp) ?? "lamp9w")
+  // Which bulb, not which of two hard-coded wattages. The fixture is sold
+  // with one, so the default stands until the customer picks another.
+  const [selectedBulbId, setSelectedBulbId] = useState<string | undefined>(
+    configuration?.bulbId ?? bulbChoices.find((choice) => choice.isDefault)?.id
+  )
 
   // Money as serialized strings; see @repo/money.
   const [priceIncrease, setPriceIncrease] = useState<string>("0")
-  const [lampPriceIncrease, setLampPriceIncrease] = useState<string>("0")
+  // From the saved configuration, not zero: the selected bulb is restored on
+  // load from configuration.bulbId, so starting the amount at zero showed
+  // 15 W picked at the 9 W price until the customer touched something.
+  const [lampPriceIncrease, setLampPriceIncrease] = useState<string>(
+    configuration?.lampPriceIncrease ?? "0"
+  )
 
   const { isSignedIn } = useAuth()
   const isUpdatingRef = useRef(false)
@@ -187,13 +199,10 @@ export default function ProductMainInfo({
     }
   }, [currentQuantity, decreaseQuantity])
 
-  const handleProductChandelierLampChange = useCallback(
-    (newProductLamp: ProductChandLamp, newLampPriceIncrease: string) => {
-      setSelectedProductChandelierLamp(newProductLamp)
-      setLampPriceIncrease(newLampPriceIncrease)
-    },
-    []
-  )
+  const handleBulbChange = useCallback((bulbId: string, newLampPriceIncrease: string) => {
+    setSelectedBulbId(bulbId)
+    setLampPriceIncrease(newLampPriceIncrease)
+  }, [])
 
   const handleColorTempChange = useCallback((newColorTemp: ProductColorTemp) => {
     setSelectedColorTemp(newColorTemp)
@@ -374,20 +383,18 @@ export default function ProductMainInfo({
       <div className="space-y-6 mt-6">
         <div className={cn(
           "grid gap-6",
-          chandelierLightingType === "lamp" && Brand === "mister-led" && "sm:grid-cols-2",
+          bulbChoices.length > 0 && "sm:grid-cols-2",
           Brand === "balcom" && "sm:grid-cols-2",
         )}>
           <div className="space-y-4">
-            {chandelierLightingType === "lamp" && Brand === "mister-led" && (
-              <ProductChandelierLampButtons
-                productId={productId}
+            {/* Arms decide, not the brand: the catalogue returns choices
+                only for a fixture a bulb goes into. */}
+            {bulbChoices.length > 0 && (
+              <ProductBulbButtons
                 configId={configId}
-                productChandLamp={selectedProductChandelierLamp}
-                onProductLampChange={handleProductChandelierLampChange}
-                hNumber={hNumber || 0}
-                basePrice={price}
-                discount={discount}
-                priceIncrease={priceIncrease}
+                choices={bulbChoices}
+                selectedBulbId={selectedBulbId}
+                onBulbChange={handleBulbChange}
               />
             )}
             {Brand === "balcom" && (

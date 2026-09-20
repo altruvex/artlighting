@@ -641,6 +641,12 @@
             "desc": "Cultivates a sophisticated and modern ambiance ideal for creating a neutral and contemporary setting. Perfect for enhancing spaces with its white color temperature."
         }
     },
+    "ProductBulbButtons": {
+        "chooseBulb": "Choose the bulb",
+        "watts": "{n} W",
+        "included": "included",
+        "change-error": "That bulb could not be selected. Please try again."
+    },
     "ProductChandLampButtons": {
         "chooseLampWattage": "Choose lamp wattage",
         "lamp9w": "9W lamp",

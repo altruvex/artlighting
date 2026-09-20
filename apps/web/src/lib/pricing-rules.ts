@@ -1,5 +1,5 @@
-import { ProductChandLamp, ProductIP } from "@repo/database"
-import { Decimal, money, type MoneyInput, multiplyMoney, serializeMoney } from "@repo/money"
+import { ProductIP } from "@repo/database"
+import { Decimal, money, type MoneyInput, serializeMoney } from "@repo/money"
 
 export const PRODUCT_IP_RULES: Record<
     ProductIP,
@@ -24,20 +24,6 @@ export const PRODUCT_IP_RULES: Record<
     },
 }
 
-export const PRODUCT_CHAND_LAMP_RULES: Record<
-    ProductChandLamp,
-    {
-        priceIncreasePerLamp: number
-    }
-> = {
-    lamp9w: {
-        priceIncreasePerLamp: 0,
-    },
-    lamp12w: {
-        priceIncreasePerLamp: 20,
-    },
-}
-
 /**
  * The IP upgrade, as serialized money. Rounded up to the piastre: the old
  * version used Math.ceil on a float, which rounded to whole pounds and gave
@@ -48,10 +34,3 @@ export function calculateIpPriceIncrease(basePrice: MoneyInput, ip: ProductIP): 
     if (!rule) return serializeMoney(0)
     return serializeMoney(money(basePrice).times(rule.increaseOnPricePercent).toDecimalPlaces(2, Decimal.ROUND_UP))
 }
-
-export function calculateLampPriceIncrease(hNumber: number, lampType: ProductChandLamp): string {
-    const rule = PRODUCT_CHAND_LAMP_RULES[lampType]
-    if (!rule || hNumber <= 0) return serializeMoney(0)
-    return serializeMoney(multiplyMoney(rule.priceIncreasePerLamp, hNumber))
-}
-

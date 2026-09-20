@@ -34,6 +34,8 @@ type OrderWithRelations = Order & {
   }
   shippingAddress: ShippingAddress | null
   configuration: Configuration | null
+  /** Named for the locale the receipt is rendered in. */
+  bulb?: { wattage: number; translations: { name: string }[] } | null
   discount: string | null
 }
 
@@ -379,9 +381,10 @@ export default function ThankYou({
                               {order.brand === "mister-led" &&
                                 order.chandelierLightingType === "lamp" && (
                                   <TableCell className="font-semibold capitalize ">
-                                    {isProductChandLamp(order.productChandLamp)
-                                      ? tLamp(order.productChandLamp)
-                                      : "Unknown Lamp"}
+                                    {bulbLabel(order) ??
+                                      (isProductChandLamp(order.productChandLamp)
+                                        ? tLamp(order.productChandLamp)
+                                        : "—")}
                                   </TableCell>
                                 )}
                               {order.brand === "mister-led" &&
@@ -514,3 +517,16 @@ export default function ThankYou({
     </motion.div>
   );
 };
+
+/**
+ * What the order was actually bought with.
+ *
+ * Falls back to the old productChandLamp string for orders placed before
+ * bulbs were rows — and to a dash rather than "Unknown Lamp", which is not
+ * a thing a customer should read on their own receipt.
+ */
+function bulbLabel(order: { bulb?: { wattage: number; translations: { name: string }[] } | null }) {
+  const name = order.bulb?.translations[0]?.name
+  if (!order.bulb || !name) return null
+  return `${name} ${order.bulb.wattage}W`
+}

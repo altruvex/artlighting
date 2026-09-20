@@ -470,7 +470,13 @@
     },
     "product-card": {
         "moreDetails": "More Details",
-        "addToCart": "Add to Cart"
+        "addToCart": "Add to Cart",
+        "off": "−{rate}",
+        "save": "Save {amount}",
+        "was": "Was",
+        "soldOut": "Sold out",
+        "fewLeft": "{count, plural, one{Only # left} other{Only # left}}",
+        "addToCartNamed": "Add {name} to bag"
     },
     "common": {
         "fastShipping": "Fast Shipping",

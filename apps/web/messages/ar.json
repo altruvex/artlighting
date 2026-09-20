@@ -260,7 +260,13 @@
     },
     "product-card": {
         "moreDetails": "تفاصيل أكثر",
-        "addToCart": "أضف للسلة"
+        "addToCart": "أضف للسلة",
+        "off": "−{rate}",
+        "save": "وفّر {amount}",
+        "was": "كان",
+        "soldOut": "نفدت الكمية",
+        "fewLeft": "{count, plural, one{متبقّي قطعة واحدة} two{متبقّي قطعتان} few{متبقّي # قطع} other{متبقّي # قطعة}}",
+        "addToCartNamed": "أضف {name} إلى السلة"
     },
     "common": {
         "fastShipping": "شحن سريع",

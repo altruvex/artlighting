@@ -1,28 +1,21 @@
 "use client"
 
 import { addToCart } from "@/actions/cart";
-import type { ProductFamily } from "@repo/catalog/families";
+import { familySlug, type ProductFamily } from "@repo/catalog/families";
 import type { BulbChoice } from "@repo/catalog/bulb-pricing";
 import type { LocalizedSpecGroup } from "@/lib/specs-view";
 import { useProductDescription } from "@/lib/use-product-description";
-import NormalPrice from "@/components/normal-price";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { useTextDirection } from "@/helpers/language";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
-import { formatPercent } from "@/lib/numbers";
-import { money, type MoneyInput } from "@repo/money";
+import { formatNumberWithConversion, formatPercent } from "@/lib/numbers";
+import { applyRate, money, serializeMoney, subtractMoney } from "@repo/money";
 import { useAuth } from "@/lib/auth-hooks";
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from "next-intl";
 import { ProductImage as Image } from "@/components/product-image";
-import { useMemo, useState, useTransition } from "react";
-import { Carousel } from "react-responsive-carousel";
-import "react-responsive-carousel/lib/styles/carousel.min.css";
+import { PLACEHOLDER_IMAGE } from "@/lib/product-images";
+import { Loader2Icon, ShoppingBagIcon } from "lucide-react";
+import { useMemo, useTransition } from "react";
 import { toast } from "sonner";
-import AddToCardIcon from "../add-to-card";
-import DiscountPrice from "../discount-price";
-import styles from "./product-card.module.css";
 
 interface Product {
   productId: string;
@@ -35,6 +28,8 @@ interface Product {
   spotlightType: string;
   /** Rate, not percent: 0.13 = 13%. */
   discount: string;
+  /** What can be bought now; absent where a caller does not know it. */
+  quantity?: number;
   chandelierLightingType?: string;
   hNumber?: number;
   maximumWattage?: string;
@@ -64,19 +59,32 @@ interface ProductCardProps {
   locale?: string;
 }
 
-const safeString = (value: string | undefined, fallback: string = "N/A"): string => value ?? fallback;
-const safeNumber = (value: number | undefined, fallback: number = 0): number => value ?? fallback;
+/** Below this, the card says how many are left — scarcity that is real. */
+const LOW_STOCK = 5;
 
-export default function ProductCard({ product, locale }: ProductCardProps) {
+/**
+ * One product in a grid.
+ *
+ * What it replaced carried two badges — a discount, and "fast shipping" on
+ * every one of 117 products whatever the product — an arrowed carousel
+ * inside every card, a "more details" button beside an icon button, the
+ * sale price in the destructive red the site uses for errors, prices in
+ * italics, the title in capitals, hard-coded hex greys, and an h2 per card
+ * so a listing page had dozens of them.
+ *
+ * Now the whole card is the link and the one action that is not a link —
+ * add to bag — sits above it. The discount is stated as what the shopper
+ * keeps ("save 202.80"), not only as a crossed-out number, in the one
+ * accent the design uses. A second image fades in on hover where there is
+ * one, which is the look a carousel was reaching for at a tenth of the
+ * weight.
+ */
+export default function ProductCard({ product }: ProductCardProps) {
   const [isPending, startTransition] = useTransition();
-  const [currentIndex, setCurrentIndex] = useState<number>(0);
-  const [isClicked, setIsClicked] = useState(false);
   const { isSignedIn } = useAuth();
-  const t = useTranslations('product-card');
-  const tCommon = useTranslations('common');
-  const tToast = useTranslations('toast');
-
-  const { direction, isRTL } = useTextDirection(locale);
+  const locale = useLocale();
+  const t = useTranslations("product-card");
+  const tToast = useTranslations("toast");
 
   // Generated from this product's own specs — the same generator the
   // product page uses, so a card and the page it links to cannot say
@@ -92,189 +100,144 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
     "short"
   );
 
-  const displayName = useMemo(() => {
-    return product.translations?.name || product.productName;
-  }, [product.translations?.name, product.productName]);
+  const displayName = product.translations?.name || product.productName;
 
-  const handleSlideChange = (index: number) => {
-    setCurrentIndex(index);
-  };
+  const pricing = useMemo(() => {
+    const onSale = money(product.discount).greaterThan(0);
+    const saving = applyRate(product.price, product.discount);
+    return {
+      onSale,
+      current: formatNumberWithConversion(serializeMoney(subtractMoney(product.price, saving)), locale),
+      list: formatNumberWithConversion(product.price, locale),
+      saving: formatNumberWithConversion(serializeMoney(saving), locale),
+      rate: formatPercent(product.discount, locale),
+    };
+  }, [product.price, product.discount, locale]);
 
-  const HandleClickedButtons = () => {
-    setIsClicked(true);
-  };
+  // The family *slug*, not the enum. `sectionType` is "CHANDELIER" now, and
+  // interpolating it built /category/mister-led/CHANDELIER/… — resolved,
+  // because the route lowercases it, but a second URL for every product.
+  const href = `/category/${product.brand}/${familySlug(product.sectionType)}/${product.spotlightType.toLowerCase()}/${product.productId.toLowerCase()}`;
+
+  const [primary, hover] = product.productImages?.length
+    ? [product.productImages[0]!, product.productImages[1]]
+    : [PLACEHOLDER_IMAGE, undefined];
+
+  const stock = product.quantity;
+  const soldOut = stock === 0;
 
   const handleAddToCart = () => {
     if (!isSignedIn) {
-      toast.error(tToast('signInRequired'));
+      toast.error(tToast("signInRequired"));
       return;
     }
-
     startTransition(async () => {
       try {
         await addToCart(product.productId);
-        toast.success(tToast('addToCartSuccess', { productName: displayName }));
+        toast.success(tToast("addToCartSuccess", { productName: displayName }));
       } catch (error) {
         console.error("Cart addition failed:", error);
-        toast.error(tToast('addToCartError'));
+        toast.error(tToast("addToCartError"));
       }
     });
   };
 
-
   return (
-    <div className="relative p-2.5 select-none">
-      <div>
-        <div className={cn(
-          "absolute top-[5%] z-10 px-[5px] py-[7px] flex items-center justify-center text-muted text-xs bg-[#676769] dark:bg-[#dad4d4]",
-          isRTL
-            ? "right-0 rounded-tr-none rounded-bl-[5px] rounded-tl-[5px] rounded-br-none"
-            : "left-0 rounded-tl-none rounded-br-[5px] rounded-tr-[5px] rounded-bl-none"
-        )}>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            fill="currentColor"
-            viewBox="0 0 640 512"
-          >
-            <path d="M112 0C85.5 0 64 21.5 64 48V96H16c-8.8 0-16 7.2-16 16s7.2 16 16 16H64 272c8.8 0 16 7.2 16 16s-7.2 16-16 16H64 48c-8.8 0-16 7.2-16 16s7.2 16 16 16H64 240c8.8 0 16 7.2 16 16s-7.2 16-16 16H64 16c-8.8 0-16 7.2-16 16s7.2 16 16 16H64 208c8.8 0 16 7.2 16 16s-7.2 16-16 16H64V416c0 53 43 96 96 96s96-43 96-96H384c0 53 43 96 96 96s96-43 96-96h32c17.7 0 32-14.3 32-32s-14.3-32-32-32V288 256 237.3c0-17-6.7-33.3-18.7-45.3L512 114.7c-12-12-28.3-18.7-45.3-18.7H416V48c0-26.5-21.5-48-48-48H112zM544 237.3V256H416V160h50.7L544 237.3zM160 368a48 48 0 1 1 0 96 48 48 0 1 1 0-96zm272 48a48 48 0 1 1 96 0 48 48 0 1 1 -96 0z" />
-          </svg>
-          <span className="ml-1.5 rtl:mr-1.5">
-            {tCommon('fastShipping')}
-          </span>
-        </div>
-        {money(product.discount).greaterThan(0) && (
-          <div className={cn(
-            "absolute top-[3px] z-10 px-[5px] py-[7px] flex items-center justify-center text-background text-xs",
-            isRTL ? "left-[5px]" : "right-[5px]"
-          )}>
-            <Badge className="rounded-none text-sm" variant={"destructive"}>
-              -{formatPercent(product.discount, locale ?? "en")}
-            </Badge>
-          </div>
-        )}
-      </div>
-      <div className={styles.productContent}>
-        <div className={styles.imageContainer} dir="ltr">
-          {product?.productImages && (
-            <Carousel
-              className={styles.imageCarousel}
-              showThumbs={false}
-              showStatus={false}
-              infiniteLoop={false}
-              autoPlay={false}
-              selectedItem={currentIndex}
-              onChange={handleSlideChange}
-              renderArrowPrev={(onClickHandlerLeft, hasPrev, label) =>
-                hasPrev && (
-                  <button onClick={onClickHandlerLeft} title={label} className="absolute left-1 bottom-[40%] z-50 flex h-8 w-8 items-center justify-center rounded-full bg-white shadow">
-                    <svg className="h-5 w-5 text-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <path stroke="currentColor" d="m15 19-7-7 7-7" />
-                    </svg>
-                  </button>
-                )
-              }
-              renderArrowNext={(onClickHandlerRight, hasNext, label) =>
-                hasNext && (
-                  <button onClick={onClickHandlerRight} title={label} className="absolute right-1 bottom-[40%] z-50 flex h-8 w-8 items-center justify-center rounded-full bg-white shadow">
-                    <svg className="h-5 w-5 text-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <path stroke="currentColor" d="m9 5 7 7-7 7" />
-                    </svg>
-                  </button>
-                )
-              }
-            >
-              {product.productImages.map((image, index) => (
-                <div key={index} className="w-full h-full">
-                  <Image
-                    className="w-full overflow-x-hidden"
-                    src={image}
-                    alt={displayName}
-                    width={500}
-                    height={400}
-                    loading={index === 0 ? "eager" : "lazy"}
-                  />
-                </div>
-              ))}
-            </Carousel>
+    <article className="group relative flex h-full flex-col">
+      <figure className="relative aspect-square overflow-hidden rounded-xl bg-muted">
+        <Image
+          src={primary}
+          alt={displayName}
+          fill
+          sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 48vw"
+          className={cn(
+            "object-cover transition-[opacity,transform] duration-500 ease-[var(--ease-out)] group-hover:scale-[1.03]",
+            hover && "group-hover:opacity-0",
           )}
-        </div>
-        <div className="text-left rtl:text-right w-full">
-          <h2 className="text-lg uppercase mt-2.5 text-foreground text-left rtl:text-right font-medium">
+        />
+        {hover && (
+          <Image
+            src={hover}
+            alt=""
+            aria-hidden
+            fill
+            sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 48vw"
+            className="object-cover opacity-0 transition-opacity duration-500 ease-[var(--ease-out)] group-hover:opacity-100"
+          />
+        )}
+
+        {pricing.onSale && (
+          <span className="absolute start-3 top-3 rounded-md bg-primary px-2 py-1 text-[length:var(--text-xs)] font-semibold tabular-nums text-primary-foreground shadow-[var(--shadow-e1)]">
+            {t("off", { rate: pricing.rate })}
+          </span>
+        )}
+
+        {/* Above the stretched link, so it adds to the bag rather than
+            opening the product. Always visible on touch, where there is no
+            hover to reveal it. */}
+        <button
+          type="button"
+          onClick={handleAddToCart}
+          disabled={isPending || soldOut}
+          aria-label={t("addToCartNamed", { name: displayName })}
+          className={cn(
+            "absolute bottom-3 end-3 z-20 grid size-10 place-items-center rounded-full bg-background/95 text-foreground shadow-[var(--shadow-e2)] backdrop-blur",
+            "transition-[transform,opacity,background-color] duration-[var(--dur-hover)] ease-[var(--ease-out)]",
+            "hover:bg-primary hover:text-primary-foreground active:scale-95",
+            "md:translate-y-2 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 md:focus-visible:translate-y-0 md:focus-visible:opacity-100",
+            "disabled:cursor-not-allowed disabled:opacity-50",
+          )}
+        >
+          {isPending ? (
+            <Loader2Icon className="size-4 animate-spin" aria-hidden />
+          ) : (
+            <ShoppingBagIcon className="size-4" aria-hidden />
+          )}
+        </button>
+      </figure>
+
+      <div className="flex flex-1 flex-col gap-1.5 pt-3">
+        <h3 className="font-[family-name:var(--font-display-face)] text-[length:var(--text-base)] font-semibold leading-snug">
+          <Link
+            href={href}
+            prefetch
+            // Stretches over the whole card: one target, one tab stop.
+            className="after:absolute after:inset-0 after:z-10 after:rounded-xl focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-ring"
+          >
             {displayName}
-          </h2>
-          {/* No `capitalize`: this is a sentence now, and Title Casing it
-              turned "putting out 2,500 lm" into "Putting Out 2,500 Lm". */}
-          <p className="text-sm text-muted-foreground font-normal text-left rtl:text-right">
+          </Link>
+        </h3>
+
+        {description && (
+          <p className="line-clamp-2 text-[length:var(--text-sm)] leading-relaxed text-muted-foreground">
             {description}
           </p>
-          <div>
-            <div className="font-medium text-lg mt-[5] mx-0 mb-0 text-left rtl:text-right">
-              {money(product.discount).greaterThan(0) ? (
-                <div className={cn(
-                  "flex items-center",
-                )}>
-                  <span className="text-lg text-destructive font-semibold">
-                    <DiscountPrice
-                      price={product.price}
-                      discount={product.discount}
-                      sectionType={product.sectionType}
-                    />
-                  </span>
-                  <s className={cn(
-                    "text-muted-foreground italic text-base",
-                    isRTL ? "mr-1.5" : "ml-1.5"
-                  )}>
-                    <NormalPrice
-                      price={product.price}
-                      sectionType={product.sectionType}
-                    />
-                  </s>
-                </div>
-              ) : (
-                <div className="flex items-center">
-                  <span className="italic text-base">
-                    <NormalPrice
-                      price={product.price}
-                      sectionType={product.sectionType}
-                    />
-                  </span>
-                </div>
-              )}
-            </div>
+        )}
+
+        <div className="mt-auto space-y-0.5 pt-1.5">
+          <div className="flex flex-wrap items-baseline gap-x-2">
+            <span data-price className="text-[length:var(--text-lg)] font-semibold tabular-nums">
+              {pricing.current}
+            </span>
+            {pricing.onSale && (
+              <s className="text-[length:var(--text-sm)] tabular-nums text-muted-foreground">
+                <span className="sr-only">{t("was")} </span>
+                {pricing.list}
+              </s>
+            )}
           </div>
-        </div>
-        <div className={cn(styles.buttons, "flex pt-2.5 w-full gap-3 ")}>
-          <span className="w-full">
-            <Link
-              prefetch={true}
-              href={`/category/${product.brand}/${product.sectionType}/${product.spotlightType.toLowerCase()}/${product.productId.toLowerCase()}`}
-              aria-label={t('moreDetails')}
-              className={cn(
-                "px-[25px] py-2.5 rounded-[3px] cursor-pointer h-10 flex justify-center items-center border border-black dark:border-gray-50 text-gray-950 dark:hover:text-gray-950 dark:text-gray-50 w-full hover:bg-gray-950 hover:text-gray-50 dark:hover:bg-gray-50 transition-colors",
-                {
-                  "dark:bg-gray-50 dark:text-primary-foreground bg-black text-gray-50":
-                    isClicked,
-                }
-              )}
-              onClick={HandleClickedButtons}
-            >
-              {t('moreDetails')}
-            </Link>
-          </span>
-          <span className={styles.AddToCardContainer}>
-            <Button
-              onClick={handleAddToCart}
-              disabled={isPending}
-              className="flex rounded-[3px] justify-center items-center px-[9px] w-10 h-10 mx-0 bg-gray-950 hover:bg-gray-950 text-gray-50 dark:bg-gray-50 dark:text-gray-950 dark:hover:bg-gary-50/90"
-              aria-label={t('addToCart')}
-            >
-              <AddToCardIcon Fill="currentColor" width={24} height={24} />
-            </Button>
-          </span>
+          {pricing.onSale && (
+            <p className="text-[length:var(--text-xs)] font-medium tabular-nums text-primary">
+              {t("save", { amount: pricing.saving })}
+            </p>
+          )}
+          {soldOut ? (
+            <p className="text-[length:var(--text-xs)] text-muted-foreground">{t("soldOut")}</p>
+          ) : stock !== undefined && stock <= LOW_STOCK ? (
+            <p className="text-[length:var(--text-xs)] text-muted-foreground">{t("fewLeft", { count: stock })}</p>
+          ) : null}
         </div>
       </div>
-    </div>
+    </article>
   );
 }

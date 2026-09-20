@@ -210,6 +210,58 @@ Excel import/export with a dry-run preview. Neither writes on one click.
 - **The admin screens have not been looked at signed in.** Contrast and RTL
   were measured statically; the flows need a session.
 
+### Phase 2 follow-up (2026-09-20): specs become data
+
+Ali: *"معنديش مشكله لو هتغير في شكل الداتا وتقسيمها… نقسمه كل قيمه لوحدها
+في متغيرات جديده… ويكون لينا access علي كل شئ"* — so the four open items
+were closed by splitting the spec values rather than patching around them.
+
+**Two more migrations**, both additive:
+- `20260920180000_structured_spec_values` — `SpecValueKind`
+  (MEASUREMENT | RANGE | CHOICE | TEXT), `SpecComparator`,
+  `SpecMeasurement` (value, valueMax, and the condition a figure was taken
+  at), and `SpecOption`/`SpecOptionTranslation`: a shared vocabulary so a
+  material is defined once and translated once rather than retyped on 117
+  products.
+- `20260920190000_spec_item_key` — `SpecItem.key`, the language-neutral
+  name of a spec, so a reader can ask for `ip` instead of for whatever the
+  label reads in its locale.
+
+All 1,311 values parsed; none stayed TEXT. The parser refuses to guess:
+anything it cannot read confidently stays TEXT and is reported.
+
+#### What the split found
+| bug | scale | why it was invisible |
+|---|---|---|
+| 13 products: English "balcom **internal** Driver", Arabic درايفر **خارجي** (external) | 13 rows | two free-text strings for one fact |
+| `jy-595-44w`: `"درايفر خارجي من Phillدرجة الحمايةs"` — a find-and-replace of "ip" → "درجة الحماية" ate the middle of "Phillips" | 1 row | nothing compared the two languages |
+| 61 products: the energy-saving value repeated its own label | 61 rows | same |
+| Arabic features text: six sentences with holes ("بنسبة تصل إلى  مقارنة") | every Arabic product page | lookup by **English label** against an Arabic-keyed map |
+| an IP44 fixture called itself indoor-only in Arabic | every Arabic product page | `parseInt(undefined)` is NaN, and `NaN >= 44` is false |
+| the whole colour-temperature section never rendered in Arabic | every Arabic product page | `includes("3000K")` against a value reading "٣٠٠٠ K" |
+
+Each of the first three is now a one-row fix in the shared vocabulary
+instead of 13, 1 and 61 rows, and they were corrected **at the source** so
+re-running the backfill cannot bring them back.
+
+#### Also closed
+- **Image backfill applied.** 174 of 175 images on Cloudinary under
+  `products/<sku>/<order>`, every row with real dimensions; the asset
+  serves 200 at the exact byte count and the storefront picked them up
+  with no code change.
+- **`mc1608-w1`** is an active product whose file was never shipped. Images
+  now fall back to `/placeholder.svg`, so it degrades instead of rendering
+  broken — **it still needs its real photo**.
+- **Upstash circuit breaker.** Each cache miss was waiting on its own
+  failed DNS lookup: a product page took ~19s instead of 0.85s. The cache
+  now steps aside after three failures and probes every 30s.
+
+#### Still needs Ali
+- **A photo for `mc1608-w1`.**
+- **The admin screens have not been walked signed in.** Entering a password
+  is not something I will do; contrast and RTL are measured statically, but
+  the bulk-price and import flows need a session.
+
 ## Production rollout runbook
 
 Nothing below has run against production. Production receives exactly the

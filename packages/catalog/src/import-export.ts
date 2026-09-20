@@ -301,18 +301,21 @@ export async function applyImport(
           const description = language === "en" ? row.description_en : row.description_ar;
           if (name === undefined && description === undefined) continue;
 
+          // Keyed on Product.id, not the SKU: the sheet matches rows by SKU,
+          // but the translation belongs to the product's identity.
+          const key = { productId_language: { productId: product.id, language } };
           const current = await tx.productTranslation.findUnique({
-            where: { productId_language: { productId: row.sku, language } },
+            where: key,
             select: { name: true, description: true },
           });
           await tx.productTranslation.upsert({
-            where: { productId_language: { productId: row.sku, language } },
+            where: key,
             update: {
               ...(name !== undefined ? { name } : {}),
               ...(description !== undefined ? { description } : {}),
             },
             create: {
-              productId: row.sku,
+              productId: product.id,
               language,
               name: name ?? current?.name ?? row.sku,
               description: description ?? null,

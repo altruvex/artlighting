@@ -99,14 +99,18 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
           }
         }
       })
-      productSpecification = await prisma.productSpecification.findUnique({
-        where: {
-          productId_language: {
-            productId: ProductId,
-            language: locale
-          }
-        }
-      })
+      // Keyed on Product.id now, not the SKU — `product` was just fetched
+      // by SKU above, so its id is the right key here.
+      productSpecification = product
+        ? await prisma.productSpecification.findUnique({
+            where: {
+              productId_language: {
+                productId: product.id,
+                language: locale
+              }
+            }
+          })
+        : null
       console.log("Product fetch result:", {
         found: !!product,
         hasTranslations: product?.translations?.length ?? 0,
@@ -150,14 +154,16 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
           }
         })
 
-        productSpecification = await prisma.productSpecification.findUnique({
-          where: {
-            productId_language: {
-              productId: configuration.productId,
-              language: locale
-            }
-          }
-        })
+        productSpecification = product
+          ? await prisma.productSpecification.findUnique({
+              where: {
+                productId_language: {
+                  productId: product.id,
+                  language: locale
+                }
+              }
+            })
+          : null
       }
     }
 

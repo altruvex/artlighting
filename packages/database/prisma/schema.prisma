@@ -526,7 +526,7 @@ model ProductTranslation {
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  product     Product  @relation(fields: [productId], references: [productId], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([productId, language])
   @@index([language])
@@ -565,7 +565,7 @@ model ProductSpecification {
   customSpecs        Json?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
-  product            Product  @relation(fields: [productId], references: [productId], onDelete: Cascade)
+  product            Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([productId, language])
   @@index([language])

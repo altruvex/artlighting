@@ -56,14 +56,13 @@ export async function updateProductGeneral(
 }
 
 // ─── Translations ───────────────────────────────────────────────
-// NOTE: ProductTranslation.productId references Product.productId (the SKU
-// string, e.g. "jy-202-15w"), NOT Product.id (the cuid) — unlike every other
-// relation in this file. Both are passed in explicitly to avoid mixing them
-// up: productCuid only for revalidatePath, productSku for the actual upsert.
+// ProductTranslation and ProductSpecification are keyed on Product.id like
+// every other relation here. They used to point at the SKU string, which
+// made a SKU unrenameable; the second `productSku` argument these functions
+// took is gone with it.
 
 export async function upsertProductTranslation(
-  productCuid: string,
-  productSku: string,
+  productId: string,
   language: "en" | "ar",
   data: { name: string; description?: string | null }
 ) {
@@ -71,12 +70,12 @@ export async function upsertProductTranslation(
     await requireAdmin();
 
     const translation = await prisma.productTranslation.upsert({
-      where: { productId_language: { productId: productSku, language } },
+      where: { productId_language: { productId, language } },
       update: data,
-      create: { productId: productSku, language, ...data },
+      create: { productId, language, ...data },
     });
 
-    revalidatePath(`/admin/dashboard/products/${productCuid}`);
+    revalidatePath(`/admin/dashboard/products/${productId}`);
     return translation;
   });
 }
@@ -104,10 +103,8 @@ export interface ProductSpecificationInput {
   bulb?: string | null;
 }
 
-/** Same productId caveat as upsertProductTranslation above — SKU, not cuid. */
 export async function upsertProductSpecification(
-  productCuid: string,
-  productSku: string,
+  productId: string,
   language: "en" | "ar",
   data: ProductSpecificationInput
 ) {
@@ -115,12 +112,12 @@ export async function upsertProductSpecification(
     await requireAdmin();
 
     const spec = await prisma.productSpecification.upsert({
-      where: { productId_language: { productId: productSku, language } },
+      where: { productId_language: { productId, language } },
       update: data,
-      create: { productId: productSku, language, ...data },
+      create: { productId, language, ...data },
     });
 
-    revalidatePath(`/admin/dashboard/products/${productCuid}`);
+    revalidatePath(`/admin/dashboard/products/${productId}`);
     return spec;
   });
 }

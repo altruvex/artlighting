@@ -1254,7 +1254,7 @@ function TranslationForm({
           onClick={() =>
             run(
               () =>
-                upsertProductTranslation(productCuid, productSku, language as "en" | "ar", {
+                upsertProductTranslation(productCuid, language as "en" | "ar", {
                   name,
                   description: description || null,
                 }),
@@ -1322,7 +1322,7 @@ function SpecificationForm({
           onClick={() =>
             run(
               () =>
-                upsertProductSpecification(productCuid, productSku, language as "en" | "ar", {
+                upsertProductSpecification(productCuid, language as "en" | "ar", {
                   ...values,
                   input: values.input || null,
                   maximumWattage: values.maximumWattage || null,

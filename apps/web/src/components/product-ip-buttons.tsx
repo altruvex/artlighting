@@ -55,6 +55,13 @@ const IP_NUMERIC_MAP = {
 
 interface ProductIPButtonsProps {
   configId: string;
+  /**
+   * The rating the fixture is built to — the floor. Separate from the
+   * selection on purpose: taking the floor from whatever is currently
+   * selected made every upgrade permanent, because picking IP65 removed
+   * IP20 and IP44 from the list and left no way back down.
+   */
+  baseIp: ProductIP;
   productIp: ProductIP;
   maxIP: number;
   /** Serialized money (see @repo/money): never a float. */
@@ -66,6 +73,7 @@ interface ProductIPButtonsProps {
 
 export default function ProductIPButtons({
   configId,
+  baseIp,
   productIp,
   basePrice,
   discount,
@@ -98,7 +106,17 @@ export default function ProductIPButtons({
       if (newIp === selectedIp || isUpdating) return;
       setIsUpdating(true);
       try {
-        await updateProductIP({ configId, newProductIp: newIp });
+        // updateProductIP reports failure by returning it, not by throwing —
+        // a thrown error loses its message to an opaque digest in a
+        // production build. Awaiting it without reading the result meant the
+        // catch never ran and every attempt toasted success, including the
+        // ones that saved nothing.
+        const result = await updateProductIP({ configId, newProductIp: newIp });
+        if (!result.success) {
+          console.error("Failed to change IP rating:", result.error);
+          toast.error(t("change-error"));
+          return;
+        }
         setSelectedIp(newIp);
         toast.success(t("change-success"));
       } catch (error) {
@@ -112,7 +130,10 @@ export default function ProductIPButtons({
   );
 
 
-  const baseNumericIP = IP_NUMERIC_MAP[productIp];
+  // The legacy spec column stores "20", not "IP20", and has been passed in
+  // here before. An unrecognised floor must not empty the list — that takes
+  // the choice away entirely.
+  const baseNumericIP = IP_NUMERIC_MAP[baseIp] ?? IP_NUMERIC_MAP.IP20;
 
 
   const effectiveMaxIP = Math.max(baseNumericIP, maxIP);

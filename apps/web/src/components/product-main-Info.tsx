@@ -56,6 +56,8 @@ interface ProductMainInfoProps {
   bulbChoices?: BulbChoice[]
   configuration?: Configuration
   ip?: PrismaProductIP
+  /** The fixture's own rating — the floor the customer upgrades from. */
+  baseIp?: PrismaProductIP
   maxIP?: number
   sectionTypes?: ProductFamily[]
   sectionType: ProductFamily
@@ -91,6 +93,7 @@ export default function ProductMainInfo({
   bulbChoices = [],
   configuration: initialConfiguration,
   ip,
+  baseIp,
   maxIP,
   sectionTypes,
   sectionType,
@@ -141,7 +144,11 @@ export default function ProductMainInfo({
   )
 
   // Money as serialized strings; see @repo/money.
-  const [priceIncrease, setPriceIncrease] = useState<string>("0")
+  // From the saved configuration, not zero. The IP is restored on load, so
+  // starting the amount at zero showed IP65 picked at the IP20 price.
+  const [priceIncrease, setPriceIncrease] = useState<string>(
+    initialConfiguration?.priceIncrease ?? "0"
+  )
   // From the saved configuration, not zero: the selected bulb is restored on
   // load from configuration.bulbId, so starting the amount at zero showed
   // 15 W picked at the 9 W price until the customer touched something.
@@ -150,6 +157,9 @@ export default function ProductMainInfo({
   )
 
   const { isSignedIn } = useAuth()
+  // What the server currently holds for the IP, so neither effect below
+  // writes a value it already has.
+  const appliedIpRef = useRef<string | undefined>(initialConfiguration?.productIp as string | undefined)
   const isUpdatingRef = useRef(false)
   const lastUpdateRef = useRef<string>("")
 
@@ -252,17 +262,31 @@ export default function ProductMainInfo({
   )
 
   useEffect(() => {
-    if (debouncedProductIp && configId) {
-      updateProductIPConfig(debouncedProductIp, priceIncrease)
-    }
+    if (!debouncedProductIp || !configId) return
+    // Nothing to save on mount: the configuration already holds this value.
+    // That write used to go out on every page view and race the customer's
+    // first click — and being the slower of the two, it landed second and
+    // put IP20 back over the IP65 they had just picked and been charged for
+    // on screen.
+    if (appliedIpRef.current === debouncedProductIp) return
+    updateProductIPConfig(debouncedProductIp, priceIncrease)
   }, [debouncedProductIp, priceIncrease, configId, updateProductIPConfig])
 
+  // Adopt what the server stored — when the server stores something, and
+  // only then.
+  //
+  // This used to list selectedProductIp as a dependency too, which made it
+  // fire on the click itself: it compared the customer's new choice against
+  // the configuration it had not been saved to yet, decided they disagreed,
+  // and put the old value back. The debounce then wrote *that*. Picking
+  // IP65 raised the price on screen, showed a success toast, and saved
+  // IP20 with no increase.
   useEffect(() => {
-    if (configuration?.productIp) {
-      const configProductIp = configuration.productIp as unknown as PrismaProductIP
-      if (configProductIp !== selectedProductIp) setSelectProductIp(configProductIp)
-    }
-  }, [configuration?.productIp, selectedProductIp])
+    const fromConfig = configuration?.productIp as unknown as PrismaProductIP | undefined
+    if (!fromConfig || appliedIpRef.current === fromConfig) return
+    appliedIpRef.current = fromConfig
+    setSelectProductIp(fromConfig)
+  }, [configuration?.productIp])
 
   const { mutate: saveConfig, isPending: isSavingConfig } = useMutation({
     mutationKey: ["save-config", configId],
@@ -400,6 +424,7 @@ export default function ProductMainInfo({
             {Brand === "balcom" && (
               <ProductIPButtons
                 configId={configId ?? ""}
+                baseIp={(baseIp ?? "IP20") as ProductIP}
                 productIp={selectedProductIp}
                 onProductIpChange={handleProductIPChange}
                 basePrice={price}

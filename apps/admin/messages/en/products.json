@@ -371,5 +371,68 @@
       "pdfUnreachable": "PDF conversion service unreachable",
       "pdfFailed": "PDF conversion failed"
     }
+  },
+  "Inventory": {
+    "title": "Inventory",
+    "subtitle": "Stock on hand, what is promised to orders, and every movement that got it there.",
+    "stats": {
+      "tracked": "Tracked items",
+      "lowStock": "Below reorder point",
+      "reserved": "Units reserved"
+    },
+    "columns": {
+      "product": "Product",
+      "onHand": "On hand",
+      "reserved": "Reserved",
+      "available": "Available",
+      "incoming": "Incoming",
+      "reorderPoint": "Reorder at"
+    },
+    "availableHint": "On hand minus what is promised to orders that have not shipped.",
+    "low": "Low",
+    "receive": "Receive stock",
+    "receiveTitle": "Receive stock",
+    "receiveDescription": "Units that arrived from a supplier. This raises on hand and is recorded in the ledger.",
+    "count": "Stock count",
+    "countTitle": "Record a stock count",
+    "countDescription": "Type what is actually on the shelf. The difference is worked out and recorded as an adjustment.",
+    "countedLabel": "Counted on hand",
+    "quantityLabel": "Quantity",
+    "reasonLabel": "Reason",
+    "reasonPlaceholder": "Delivery note, count reference…",
+    "history": "History",
+    "historyTitle": "Stock movements",
+    "historyEmpty": "No movements yet.",
+    "noChange": "The count matched; nothing was recorded.",
+    "received": "{count, plural, one {# unit received} other {# units received}}",
+    "counted": "Count recorded",
+    "kinds": {
+      "RECEIPT": "Received",
+      "SALE": "Sold",
+      "RETURN": "Returned",
+      "ADJUSTMENT": "Adjusted",
+      "RESERVE": "Reserved",
+      "RELEASE": "Released",
+      "TRANSFER_IN": "Transferred in",
+      "TRANSFER_OUT": "Transferred out"
+    },
+    "movementColumns": {
+      "when": "When",
+      "what": "What",
+      "change": "Change",
+      "after": "On hand after",
+      "who": "Who",
+      "why": "Why"
+    },
+    "empty": {
+      "title": "No inventory yet",
+      "description": "Inventory opens as soon as products have variants."
+    },
+    "cancel": "Cancel",
+    "save": "Save",
+    "errors": {
+      "quantityInvalid": "Enter a whole number greater than zero.",
+      "belowReserved": "{reserved} units are promised to orders that have not shipped. Release those first."
+    }
   }
 }

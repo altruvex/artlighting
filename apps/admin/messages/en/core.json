@@ -51,7 +51,8 @@
     "discounts": "Discounts",
     "customers": "Customers",
     "team": "Team",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "inventory": "Inventory"
   },
   "SignIn": {
     "brand": "Art Lighting",

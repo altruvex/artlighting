@@ -371,5 +371,68 @@
       "pdfUnreachable": "تعذّر الوصول إلى خدمة تحويل PDF",
       "pdfFailed": "فشل التحويل إلى PDF"
     }
+  },
+  "Inventory": {
+    "title": "المخزون",
+    "subtitle": "الموجود فعلياً، والمحجوز للطلبات، وكل حركة أوصلته لكده.",
+    "stats": {
+      "tracked": "أصناف متتبَّعة",
+      "lowStock": "تحت حد إعادة الطلب",
+      "reserved": "وحدات محجوزة"
+    },
+    "columns": {
+      "product": "المنتج",
+      "onHand": "الموجود",
+      "reserved": "محجوز",
+      "available": "متاح",
+      "incoming": "وارد",
+      "reorderPoint": "إعادة الطلب عند"
+    },
+    "availableHint": "الموجود ناقص المحجوز لطلبات لم تُشحن بعد.",
+    "low": "منخفض",
+    "receive": "استلام مخزون",
+    "receiveTitle": "استلام مخزون",
+    "receiveDescription": "وحدات وصلت من المورّد. ده بيزوّد الموجود ويتسجل في السجل.",
+    "count": "جرد",
+    "countTitle": "تسجيل جرد",
+    "countDescription": "اكتب اللي موجود على الرف فعلاً. الفرق بيتحسب ويتسجل كتسوية.",
+    "countedLabel": "الموجود بالجرد",
+    "quantityLabel": "الكمية",
+    "reasonLabel": "السبب",
+    "reasonPlaceholder": "إذن استلام، مرجع الجرد…",
+    "history": "السجل",
+    "historyTitle": "حركات المخزون",
+    "historyEmpty": "لا توجد حركات بعد.",
+    "noChange": "الجرد طابق المسجّل؛ لم يُسجَّل شيء.",
+    "received": "{count, plural, one {تم استلام وحدة واحدة} other {تم استلام # وحدة}}",
+    "counted": "تم تسجيل الجرد",
+    "kinds": {
+      "RECEIPT": "استلام",
+      "SALE": "بيع",
+      "RETURN": "مرتجع",
+      "ADJUSTMENT": "تسوية",
+      "RESERVE": "حجز",
+      "RELEASE": "فك حجز",
+      "TRANSFER_IN": "تحويل وارد",
+      "TRANSFER_OUT": "تحويل صادر"
+    },
+    "movementColumns": {
+      "when": "التاريخ",
+      "what": "النوع",
+      "change": "التغيير",
+      "after": "الموجود بعدها",
+      "who": "بواسطة",
+      "why": "السبب"
+    },
+    "empty": {
+      "title": "لا يوجد مخزون بعد",
+      "description": "المخزون بيفتح أول ما يبقى للمنتجات أصناف."
+    },
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "errors": {
+      "quantityInvalid": "أدخل رقماً صحيحاً أكبر من صفر.",
+      "belowReserved": "{reserved} وحدة محجوزة لطلبات لم تُشحن. فكّ حجزها أولاً."
+    }
   }
 }

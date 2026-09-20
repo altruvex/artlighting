@@ -1085,5 +1085,28 @@
             "bollard": "Bollard",
             "spot": "Spot"
         }
+    },
+    "promo": {
+        "label": "Current offers",
+        "off": "{figure} off",
+        "withCode": "with code",
+        "shop": "Shop the offer",
+        "dismiss": "Hide offers",
+        "endsIn": "Ends in",
+        "dh": "{d}d {h}h",
+        "hm": "{h}h {m}m",
+        "on": {
+            "family": "on all {family}",
+            "families": "on all {families}",
+            "products": "on {count, plural, one{# product} other{# products}}",
+            "categories": "across {count, plural, one{# category} other{# categories}}",
+            "cart": "on your whole order",
+            "cartOver": "on orders over {amount}"
+        },
+        "family": {
+            "INDOOR": "indoor lighting",
+            "OUTDOOR": "outdoor lighting",
+            "CHANDELIER": "chandeliers"
+        }
     }
 }

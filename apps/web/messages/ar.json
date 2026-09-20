@@ -872,5 +872,28 @@
             "bollard": "عمود ارضي",
             "spot": "سبوت"
         }
+    },
+    "promo": {
+        "label": "العروض الحالية",
+        "off": "خصم {figure}",
+        "withCode": "بالكود",
+        "shop": "تسوّق العرض",
+        "dismiss": "إخفاء العروض",
+        "endsIn": "ينتهي خلال",
+        "dh": "{d} يوم و{h} ساعة",
+        "hm": "{h} ساعة و{m} دقيقة",
+        "on": {
+            "family": "على كل {family}",
+            "families": "على كل {families}",
+            "products": "على {count, plural, one{منتج واحد} two{منتجين} few{# منتجات} other{# منتج}}",
+            "categories": "على {count, plural, one{فئة واحدة} two{فئتين} few{# فئات} other{# فئة}}",
+            "cart": "على طلبك كله",
+            "cartOver": "على الطلبات فوق {amount}"
+        },
+        "family": {
+            "INDOOR": "الإضاءة الداخلية",
+            "OUTDOOR": "الإضاءة الخارجية",
+            "CHANDELIER": "النجف"
+        }
     }
 }

@@ -15,10 +15,7 @@
     "postinstall": "prisma generate",
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
-    "seed:dev": "tsx scripts/seed-dev.ts",
-    "backfill:stock": "tsx scripts/backfill-stock-sync.ts",
-    "backfill:images": "tsx scripts/backfill-product-images.ts",
-    "backfill:specs": "tsx scripts/backfill-spec-groups.ts"
+    "seed:dev": "tsx scripts/seed-dev.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
@@ -35,9 +32,7 @@
     "eslint": "catalog:",
     "prisma": "catalog:",
     "tsx": "catalog:",
-    "typescript": "catalog:",
-    "cloudinary": "^2.11.0",
-    "@repo/catalog": "workspace:*"
+    "typescript": "catalog:"
   },
   "exports": {
     ".": "./index.ts",

@@ -9,7 +9,10 @@
   "scripts": {
     "check-types": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "backfill:stock": "tsx scripts/backfill-stock-sync.ts",
+    "backfill:images": "tsx scripts/backfill-product-images.ts",
+    "backfill:specs": "tsx scripts/backfill-spec-groups.ts"
   },
   "dependencies": {
     "@repo/database": "workspace:*",
@@ -22,6 +25,8 @@
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "typescript": "catalog:",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "cloudinary": "^2.11.0",
+    "tsx": "^4.23.13"
   }
 }

@@ -14,16 +14,16 @@
  * `Product.productImages[]` array both stay until Ali confirms; this only
  * rewrites `ProductImage.url`.
  *
- * Run: pnpm --filter @repo/database backfill:images -- --dry-run
- *      pnpm --filter @repo/database backfill:images -- --apply --limit=5
+ * Run: pnpm --filter @repo/catalog backfill:images -- --dry-run
+ *      pnpm --filter @repo/catalog backfill:images -- --apply --limit=5
  */
 import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { assertNotProduction, databaseUrl, hostOf, loadEnv } from "../load-env";
+import { assertNotProduction, databaseUrl, hostOf, loadEnv } from "../../database/load-env";
 import { parseBackfillArgs, reportHeader } from "./backfill-shared";
 
 const options = parseBackfillArgs(process.argv.slice(2));
-loadEnv(new URL("..", import.meta.url).pathname);
+loadEnv(new URL("../../database", import.meta.url).pathname);
 assertNotProduction();
 
 // The Cloudinary credentials live with the apps, not this package, so the
@@ -33,7 +33,7 @@ assertNotProduction();
 loadEnv(new URL("../../../apps/admin", import.meta.url).pathname);
 assertNotProduction();
 
-const { prisma } = await import("../index");
+const { prisma } = await import("@repo/database");
 const { v2: cloudinary } = await import("cloudinary");
 
 cloudinary.config({

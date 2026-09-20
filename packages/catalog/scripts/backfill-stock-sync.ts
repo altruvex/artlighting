@@ -8,18 +8,18 @@
  * `Product.quantity`, so this is the repair for any drift that predates
  * the shared catalog service.
  *
- * Run: pnpm --filter @repo/database backfill:stock -- --dry-run
- *      pnpm --filter @repo/database backfill:stock -- --apply
+ * Run: pnpm --filter @repo/catalog backfill:stock -- --dry-run
+ *      pnpm --filter @repo/catalog backfill:stock -- --apply
  */
-import { assertNotProduction, databaseUrl, hostOf, loadEnv } from "../load-env";
+import { assertNotProduction, databaseUrl, hostOf, loadEnv } from "../../database/load-env";
 import { parseBackfillArgs, reportHeader } from "./backfill-shared";
 
 const options = parseBackfillArgs(process.argv.slice(2));
-loadEnv(new URL("..", import.meta.url).pathname);
+loadEnv(new URL("../../database", import.meta.url).pathname);
 assertNotProduction();
 
-const { prisma } = await import("../index");
-const { findStockDrift, setDefaultVariantStock } = await import("@repo/catalog");
+const { prisma } = await import("@repo/database");
+const { findStockDrift, setDefaultVariantStock } = await import("../src/index");
 
 reportHeader("Backfill: Product.quantity ← default variant stock", options, hostOf(databaseUrl()));
 

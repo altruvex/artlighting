@@ -457,9 +457,15 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.4
+      cloudinary:
+        specifier: ^2.11.0
+        version: 2.11.0
       eslint:
         specifier: 'catalog:'
         version: 10.11.0(jiti@2.7.0)
+      tsx:
+        specifier: ^4.23.13
+        version: 4.23.13
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -488,9 +494,6 @@ importers:
         specifier: ^17.4.2
         version: 17.4.2
     devDependencies:
-      '@repo/catalog':
-        specifier: workspace:*
-        version: link:../catalog
       '@repo/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
@@ -500,9 +503,6 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.4
-      cloudinary:
-        specifier: ^2.11.0
-        version: 2.11.0
       eslint:
         specifier: 'catalog:'
         version: 10.11.0(jiti@2.7.0)

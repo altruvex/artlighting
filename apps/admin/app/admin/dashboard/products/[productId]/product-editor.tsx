@@ -811,7 +811,9 @@ export default function ProductEditor({
                     disabled={isPending || !isOwner}
                     onClick={() =>
                       run(
-                        () => updateProductPrice(product.id, Number(priceInput)),
+                        // The typed text goes to the server as written; @repo/catalog
+                        // validates it, so "12.345" is reported instead of rounded.
+                        () => updateProductPrice(product.id, priceInput),
                         t("pricing.updated")
                       )
                     }

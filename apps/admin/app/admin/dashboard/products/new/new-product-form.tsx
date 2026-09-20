@@ -101,8 +101,9 @@ export default function NewProductForm({
           spotlightType: selectedChild.slug,
           categoryId,
           lightingtypeId,
-          price: Number(price),
-          quantity: Number(quantity),
+          // Money stays a string all the way to the schema; see @repo/money.
+          price,
+          stock: Number(quantity),
         });
         // Failure comes back as a value: a thrown error would reach the
         // browser as an opaque digest in a production build.

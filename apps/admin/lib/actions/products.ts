@@ -7,49 +7,15 @@ import { getTranslations } from "next-intl/server";
 import type { ProductColorTemp, ProductIP, ProductChandLamp } from "@repo/database";
 import { cloudinary } from "@/lib/cloudinary";
 import { ActionError, run } from "./result";
+import * as catalog from "@repo/catalog";
+import { serializeMoney } from "@repo/money";
 
 // ─── Product CRUD ──────────────────────────────────────────────
 
-export async function createProduct(data: {
-  productId: string;
-  productName: string;
-  brand: string;
-  sectionType: string;
-  spotlightType: string;
-  categoryId: string;
-  lightingtypeId: string;
-  price: number;
-  quantity: number;
-}) {
+export async function createProduct(data: catalog.CreateProductInput) {
   return run(async () => {
     await requireAdmin();
-
-    const product = await prisma.product.create({
-      data: {
-        productId: data.productId,
-        productName: data.productName,
-        brand: data.brand,
-        sectionType: data.sectionType,
-        spotlightType: data.spotlightType,
-        categoryId: data.categoryId,
-        lightingtypeId: data.lightingtypeId,
-        price: data.price,
-        quantity: data.quantity,
-        productImages: [],
-      },
-    });
-
-    // Every product gets a default variant, matching the migration script's
-    // convention (one purchasable configuration per product today).
-    await prisma.productVariant.create({
-      data: {
-        productId: product.id,
-        sku: product.productId,
-        stock: product.quantity,
-        isDefault: true,
-      },
-    });
-
+    const product = await catalog.createProduct(data);
     revalidatePath("/admin/dashboard/products");
     return product;
   });
@@ -154,10 +120,11 @@ export async function upsertProductSpecification(
 }
 
 /** Price changes are owner-only and always go through the audited path. */
-export async function updateProductPrice(productId: string, newPrice: number) {
+export async function updateProductPrice(productId: string, newPrice: string) {
   return run(async () => {
     const admin = await requirePermission("price:write");
-    const updated = await prisma.product.updatePrice(productId, newPrice, admin.id);
+    const price = catalog.moneySchema.parse(newPrice);
+    const updated = await catalog.setProductPrice(productId, price, admin.id);
     revalidatePath(`/admin/dashboard/products/${productId}`);
     return updated;
   });
@@ -362,29 +329,38 @@ export async function reorderProductImages(productId: string, orderedImageIds: s
 export async function updateVariant(
   variantId: string,
   productId: string,
-  data: {
-    wattage?: string | null;
-    finish?: string | null;
-    size?: string | null;
-    stock?: number;
-    priceOverride?: number | null;
-  }
+  data: catalog.UpdateVariantInput
 ) {
   return run(async () => {
     await requireAdmin();
-    const variant = await prisma.productVariant.update({ where: { id: variantId }, data });
-
-    // Keep Product.quantity in sync for the default variant, since the
-    // storefront still reads Product.quantity directly (see schema.prisma
-    // comment on ProductVariant).
-    if (variant.isDefault && typeof data.stock === "number") {
-      await prisma.product.update({
-        where: { id: productId },
-        data: { quantity: data.stock },
-      });
-    }
+    // The Product.quantity mirror is kept in step inside the service's
+    // transaction — see @repo/catalog's stock module — so it can no longer
+    // drift depending on which action touched stock.
+    const variant = await catalog.updateVariant(variantId, data);
 
     revalidatePath(`/admin/dashboard/products/${productId}`);
     return variant;
+  });
+}
+
+/** What a bulk price edit would do. Read-only, so the admin sees the diff first. */
+export async function previewBulkPrice(productIds: string[], operation: catalog.BulkPriceOperation) {
+  return run(async () => {
+    await requirePermission("price:write");
+    return catalog.previewBulkPrice(productIds, operation);
+  });
+}
+
+/**
+ * Applies a bulk price edit. One transaction for every product, with a
+ * PriceHistory row per price that actually moved: a failure part-way
+ * through leaves no product changed.
+ */
+export async function applyBulkPrice(productIds: string[], operation: catalog.BulkPriceOperation) {
+  return run(async () => {
+    const admin = await requirePermission("price:write");
+    const result = await catalog.applyBulkPrice(productIds, operation, admin.id);
+    revalidatePath("/admin/dashboard/products");
+    return result;
   });
 }

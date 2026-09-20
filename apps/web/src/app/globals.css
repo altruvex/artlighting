@@ -6,8 +6,29 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Wired to what actually loads. This said geist-sans while every page
+     rendered Almarai — a token nothing reads is not a token. */
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display-face);
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Fluid type. One scale, so a heading cannot be "whatever looked right". */
+  --text-2xs: clamp(0.688rem, 0.66rem + 0.14vw, 0.75rem);
+  --text-xs: clamp(0.75rem, 0.72rem + 0.15vw, 0.813rem);
+  --text-sm: clamp(0.875rem, 0.85rem + 0.13vw, 0.938rem);
+  --text-base: clamp(1rem, 0.96rem + 0.2vw, 1.063rem);
+  --text-lg: clamp(1.125rem, 1.06rem + 0.32vw, 1.25rem);
+  --text-xl: clamp(1.375rem, 1.26rem + 0.57vw, 1.625rem);
+  --text-2xl: clamp(1.75rem, 1.53rem + 1.1vw, 2.25rem);
+  --text-3xl: clamp(2.25rem, 1.85rem + 2vw, 3.25rem);
+  --text-4xl: clamp(2.75rem, 2rem + 3.75vw, 4.5rem);
+
+  /* Elevation, tinted warm to match the ground it sits on — a black shadow
+     on a warm surface reads as dirt. */
+  --shadow-e1: 0 1px 2px oklch(0.15 0.01 60 / 0.06), 0 1px 1px oklch(0.15 0.01 60 / 0.04);
+  --shadow-e2: 0 2px 8px oklch(0.15 0.01 60 / 0.08), 0 1px 2px oklch(0.15 0.01 60 / 0.05);
+  --shadow-e3: 0 8px 24px oklch(0.15 0.01 60 / 0.12), 0 2px 6px oklch(0.15 0.01 60 / 0.06);
+  --shadow-glow: 0 0 0 1px var(--gold-500), 0 6px 28px oklch(0.66 0.13 70 / 0.22);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -56,71 +77,103 @@
 
 :root {
   --radius: 0.65rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
+
+  /* Motion, taken as-is from design-tokens/MOTION.md rather than re-derived. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-press: 120ms;
+  --dur-hover: 160ms;
+  --dur-pop: 200ms;
+  --dur-sheet: 320ms;
+
+  /* One accent family. The old --primary was oklch(0.852 0.199 91.936) —
+     chroma 0.199 is near the top of the gamut, the "oversaturated accent"
+     the audit names. These come from ui-ux-pro-max's E-commerce Luxury
+     palette, whose gold was already pulled back to clear WCAG 3:1. */
+  --gold-300: oklch(0.86 0.09 82);
+  --gold-400: oklch(0.76 0.115 76);
+  --gold-500: oklch(0.66 0.125 70);
+  --gold-600: oklch(0.554 0.121 66.4);
+  --gold-700: oklch(0.46 0.10 64);
+
+  /* One neutral family, warm, so it sits with the gold instead of against
+     it. The old ramp was hue 285 — a cool violet grey under a warm accent. */
+  --background: oklch(0.985 0.002 75);
+  --foreground: oklch(0.175 0.006 60);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
+  --card-foreground: oklch(0.175 0.006 60);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.852 0.199 91.936);
-  --primary-foreground: oklch(0.421 0.095 57.708);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.852 0.199 91.936);
-  --chart-1: oklch(0.905 0.182 98.111);
-  --chart-2: oklch(0.795 0.184 86.047);
-  --chart-3: oklch(0.681 0.162 75.834);
-  --chart-4: oklch(0.554 0.135 66.442);
-  --chart-5: oklch(0.476 0.114 61.907);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.681 0.162 75.834);
-  --sidebar-primary-foreground: oklch(0.987 0.026 102.212);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.852 0.199 91.936);
+  --popover-foreground: oklch(0.175 0.006 60);
+  --primary: var(--gold-600);
+  --primary-foreground: oklch(0.99 0.005 90);
+  --secondary: oklch(0.955 0.004 75);
+  --secondary-foreground: oklch(0.28 0.008 62);
+  --muted: oklch(0.955 0.004 75);
+  --muted-foreground: oklch(0.52 0.012 62);
+  --accent: oklch(0.94 0.012 80);
+  --accent-foreground: oklch(0.28 0.008 62);
+  --destructive: oklch(0.577 0.215 27.3);
+  --destructive-foreground: oklch(0.99 0.005 90);
+  --success: oklch(0.55 0.13 150);
+  --border: oklch(0.885 0.004 70);
+  --input: oklch(0.885 0.004 70);
+  --ring: var(--gold-600);
+  --chart-1: var(--gold-400);
+  --chart-2: var(--gold-500);
+  --chart-3: var(--gold-600);
+  --chart-4: var(--gold-700);
+  --chart-5: oklch(0.38 0.08 62);
+  --sidebar: oklch(0.975 0.003 75);
+  --sidebar-foreground: oklch(0.175 0.006 60);
+  --sidebar-primary: var(--gold-600);
+  --sidebar-primary-foreground: oklch(0.99 0.005 90);
+  --sidebar-accent: oklch(0.94 0.012 80);
+  --sidebar-accent-foreground: oklch(0.28 0.008 62);
+  --sidebar-border: oklch(0.885 0.004 70);
+  --sidebar-ring: var(--gold-600);
+
 }
 
 .dark {
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.795 0.184 86.047);
-  --primary-foreground: oklch(0.421 0.095 57.708);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
+  /* Off-black, not #000: a pure black ground kills the tinted elevation and
+     makes every product photograph look cut out. */
+  --background: oklch(0.165 0.006 60);
+  --foreground: oklch(0.975 0.002 80);
+  --card: oklch(0.215 0.007 62);
+  --card-foreground: oklch(0.975 0.002 80);
+  --popover: oklch(0.215 0.007 62);
+  --popover-foreground: oklch(0.975 0.002 80);
+  /* Lighter step of the same family: the 600 that clears AA on white does
+     not clear it on this ground. */
+  --primary: var(--gold-400);
+  --primary-foreground: oklch(0.2 0.02 62);
+  --secondary: oklch(0.27 0.008 62);
+  --secondary-foreground: oklch(0.975 0.002 80);
+  --muted: oklch(0.27 0.008 62);
+  --muted-foreground: oklch(0.73 0.012 70);
+  --accent: oklch(0.29 0.014 68);
+  --accent-foreground: oklch(0.975 0.002 80);
+  --destructive: oklch(0.68 0.19 25);
+  --destructive-foreground: oklch(0.99 0.005 90);
+  --success: oklch(0.72 0.15 152);
+  --border: oklch(1 0 0 / 11%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.421 0.095 57.708);
-  --chart-1: oklch(0.905 0.182 98.111);
-  --chart-2: oklch(0.795 0.184 86.047);
-  --chart-3: oklch(0.681 0.162 75.834);
-  --chart-4: oklch(0.554 0.135 66.442);
-  --chart-5: oklch(0.476 0.114 61.907);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.795 0.184 86.047);
-  --sidebar-primary-foreground: oklch(0.987 0.026 102.212);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.421 0.095 57.708);
+  --ring: var(--gold-400);
+  --chart-1: var(--gold-300);
+  --chart-2: var(--gold-400);
+  --chart-3: var(--gold-500);
+  --chart-4: var(--gold-600);
+  --chart-5: var(--gold-700);
+  --sidebar: oklch(0.215 0.007 62);
+  --sidebar-foreground: oklch(0.975 0.002 80);
+  --sidebar-primary: var(--gold-400);
+  --sidebar-primary-foreground: oklch(0.2 0.02 62);
+  --sidebar-accent: oklch(0.29 0.014 68);
+  --sidebar-accent-foreground: oklch(0.975 0.002 80);
+  --sidebar-border: oklch(1 0 0 / 11%);
+  --sidebar-ring: var(--gold-400);
+
 }
 
 .metallic-gold {
@@ -189,9 +242,17 @@
 
   body {
     @apply bg-background text-foreground;
+    /* Not var(--font-sans): under @theme inline that is inlined into
+       utilities and never exists at run time, so reading it here got the
+       system stack. The next/font variable is the real one. */
+    font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+    font-size: var(--text-base);
+    line-height: 1.65;
+    /* rlig and calt are Arabic contextual shaping — kept on purpose. */
     font-feature-settings:
       "rlig" 1,
       "calt" 1;
+    text-rendering: optimizeLegibility;
   }
 
   ::-webkit-scrollbar {
@@ -430,4 +491,37 @@ nav[aria-label="breadcrumb"] li:last-child::after {
   @apply border-2 border-primary text-primary bg-transparent
          hover:bg-primary hover:text-primary-foreground
          transition-all duration-200;
+}
+
+/* ── base ─────────────────────────────────────────────────────────────── */
+@layer base {
+  html {
+    /* Anchor jumps glide; the scroll itself is never taken over. */
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display-face), var(--font-body), ui-sans-serif, sans-serif;
+    /* The weight hierarchy that one loaded weight made impossible. */
+    font-weight: 600;
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  /* Arabic does not want negative tracking: the letters are joined, and
+     pulling them together breaks the ligatures. */
+  :lang(ar) h1, :lang(ar) h2, :lang(ar) h3, :lang(ar) h4 { letter-spacing: 0; line-height: 1.3; }
+  p { text-wrap: pretty; }
+  /* A price that shifts width when it changes reads as a flicker. */
+  .tabular, [data-price] { font-variant-numeric: tabular-nums; }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
 }

@@ -594,7 +594,7 @@
     },
     "catalogue": {
       "title": "Price list",
-      "description": "The price is per bulb. A fixture with six arms takes six.",
+      "description": "What one bulb costs. It is not what a customer pays: a fixture's price already includes the bulb it is sold with, so the others cost the difference.",
       "add": "Add a bulb",
       "search": "Search bulbs…",
       "emptyTitle": "No bulbs yet",
@@ -603,7 +603,7 @@
     },
     "fixtures": {
       "title": "Which fixture takes which",
-      "description": "Only fixtures with arms appear here — a bulb needs somewhere to go. The figure beside each bulb is what it adds to that fixture: its price times the arms.",
+      "description": "Only fixtures with arms appear here — a bulb needs somewhere to go. The figure beside each bulb is what choosing it adds: the difference from the one the fixture is sold with, times the arms. That one reads \"included\".",
       "filter": "Search fixtures…",
       "emptyTitle": "No fixtures with arms",
       "empty": "Nothing in the catalogue records arms yet.",

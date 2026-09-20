@@ -313,6 +313,59 @@ honest state:
 The order is: move the readers, then drop. Each drop is its own migration
 and needs Ali's word.
 
+### Phase 3 outcome (2026-09-20)
+On the Neon `dev` branch; production untouched; nothing pushed.
+
+**One migration** (`20260921000000_discounts`). The old shape held one
+product id and one category id per row, so a promotion covering ten
+products needed ten rows that could drift, and it had no name, no limits,
+no stacking rule and no record of who redeemed what.
+
+**One column, one meaning.** `value` held a percentage or an amount
+depending on `type` — the shape that shipped a cart charging 0.13%. It is
+now `rate` (0.1300 = 13%, the schema's usual scale) and `amount`, with a
+CHECK that exactly the one matching the type is set. Also enforced in the
+database: a coupon has a code and an automatic discount has none, a rate is
+in (0, 1], the date window is ordered, counts cannot go negative.
+
+Enum values are renamed in place, not recreated and cast: Prisma's
+generated SQL fails on every existing row, and production's table may not
+be as empty as dev's. The old single-target columns are migrated into the
+join tables before being dropped.
+
+**`@repo/pricing`** — one pure function, no Prisma, no framework. 26 tests
+including the two property tests the plan asks for (never negative over 400
+generated carts; order-independent when everything stacks, over 200) and a
+third that line discounts always sum to the total. What it encodes:
+- a minimum is checked against the **undiscounted** subtotal, or whether a
+  discount qualifies would depend on which other one ran first;
+- non-stackable discounts compete and the customer wins, ties breaking on
+  priority then id so the outcome never depends on input order;
+- a stacked discount applies to what is left;
+- a fixed amount never exceeds its base; tax is on the discounted subtotal;
+- a cart-scoped discount is spread by largest remainder, so the parts add
+  back up to the whole.
+
+**Backfill.** 117 products carrying 13% or 30% became two AUTOMATIC,
+PRODUCTS-scoped discounts. Checked, not assumed: for all 118 products the
+engine's price equals the legacy column's — **0 mismatches**.
+
+**Concurrency.** `redeemDiscount` takes a `FOR UPDATE` lock before reading
+the count, inside the order's transaction. Ten concurrent checkouts against
+a coupon with three uses: **exactly three succeeded, seven refused**.
+
+**Admin.** Rebuilt on the new model, showing only the fields that apply to
+the chosen mode/type/scope. "What would this cart pay" runs the real engine
+and lists the discounts that did *not* apply with the reason. The product
+editor's discount section is read-only with a link — a second, smaller form
+for the same thing is a second place to get it wrong.
+
+#### Still open
+- **`Product.discount` is still read by the storefront display** (product
+  cards, listings). Checkout prices through the engine; the display does
+  not yet. Moving those readers is what finally lets the column go.
+- A photo for `mc1608-w1`.
+
 ## Production rollout runbook
 
 Nothing below has run against production. Production receives exactly the

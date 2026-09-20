@@ -450,6 +450,9 @@ importers:
       '@repo/money':
         specifier: workspace:*
         version: link:../money
+      '@repo/pricing':
+        specifier: workspace:*
+        version: link:../pricing
       zod:
         specifier: 'catalog:'
         version: 4.6.5

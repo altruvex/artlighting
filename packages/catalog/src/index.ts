@@ -1,5 +1,6 @@
 export * from "./schemas";
 export * from "./inventory";
+export * from "./discounts";
 export * from "./products";
 export * from "./import-export";
 export * from "./specs";

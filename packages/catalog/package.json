@@ -13,12 +13,14 @@
     "backfill:images": "tsx scripts/backfill-product-images.ts",
     "backfill:specs": "tsx scripts/backfill-spec-groups.ts",
     "fix:arabic-specs": "tsx scripts/fix-arabic-spec-values.ts",
-    "backfill:inventory": "tsx scripts/backfill-inventory.ts"
+    "backfill:inventory": "tsx scripts/backfill-inventory.ts",
+    "backfill:discounts": "tsx scripts/backfill-discounts.ts"
   },
   "dependencies": {
     "@repo/database": "workspace:*",
     "@repo/money": "workspace:*",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@repo/pricing": "workspace:*"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",

@@ -609,7 +609,8 @@
       "empty": "Nothing in the catalogue records arms yet.",
       "needsOne": "Pick at least one — it cannot be bought without a bulb",
       "noBulbsYet": "Add a bulb to the price list first",
-      "oddType": "Filed as {type}, but has arms"
+      "oddType": "Filed as {type}, but has arms",
+      "included": "included in the price"
     },
     "form": {
       "nameEn": "Name (English)",

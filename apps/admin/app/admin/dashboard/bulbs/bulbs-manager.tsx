@@ -30,7 +30,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatMoney } from "@/lib/money";
-import { money, multiplyMoney, serializeMoney } from "@repo/money";
+import { bulbPriceIncrease } from "@repo/catalog";
+import { money } from "@repo/money";
 import { LightbulbIcon, Loader2Icon, PlugZapIcon, PlusIcon, TrashIcon } from "lucide-react";
 import {
   createBulb,
@@ -80,10 +81,12 @@ const EMPTY: Draft = { key: "", wattage: "", base: "E27", price: "", nameEn: "",
  * The price list and the fitting list, on one page.
  *
  * They are one decision: a price here moves every fixture offering that
- * bulb, and a fixture offering none cannot be bought. What a bulb adds is
- * its price times the fixture's arms, so the fitting table shows that
- * figure rather than the unit price — the unit price is not what the
- * customer pays.
+ * bulb, and a fixture offering none cannot be bought.
+ *
+ * The price list holds what a bulb costs. The fitting table holds what
+ * *choosing* it costs, which is a different number: a fixture's listed
+ * price already includes the bulb it is sold with, so the others cost the
+ * difference times the arms, and the default itself reads "included".
  */
 export function BulbsManager({
   bulbs,
@@ -312,19 +315,31 @@ export function BulbsManager({
             {active.length === 0 ? (
               <span className="text-xs text-muted-foreground">{t("fixtures.noBulbsYet")}</span>
             ) : (
-              active.map((bulb) => (
-                <BulbToggle
-                  key={bulb.id}
-                  fixtureId={row.original.id}
-                  bulbId={bulb.id}
-                  label={`${nameOf(bulb)} ${t("watts", { n: bulb.wattage })}`}
-                  // The unit price is not what the customer pays; the arms are.
-                  adds={formatMoney(serializeMoney(multiplyMoney(bulb.price, row.original.arms)), { locale })}
-                  checked={row.original.bulbIds.includes(bulb.id)}
-                  disabled={!canWrite || pending}
-                  onToggle={(on) => toggleFixtureBulb(row.original, bulb.id, on)}
-                />
-              ))
+              active.map((bulb) => {
+                // The fixture's price already includes the bulb it is sold
+                // with, so what the customer pays is the difference — not
+                // the bulb's own price, and not zero.
+                const includedPrice =
+                  active.find((candidate) => candidate.id === row.original.defaultBulbId)?.price ??
+                  bulb.price;
+                const adds = bulbPriceIncrease(bulb.price, includedPrice, row.original.arms);
+                return (
+                  <BulbToggle
+                    key={bulb.id}
+                    fixtureId={row.original.id}
+                    bulbId={bulb.id}
+                    label={`${nameOf(bulb)} ${t("watts", { n: bulb.wattage })}`}
+                    adds={
+                      money(adds).isZero()
+                        ? t("fixtures.included")
+                        : `${money(adds).isNegative() ? "−" : "+"}${formatMoney(money(adds).abs().toFixed(2), { locale })}`
+                    }
+                    checked={row.original.bulbIds.includes(bulb.id)}
+                    disabled={!canWrite || pending}
+                    onToggle={(on) => toggleFixtureBulb(row.original, bulb.id, on)}
+                  />
+                );
+              })
             )}
           </div>
         ),
@@ -521,7 +536,7 @@ function BulbToggle({
       <Checkbox id={id} checked={checked} disabled={disabled} onCheckedChange={(value) => onToggle(value === true)} />
       <Label htmlFor={id} className="cursor-pointer text-xs font-normal whitespace-nowrap">
         {label}
-        <span className="ms-1 tabular-nums text-muted-foreground">+{adds}</span>
+        <span className="ms-1 tabular-nums text-muted-foreground">{adds}</span>
       </Label>
     </div>
   );

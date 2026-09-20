@@ -12,7 +12,13 @@ import { moneySchema } from "./schemas";
  * prices used to be a TypeScript constant, duplicated into the component
  * that read it, and the two copies had already drifted apart.
  *
- * What a fixture costs to light is the bulb's price times its arms, and
+ * A fixture's listed price already includes the bulb it is sold with — the
+ * default. Choosing another one therefore costs the *difference*, times the
+ * arms: 9 W at 25 is what the price already covers, so picking 15 W at 40
+ * adds 15 per arm, not 40. Storing the two real prices rather than that
+ * difference means the arithmetic still holds when the default changes, and
+ * the showroom keeps the number it actually pays per bulb.
+ *
  * `Product.hNumber` is the arm count. A product with no arms — every LED
  * chandelier, and everything outside the chandelier family — offers no
  * bulbs at all.
@@ -219,8 +225,12 @@ export interface BulbChoice {
   base: BulbBase;
   /** Per bulb, serialized (see @repo/money): never a float. */
   price: string;
-  /** The bulb's price times the fixture's arms — what choosing it adds. */
-  total: string;
+  /**
+   * What choosing this one adds to the fixture: the difference from the
+   * bulb it is sold with, times the arms. Zero for the default, because the
+   * listed price already covers it.
+   */
+  increase: string;
   /** The shape in this locale; the wattage is rendered beside it. */
   name: string;
   isDefault: boolean;
@@ -239,31 +249,50 @@ export function bulbChoices(
 ): BulbChoice[] {
   const arms = hNumber ?? 0;
   if (arms <= 0) return [];
-  return (rows ?? [])
-    .filter((row) => row.bulb.isActive)
-    .map((row) => ({
-      id: row.bulb.id,
-      key: row.bulb.key,
-      wattage: row.bulb.wattage,
-      base: row.bulb.base,
-      price: serializeMoney(row.bulb.price as never),
-      total: serializeMoney(multiplyMoney(row.bulb.price as never, arms)),
-      name:
-        row.bulb.translations.find((t) => t.language === language)?.name ??
-        row.bulb.translations.find((t) => t.language === "en")?.name ??
-        row.bulb.key,
-      isDefault: row.isDefault,
-    }));
+  const offered = (rows ?? []).filter((row) => row.bulb.isActive);
+  // The price the fixture already covers. If the default has been retired,
+  // the cheapest one still offered stands in, so no choice silently becomes
+  // an upgrade over a bulb nobody can buy.
+  const included =
+    offered.find((row) => row.isDefault)?.bulb.price ??
+    offered
+      .map((row) => row.bulb.price as never)
+      .sort((a, b) => money(a).comparedTo(money(b)))[0] ??
+    0;
+
+  return offered.map((row) => ({
+    id: row.bulb.id,
+    key: row.bulb.key,
+    wattage: row.bulb.wattage,
+    base: row.bulb.base,
+    price: serializeMoney(row.bulb.price as never),
+    increase: bulbPriceIncrease(row.bulb.price, included, arms),
+    name:
+      row.bulb.translations.find((t) => t.language === language)?.name ??
+      row.bulb.translations.find((t) => t.language === "en")?.name ??
+      row.bulb.key,
+    isDefault: row.isDefault,
+  }));
 }
 
-/** What the chosen bulbs add to a fixture: price per bulb times its arms. */
+/**
+ * What choosing a bulb adds to a fixture.
+ *
+ * The listed price includes the bulb the fixture is sold with, so this is
+ * the difference from that one, times the arms — zero for the default
+ * itself. A cheaper bulb genuinely takes money off rather than being
+ * quietly rounded up to nothing: hiding that would mean charging for a
+ * fitting the customer did not choose.
+ */
 export function bulbPriceIncrease(
   pricePerBulb: unknown,
+  includedPricePerBulb: unknown,
   hNumber: number | null | undefined,
 ): string {
   const arms = hNumber ?? 0;
   if (arms <= 0) return serializeMoney(0);
-  return serializeMoney(multiplyMoney(pricePerBulb as never, arms));
+  const difference = money(pricePerBulb as never).minus(money(includedPricePerBulb as never));
+  return serializeMoney(multiplyMoney(difference, arms));
 }
 
 type Transactional = { $transaction: <T>(fn: (tx: unknown) => Promise<T>) => Promise<T> };

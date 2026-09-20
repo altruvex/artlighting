@@ -202,8 +202,9 @@ Excel import/export with a dry-run preview. Neither writes on one click.
   to the one shared Cloudinary account whichever database is pointed at. It was
   verified end-to-end on dev under a `dev/` prefix and those test assets
   destroyed. Say the word and it runs for real.
-- **`mc1608-w1`** has a `ProductImage` row whose file is missing from
-  `apps/web/public`; the dry run reports it rather than failing.
+- **`mc1608-w1`** had a `ProductImage` row whose file is missing from
+  `apps/web/public`; the row is gone now (see the orphan-data pass below).
+  The product still needs its photograph.
 - **Arabic/English spec mismatch** predating this work: `jy-202-15w` reads
   "٦٢٠ لومن/متر" in Arabic and "1320LM (3000k) / 1400LM (6500k)" in English.
   Data, not code — not mine to guess at.
@@ -249,9 +250,11 @@ re-running the backfill cannot bring them back.
   `products/<sku>/<order>`, every row with real dimensions; the asset
   serves 200 at the exact byte count and the storefront picked them up
   with no code change.
-- **`mc1608-w1`** is an active product whose file was never shipped. Images
-  now fall back to `/placeholder.svg`, so it degrades instead of rendering
-  broken — **it still needs its real photo**.
+- **`mc1608-w1`** is an active product whose file was never shipped. This
+  entry claimed images fell back to `/placeholder.svg`; they did not —
+  `imageUrls` returned an empty list and the gallery rendered nothing at
+  all. Both are fixed in the orphan-data pass below; it **still needs its
+  real photo**.
 - **Upstash circuit breaker.** Each cache miss was waiting on its own
   failed DNS lookup: a product page took ~19s instead of 0.85s. The cache
   now steps aside after three failures and probes every 30s.
@@ -425,8 +428,36 @@ browser bundle and broke the admin build. `@repo/pricing` keeps its own
 copy of the three values (it is pure and cannot depend on catalog), and a
 type-level assertion in `families.ts` fails to compile if the two drift.
 
+#### Orphan data: a bulb with no socket, an image with no file
+**`fix-orphans`.** Two things pointing at something that is not there.
+
+MC7021 is one continuous LED bar on two cables — no arms, no sockets, no
+specifications of any kind, and the only LED chandelier in the catalogue
+carrying an arm count. That phantom 8 was enough for the bulb seed, which
+keys on `hNumber` as it should, to fit it with bulbs; the storefront
+offered one and would have charged 15 an arm for a bulb that cannot be
+screwed in anywhere. The offer is removed by rule — an LED fixture
+recording no socket has nowhere to put a bulb — and the arm count by
+name, because "the photograph shows a bar" is a correction, not a rule.
+
+MC1608-W1 still held the pre-Cloudinary local path, and that file has
+never existed: one row in 175, asked for on every page view and answered
+with a 404. The script checks the filesystem rather than naming it, so
+the next one is found the same way.
+
+Removing it exposed the other half — a product with no images rendered no
+image region at all, which reads as a broken page rather than a missing
+picture. Both galleries fall back to the placeholder now. Deliberately
+not `imageUrls` itself: a page's Open Graph image reads from that, and a
+link previewing as the placeholder is worse than one with no preview.
+
+The script ends by naming every live product with no photograph, so it
+says that rather than leaving it to be remembered.
+
 #### Still open
-- A photo for `mc1608-w1`.
+- A photo for `mc1608-w1` — the only live product without one.
+- **`mc7021` has no specifications at all**, so its page is a name and a
+  price. Not invented here; someone has to enter them.
 
 ## Production rollout runbook
 

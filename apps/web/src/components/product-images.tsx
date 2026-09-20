@@ -1,5 +1,6 @@
 "use client";
 import { LegacyProductImage as Image } from "@/components/product-image";
+import { PLACEHOLDER_IMAGE } from "@/lib/product-images";
 import React from "react";
 import { Carousel } from "react-responsive-carousel";
 import "react-responsive-carousel/lib/styles/carousel.min.css";
@@ -9,6 +10,9 @@ type ProductImagesProps = {
 };
 
 export default function ProductImages({ productImages }: ProductImagesProps) {
+  // Never an empty carousel: a product with no photograph still needs an
+  // image region, or the page reads as broken rather than incomplete.
+  const images = productImages.length > 0 ? productImages : [PLACEHOLDER_IMAGE];
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const handleSlideChange = (index: number) => {
     setCurrentIndex(index);
@@ -25,7 +29,7 @@ export default function ProductImages({ productImages }: ProductImagesProps) {
         selectedItem={currentIndex}
         onChange={handleSlideChange}
         renderThumbs={() =>
-          productImages.map((img, index) => (
+          images.map((img, index) => (
             <div key={index} className="thumbnail-wrapper">
               <Image
                 src={img}
@@ -90,7 +94,7 @@ export default function ProductImages({ productImages }: ProductImagesProps) {
           )
         }
       >
-        {productImages.map((img, index) => (
+        {images.map((img, index) => (
           <div key={index} className="w-full aspect-square">
             <Image
               src={img}

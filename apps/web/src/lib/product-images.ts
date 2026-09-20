@@ -24,6 +24,15 @@ export function productImageSelect() {
   };
 }
 
+/**
+ * Shown when a product has no photograph.
+ *
+ * Only a gallery uses it. A product page whose image region simply vanishes
+ * leaves a hole in the layout that reads as a broken page rather than as a
+ * missing picture — and MC1608-W1 is live in that state today.
+ */
+export const PLACEHOLDER_IMAGE = "/placeholder.svg";
+
 export function imageUrls(product: { images?: ProductImageRow[] | null }): string[] {
   const rows = product.images;
   if (rows && rows.length > 0) {

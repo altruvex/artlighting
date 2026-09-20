@@ -19,7 +19,8 @@
     "backfill:inventory": "tsx scripts/backfill-inventory.ts",
     "fix:wattage": "tsx scripts/fix-wattage.ts",
     "seed:bulbs": "tsx scripts/seed-bulbs.ts",
-    "fix:lamp-base": "tsx scripts/fix-lamp-base.ts"
+    "fix:lamp-base": "tsx scripts/fix-lamp-base.ts",
+    "fix:orphans": "tsx scripts/fix-orphan-product-data.ts"
   },
   "dependencies": {
     "@repo/database": "workspace:*",

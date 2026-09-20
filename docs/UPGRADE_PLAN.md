@@ -102,6 +102,86 @@ Storefront security, tested for real on dev with the two seeded customers signed
 
 Server actions return errors instead of throwing (a production build strips thrown messages), verified in a production build in both locales. Storefront API routes moved out of `[locale]/api` with redirects. Email verification and password reset are wired to one delivery seam that Phase 5 points at Resend.
 
+### Phase 2 progress (2026-09-20)
+On the Neon `dev` branch; production untouched.
+
+**D3 applied (`20260920140000_money_and_rates_to_decimal`).** 22 columns left
+`double precision`: money → `DECIMAL(12,2)`, discount rates → `DECIMAL(5,4)`
+(0.1300 = 13%), `currency_rates.rate` → `DECIMAL(18,8)`. The pre-check ran
+before the SQL was written and found **0 lossy values** — every existing
+value fits its target scale, so each cast is exact. `discounts.value` stays
+money-scaled because it holds either an amount or a whole percentage.
+
+**`@repo/money`** (decimal.js, ROUND_HALF_UP) is the only place money
+arithmetic happens: 18 unit tests cover 0.1 + 0.2, ten × 0.1, 1.005 rounding,
+half-up on negatives, a 13% line, 14% VAT, a full subtotal/discount/shipping
+total, the string round-trip and both locales' formatting.
+
+**Boundary rule.** `Prisma.Decimal` cannot cross Server → Client, and
+`Number()` discards the exactness the columns exist for. Money is therefore
+serialized to a fixed-scale **string** at the boundary
+(`serializeRowMoney` / `toViewConfiguration` in
+`apps/web/src/lib/serialize-money.ts`, mirrored in the admin) and formatted
+from the string. **A view model's money field is typed `string`, never
+`MoneyInput`** — `MoneyInput` accepts a Decimal, so typing view models with
+it let unserialized rows compile and fail at runtime instead.
+
+Three real pricing bugs were fixed on the way:
+- the cart computed `price * qty * (1 - discount / 100)` while `discount` is
+  already a rate, i.e. it applied **0.13%** instead of 13%;
+- several components guessed with `discount > 1 ? discount / 100 : discount`,
+  which turns a 1.5% rate into **150%**;
+- `product.updatePrice` compared Decimals with `!==`, which compares object
+  identity, so it would have written a PriceHistory row on every save.
+
+`guestToken` was being sent to the browser inside the preview page payload,
+defeating the httpOnly cookie it lives in; `toViewConfiguration` drops it.
+
+**SKU pre-check (read-only, before designing the Excel import).** 118
+products, 118 variants, and:
+- no duplicate `Product.productId` (case-insensitive), no whitespace, no
+  non-ASCII, all lowercase;
+- no duplicate `ProductVariant.sku`, and no variant SKU colliding with a
+  different product's `productId`;
+- every product has exactly one default variant — the catalogue is 1:1
+  today, so the stock sync starts trivial.
+
+So **the Excel import can match on `productId` (= SKU) directly**, with a
+case-insensitive lookup and no disambiguation step.
+
+## Production rollout runbook
+
+Nothing below has run against production. Production receives exactly the
+committed migration folders, through `prisma migrate deploy` — never
+`db execute`, never `db push`. Ali passes the production URL for that one
+command; the production-host guard in the scripts stays regardless of what
+the local `.env` files contain.
+
+### Order (must not be reordered)
+| # | Step | Kind | Notes |
+|---|------|------|-------|
+| 1 | Back up / branch production in Neon | manual | The rollback point. The `pre-erp-upgrade` tag (`eb9a21c`) is the code rollback point. |
+| 2 | `20260920090000_phase1_roles_and_auth_indexes` | migration | Renames enum values in place. Deploy the app **after** this, since the code expects `ADMIN`/`STAFF`. |
+| 3 | `20260920100000_configuration_owner` | migration | Additive. |
+| 4 | `20260920120000_configuration_guest_token` | migration | Additive. |
+| 5 | `20260920140000_money_and_rates_to_decimal` | migration | **Re-run the pre-check against production first** and show the result; the dev pre-check does not prove anything about production rows. |
+| 6 | Deploy web + admin | deploy | Both apps must ship together with step 5: the old code reads these columns as floats. |
+| 7 | Backfills | script | Each is idempotent, re-runnable, has `--dry-run`, and refuses to run against the production host without `ALLOW_PRODUCTION_WRITES=1`. Run `--dry-run` first and show the diff. |
+
+### Backfills (Phase 2, each its own script and commit)
+| Script | Idempotency key | Dry run shows |
+|--------|-----------------|---------------|
+| spec groups | `(productId, group position, language)` | rows to create per product |
+| `/public` images → Cloudinary | deterministic `public_id` = `artlighting/products/<productId>/<n>`, so a re-run overwrites rather than duplicating | files to upload, and which `ProductImage` rows would be written |
+| stock sync | `ProductVariant.stock` is the source of truth; `Product.quantity` follows | products whose `quantity` disagrees with their default variant |
+
+Legacy `/public` files and the old columns (`Product.productImages[]`,
+`Product.quantity`, `Product.discount`) stay until Ali confirms; dropping
+them is a **separate migration**, later.
+
+### Environment variables to set before the production deploy
+Collected in §5; the ones Phase 2 adds are listed there as they land.
+
 ## 1. Findings
 
 ### 1.1 Monorepo layout (pnpm 10.28 + Turbo 2.10.9)

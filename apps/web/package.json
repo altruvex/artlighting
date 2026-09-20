@@ -27,6 +27,7 @@
     "@repo/catalog": "workspace:*",
     "@repo/database": "workspace:*",
     "@repo/money": "workspace:*",
+    "@repo/pricing": "workspace:*",
     "@tanstack/react-query": "^5.103.1",
     "@upstash/ratelimit": "^2.1.0",
     "@upstash/redis": "^1.38.4",

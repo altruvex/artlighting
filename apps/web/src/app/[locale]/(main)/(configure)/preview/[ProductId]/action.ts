@@ -2,16 +2,21 @@
 
 import { auth } from "@/lib/auth-server"
 import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { money, roundMoney } from "@repo/money"
+import { addMoney, money, roundMoney, serializeMoney } from "@repo/money"
+import { computePricing } from "@repo/pricing"
+import { discountsForCart, redeemDiscount, redemptionsByCustomer } from "@repo/catalog"
 import { priceLine } from "@/lib/pricing"
 import { prisma } from "@repo/database"
 
 export async function createOrder({
   configId,
   quantity,
+  coupon,
 }: {
   configId: string
   quantity: number
+  /** What the customer typed at checkout, if anything. */
+  coupon?: string | null
 }) {
   console.log("Starting createOrder function")
 
@@ -67,34 +72,55 @@ export async function createOrder({
 
     const priceIncrease = configuration.priceIncrease ?? product.priceIncrease ?? 0
     const lampPriceIncrease = configuration.lampPriceIncrease ?? 0
-    const discount = configuration.discount ?? product.discount ?? 0
     const shippingPrice = configuration.shippingPrice ?? 69
     const validQuantity = Math.max(1, Math.floor(quantity))
 
-    // Same helper as the cart and the configure API (lib/pricing.ts).
-    const pricing = priceLine({
-      unitPrice: product.price,
-      quantity: validQuantity,
-      priceIncrease,
-      lampPriceIncrease,
-      discountRate: discount,
-      shippingPrice,
-    })
-    const unitPriceAfterDiscount = roundMoney(
-      money(pricing.subtotal).minus(pricing.discountAmount).dividedBy(validQuantity),
-    ).toFixed(2)
+    // The unit the customer is buying, before any promotion: the product
+    // plus whatever the configuration added.
+    const unitPrice = serializeMoney(addMoney(product.price, priceIncrease, lampPriceIncrease))
 
-    const order = await prisma.order.create({
+    // Priced by the engine, not by a rate on the product row — the same
+    // function the admin previews with and the storefront displays from, so
+    // the three cannot disagree about what this customer pays.
+    const rules = await discountsForCart(coupon ?? null, prisma)
+    const redemptions = await redemptionsByCustomer({ userId, email: dbUser.email }, prisma)
+    const priced = computePricing({
+      lines: [
+        {
+          id: "line",
+          productId: product.id,
+          categoryIds: [product.categoryId, product.lightingtypeId],
+          unitPrice,
+          quantity: validQuantity,
+        },
+      ],
+      discounts: rules,
+      coupon: coupon ?? null,
+      customer: { userId, email: dbUser.email, redemptionsByDiscountId: redemptions },
+      shipping: shippingPrice,
+      now: new Date(),
+    })
+
+    const line = priced.lines[0]!
+    const unitPriceAfterDiscount = roundMoney(money(line.total).dividedBy(validQuantity)).toFixed(2)
+    // Kept on the order for the invoice: what fraction came off overall.
+    const effectiveRate = money(priced.subtotal).isZero()
+      ? "0"
+      : money(priced.discountTotal).dividedBy(priced.subtotal).toFixed(4)
+
+    const order = await prisma.$transaction(async (tx) => {
+      const created = await tx.order.create({
       data: {
         userId: userId,
         configurationId: configId,
         productId: product.id,
         quantity: validQuantity,
         productPrice: product.price,
-        discountRate: discount,
+        discountRate: effectiveRate,
+        discountApplied: priced.applied.length > 0,
         discountedPrice: unitPriceAfterDiscount,
-        totalPrice: pricing.total,
-        configPrice: pricing.subtotal,
+        totalPrice: priced.grandTotal,
+        configPrice: priced.subtotal,
         priceIncrease: priceIncrease,
         productName: product.productName,
         // Snapshotted on the order, from the ProductImage table — see
@@ -109,6 +135,23 @@ export async function createOrder({
         brand: product.brand,
         chandelierLightingType: product.chandelierLightingType,
       },
+      })
+
+      // Inside the same transaction as the order. A redemption recorded
+      // against an order that then fails to save is a use nobody can
+      // account for, and redeemDiscount locks the row before it reads the
+      // count so two checkouts cannot share the last one.
+      for (const applied of priced.applied) {
+        await redeemDiscount(tx, {
+          discountId: applied.discountId,
+          orderId: created.id,
+          userId,
+          customerEmail: dbUser.email,
+          amount: applied.amount,
+        })
+      }
+
+      return created
     })
 
     console.log("Order created successfully", {

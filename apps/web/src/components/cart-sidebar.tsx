@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import type { ProductFamily } from "@repo/catalog/families";
 import { money, multiplyMoney, serializeMoney, subtractMoney, sumMoney } from "@repo/money";
 import { priceLine } from "@/lib/pricing";
-import { formatPercent } from "@/lib/numbers";
+import { formatNumber, formatPercent } from "@/lib/numbers";
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
@@ -36,6 +36,7 @@ interface CartItem {
 export function CartSidebar() {
   const { isSignedIn, userId } = useAuth()
   const t = useTranslations("cart")
+  const locale = useLocale()
   const [isOpen, setIsOpen] = useState(false)
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -180,7 +181,9 @@ export function CartSidebar() {
             <Badge
               className="absolute -top-2 -end-2 h-5 min-w-5 justify-center rounded-full p-0 px-1 text-[length:var(--text-xs)] font-semibold tabular-nums"
             >
-              {totalItems > 99 ? "99+" : totalItems}
+              {totalItems > 99
+                ? `${formatNumber(99, locale === "ar" ? "ar" : "en")}+`
+                : formatNumber(totalItems, locale === "ar" ? "ar" : "en")}
             </Badge>
           )}
         </Button>
@@ -194,7 +197,7 @@ export function CartSidebar() {
             <span>{t("title")}</span>
             {totalItems > 0 && (
               <Badge variant="secondary" className="ms-auto px-3 py-1 text-[length:var(--text-sm)] font-semibold">
-                {t("count", { count: totalItems })}
+                {t("count", { count: totalItems, formatted: formatNumber(totalItems, locale === "ar" ? "ar" : "en") })}
               </Badge>
             )}
           </SheetTitle>
@@ -354,19 +357,26 @@ function CartItemCard({
   onCloseSheet: () => void
 }) {
   const t = useTranslations("cart")
+  const tShop = useTranslations("shop")
   const locale = useLocale()
 
   return (
     <div className="group relative bg-card border border-border/50 rounded-xl p-4 hover:border-primary/30 hover:shadow-md transition-all duration-300 hover:scale-[1.01]">
-      {/* Delete Button */}
+      {/* Remove. It only appeared on hover, and a phone has no hover: on
+          the device most of this shop's customers use, there was no way to
+          take a product out of the cart. Always visible on touch, revealed
+          on hover with a mouse, and visible whenever it has focus. It sits
+          at the end of the card, away from the image in either direction. */}
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-2 right-2 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive hover:text-destructive-foreground z-10"
+        aria-label={t("actions.remove")}
+        title={t("actions.remove")}
+        className="absolute end-2 top-2 z-10 size-8 rounded-full bg-background/80 backdrop-blur-sm transition-[opacity,background-color,color] duration-[var(--dur-hover)] hover:bg-destructive hover:text-destructive-foreground focus-visible:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
         onClick={() => onRemoveItem(item.id)}
         disabled={isUpdating}
       >
-        {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+        {isUpdating ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" aria-hidden />}
       </Button>
 
       <div className="flex gap-4">
@@ -388,14 +398,14 @@ function CartItemCard({
         )}
         <div className="flex-1 min-w-0 flex flex-col justify-between">
           <div className="space-y-1.5">
-            <h4 className="font-semibold text-sm leading-tight line-clamp-2 pr-8">
+            <h4 className="font-semibold text-sm leading-tight line-clamp-2 pe-8">
               {item.productName}
             </h4>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="font-medium">{item.brand}</span>
-              <span>•</span>
-              <span>{item.spotlightType}</span>
-            </div>
+            {/* The brand by its name, not its database key: "mister-led"
+                and a lowercase model slug were the stored values, printed. */}
+            <p className="text-xs text-muted-foreground">
+              {item.brand === "balcom" ? tShop("brand.balcom") : tShop("brand.misterLed")}
+            </p>
           </div>
           <div className="space-y-2 mt-2">
             <div className="flex items-baseline gap-2">
@@ -418,16 +428,20 @@ function CartItemCard({
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 rounded-md hover:bg-background"
+                  aria-label={t("actions.decrease")}
                   onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
                   disabled={isUpdating || item.quantity <= 1}
                 >
                   <Minus className="h-3 w-3" />
                 </Button>
-                <span className="w-8 text-center text-sm font-semibold">{item.quantity}</span>
+                <span className="w-8 text-center text-sm font-semibold tabular-nums">
+                  {formatNumber(item.quantity, locale === "ar" ? "ar" : "en")}
+                </span>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 rounded-md hover:bg-background"
+                  aria-label={t("actions.increase")}
                   onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
                   disabled={isUpdating}
                 >

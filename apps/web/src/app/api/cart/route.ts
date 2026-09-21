@@ -41,19 +41,30 @@ export async function GET() {
       return NextResponse.json([]);
     }
 
-    // The whole cart through the engine, not each line on its own: a
-    // cart-scoped promotion or a minimum order only means anything when
-    // the lines are priced together.
+    // Each line priced on its own, exactly as its order will be.
+    //
+    // This used to put the whole cart through the engine at once. The engine
+    // lets one non-stackable promotion win per call, so a cart holding a
+    // chandelier (30% off) and a strip (13% off) handed the whole cart to
+    // the 30% and priced the strip at full list — while its product page,
+    // the promo bar and the order that "Order now" creates (one product,
+    // one line: lib/order.server.ts) all gave it 13%. The drawer quoted
+    // more than the customer would be charged, and it disagreed with this
+    // route's own PATCH, which already priced a single line. Checkout is
+    // per product, so per line is what the cart has to show.
     const rules = await discountsForCart(null, prisma);
-    const priced = computePricing({
-      lines: cart.items.map((item) =>
-        toCartLine(item.product, { id: item.id, quantity: item.quantity }),
-      ),
-      discounts: rules,
-      customer: { userId },
-      now: new Date(),
-    });
-    const byLine = new Map(priced.lines.map((line) => [line.id, line]));
+    const now = new Date();
+    const byLine = new Map(
+      cart.items.map((item) => {
+        const priced = computePricing({
+          lines: [toCartLine(item.product, { id: item.id, quantity: item.quantity })],
+          discounts: rules,
+          customer: { userId },
+          now,
+        });
+        return [item.id, priced.lines[0]] as const;
+      }),
+    );
 
     const cartItems = cart.items.map((item) => {
       const line = byLine.get(item.id);

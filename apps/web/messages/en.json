@@ -1103,7 +1103,9 @@
             "viewDetails": "View Details",
             "orderNow": "Order Now",
             "remove": "Remove",
-            "openCart": "Open Cart"
+            "openCart": "Open Cart",
+            "increase": "Increase quantity",
+            "decrease": "Decrease quantity"
         },
         "messages": {
             "quantityUpdated": "Quantity updated",
@@ -1116,7 +1118,7 @@
         "discount": "discount",
         "viewProduct": "View Product",
         "orderNow": "Order Now",
-        "count": "{count, plural, one {# item} other {# items}}",
+        "count": "{count, plural, one {{formatted} item} other {{formatted} items}}",
         "subtotal": "Subtotal",
         "saved": "You save",
         "perItemNote": "Each product is ordered on its own — use “Order now” on the one you want.",

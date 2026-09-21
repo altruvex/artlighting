@@ -890,7 +890,9 @@
             "viewDetails": "عرض التفاصيل",
             "orderNow": "اطلب الآن",
             "remove": "إزالة",
-            "openCart": "فتح السلة"
+            "openCart": "فتح السلة",
+            "increase": "زوّد الكمية",
+            "decrease": "قلّل الكمية"
         },
         "messages": {
             "quantityUpdated": "تم تحديث الكمية",
@@ -903,7 +905,7 @@
         "discount": "خصم",
         "viewProduct": "عرض المنتج",
         "orderNow": "اطلب الآن",
-        "count": "{count, plural, zero {لا عناصر} one {عنصر واحد} two {عنصران} few {# عناصر} many {# عنصرًا} other {# عنصر}}",
+        "count": "{count, plural, zero {لا عناصر} one {عنصر واحد} two {عنصران} few {{formatted} عناصر} many {{formatted} عنصرًا} other {{formatted} عنصر}}",
         "subtotal": "الإجمالي",
         "saved": "وفّرت",
         "perItemNote": "كل منتج بيتطلب لوحده — اضغط «اطلب الآن» على المنتج اللي عايزه.",

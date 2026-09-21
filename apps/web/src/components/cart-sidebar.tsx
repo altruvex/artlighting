@@ -12,11 +12,13 @@ import { useAuth } from "@/lib/auth-hooks"
 import { Loader2, ShoppingBag, ShoppingCart, Trash2, Plus, Minus } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import Image from "next/image"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { toast } from "sonner"
 import DiscountPrice from "./discount-price"
 import NormalPrice from "./normal-price"
-import { Link } from "@/i18n/navigation"
+import { Link, useRouter } from "@/i18n/navigation"
+import { checkoutCart } from "@/actions/checkout"
+import { familySlug } from "@repo/catalog/families"
 import { notifyCartChanged, onCartChanged } from "@/lib/cart-events"
 
 interface CartItem {
@@ -264,7 +266,11 @@ function EmptyState({
   )
 }
 
-/** What the cart comes to, and how each line is ordered from here. */
+/**
+ * What the cart comes to, and the way out of it: one order for everything
+ * in it. Each line used to carry its own "order now", with a note telling
+ * the customer to buy their products one at a time.
+ */
 function CartSummary({
   total,
   saved,
@@ -275,6 +281,21 @@ function CartSummary({
   onCloseSheet: () => void
 }) {
   const t = useTranslations("cart")
+  const tOrder = useTranslations("order")
+  const locale = useLocale()
+  const router = useRouter()
+  const [isPending, startCheckout] = useTransition()
+
+  const onCheckout = () =>
+    startCheckout(async () => {
+      const result = await checkoutCart(locale)
+      if (!result.ok) {
+        toast.error(tOrder(`errors.${result.error}`))
+        return
+      }
+      onCloseSheet()
+      router.push(`/confirm?orderId=${result.value.orderId}`)
+    })
 
   return (
     <div className="border-t border-border bg-card/50 px-6 py-5 space-y-3">
@@ -290,7 +311,16 @@ function CartSummary({
           <NormalPrice price={saved} />
         </p>
       )}
-      <p className="text-[length:var(--text-sm)] text-muted-foreground">{t("perItemNote")}</p>
+      <Button onClick={onCheckout} disabled={isPending} className="h-12 w-full text-base font-semibold">
+        {isPending ? (
+          <>
+            <Loader2 className="size-5 animate-spin" aria-hidden />
+            {tOrder("checkingOut")}
+          </>
+        ) : (
+          tOrder("checkout")
+        )}
+      </Button>
       <Link href="/products" onClick={onCloseSheet} className="block">
         <Button variant="outline" className="w-full bg-transparent">
           {t("continueShopping")}
@@ -451,34 +481,13 @@ function CartItemCard({
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 mt-3">
-            <Link
-              href={`/category/${item.brand}/${item.sectionType}/${item.spotlightType.toLowerCase()}/${item.productId.toLowerCase()}`}
-              className="flex-1"
-              onClick={onCloseSheet}
-            >
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full text-xs font-medium h-9 hover:bg-muted"
-              >
-                {t("viewProduct")}
-              </Button>
-            </Link>
-            <Link
-              href={`/preview/${item.productId}`}
-              className="flex-1"
-              onClick={onCloseSheet}
-            >
-              <Button
-                size="sm"
-                className="w-full text-xs font-semibold h-9 shadow-sm"
-              >
-                {t("orderNow")}
-              </Button>
-            </Link>
-          </div>
+          <Link
+            href={`/category/${item.brand}/${familySlug(item.sectionType)}/${item.spotlightType.toLowerCase()}/${item.productId.toLowerCase()}`}
+            onClick={onCloseSheet}
+            className="mt-3 self-start text-[length:var(--text-sm)] font-medium text-primary underline-offset-4 hover:underline"
+          >
+            {t("viewProduct")}
+          </Link>
         </div>
       </div>
     </div>

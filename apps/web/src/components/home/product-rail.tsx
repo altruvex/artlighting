@@ -42,7 +42,7 @@ export function ProductRail({
         </Link>
       </header>
       <ul
-        className="mx-auto flex max-w-screen-2xl snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-4 px-4 pb-4 sm:gap-6 sm:scroll-px-6 sm:px-6 lg:scroll-px-10 lg:px-10 [scrollbar-width:thin]"
+        className="mx-auto flex max-w-screen-2xl snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-4 px-4 pb-4 sm:gap-6 sm:scroll-px-6 sm:px-6 lg:scroll-px-10 lg:px-10"
       >
         {products.map((product) => (
           <li

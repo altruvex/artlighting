@@ -255,17 +255,41 @@
     text-rendering: optimizeLegibility;
   }
 
-  ::-webkit-scrollbar {
+  /* Scrollbars.
+   *
+   * Inside the page — product rails, the filter column, the cart drawer,
+   * menus, search results, the order tables — there is no visible bar.
+   * Each of those already shows that it scrolls: a rail lets the next card
+   * peek in at the edge, a list is cut mid-row. A gold 10px bar on every
+   * one of them was the loudest thing in each section. They still scroll
+   * by wheel, touch, trackpad and keyboard; only the drawing is gone.
+   *
+   * The page itself keeps its bar. That one answers "how long is this
+   * page, and where am I in it", which nothing else on screen does.
+   */
+  *:not(html) {
+    scrollbar-width: none;
+  }
+
+  *:not(html)::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Radix scroll areas draw their own bar as an element, not natively. */
+  [data-slot="scroll-area-scrollbar"] {
+    display: none;
+  }
+
+  html::-webkit-scrollbar {
     width: 10px;
     height: 10px;
   }
 
-  ::-webkit-scrollbar-track {
+  html::-webkit-scrollbar-track {
     @apply bg-muted;
-    border-radius: 10px;
   }
 
-  ::-webkit-scrollbar-thumb {
+  html::-webkit-scrollbar-thumb {
     background: linear-gradient(
       180deg,
       oklch(0.65 0.15 85),
@@ -276,7 +300,7 @@
     background-clip: padding-box;
   }
 
-  ::-webkit-scrollbar-thumb:hover {
+  html::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(
       180deg,
       oklch(0.72 0.15 86),
@@ -285,7 +309,7 @@
     background-clip: padding-box;
   }
 
-  .dark ::-webkit-scrollbar-thumb {
+  html.dark::-webkit-scrollbar-thumb {
     background: linear-gradient(
       180deg,
       oklch(0.75 0.15 85),
@@ -294,7 +318,7 @@
     background-clip: padding-box;
   }
 
-  .dark ::-webkit-scrollbar-thumb:hover {
+  html.dark::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(
       180deg,
       oklch(0.82 0.13 88),
@@ -314,39 +338,10 @@
     display: none;
   }
 
+  /* Kept as a name so existing markup still compiles; scrollbars inside
+     the page are hidden in the base layer, and this no longer overrides it. */
   .custom-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: oklch(0.65 0.15 85) oklch(0.94 0.03 85);
-  }
-
-  .custom-scrollbar::-webkit-scrollbar {
-    height: 8px;
-    width: 8px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-track {
-    @apply bg-muted;
-    border-radius: 10px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: linear-gradient(
-      180deg,
-      oklch(0.65 0.15 85),
-      oklch(0.58 0.13 82)
-    );
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background-clip: padding-box;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(
-      180deg,
-      oklch(0.72 0.15 86),
-      oklch(0.65 0.15 85)
-    );
-    background-clip: padding-box;
+    scrollbar-width: none;
   }
 
   .heading {

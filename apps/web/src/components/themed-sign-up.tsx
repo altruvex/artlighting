@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Link } from "@/i18n/navigation";
-import { User, Mail, Lock, Loader2, AlertCircle } from "lucide-react";
+import { User, Mail, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/password-input";
 import { authClient } from "@/lib/auth-client";
 
 export function ThemedSignUp() {
@@ -88,19 +89,14 @@ export function ThemedSignUp() {
 
         <div className="glow-ring-focus space-y-2 rounded-xl">
           <Label htmlFor="password">Password</Label>
-          <div className="relative">
-            <Lock className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="h-11 rounded-xl ps-10 pe-3"
-              required
-            />
-          </div>
+          <PasswordInput
+            id="password"
+            autoComplete="new-password"
+            minLength={8}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
         </div>
       </div>
 

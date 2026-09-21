@@ -1246,6 +1246,8 @@
         "done": "Done"
     },
     "a11y": {
-        "skipToContent": "Skip to content"
+        "skipToContent": "Skip to content",
+        "showPassword": "Show password",
+        "hidePassword": "Hide password"
     }
 }

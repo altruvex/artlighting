@@ -342,8 +342,12 @@ generated carts; order-independent when everything stacks, over 200) and a
 third that line discounts always sum to the total. What it encodes:
 - a minimum is checked against the **undiscounted** subtotal, or whether a
   discount qualifies would depend on which other one ran first;
-- non-stackable discounts compete and the customer wins, ties breaking on
-  priority then id so the outcome never depends on input order;
+- non-stackable discounts compete **per line** and the customer wins, ties
+  breaking on priority then id so the outcome never depends on input order:
+  each line takes the best exclusive discount covering it, a rule applies to
+  the lines it won, and an exclusive cart-wide discount wins only if it saves
+  more than those line winners together (a product costs the same in a cart
+  as on its own page);
 - a stacked discount applies to what is left;
 - a fixed amount never exceeds its base; tax is on the discounted subtotal;
 - a cart-scoped discount is spread by largest remainder, so the parts add
@@ -853,7 +857,7 @@ Order matters. Each step is its own commit, and the repo builds after every one.
 2. **`packages/pricing`**: a pure, framework-free function that the admin and the web both use:
    `computePricing({ lines, discounts, coupon?, customer?, now, taxRate, currency }) → { lines[{unit, compareAt, discount, total}], applied[], rejected[{code, reason}], subtotal, discountTotal, tax, grandTotal }`
    - Uses Decimal arithmetic with no floats.
-   - Rules: active, date window, minimum order, usage limit, per-customer limit, scope match, stacking (non-stackable discounts compete by highest customer value; stackable ones apply in `priority` order), and never below zero.
+   - Rules: active, date window, minimum order, usage limit, per-customer limit, scope match, stacking (non-stackable discounts compete per line by highest customer value; stackable ones apply in `priority` order), and never below zero.
    - Comes with thorough unit tests (Vitest), including property tests for "total never negative" and "stacking order independent when all are stackable".
 3. The server validates coupons in the cart/checkout server action. Redemptions are recorded in the order transaction with a row lock on the discount (`usageCount` check-and-increment), so concurrent checkouts can't exceed the limit.
 4. Admin UI: discount list and editor (scope pickers for products and categories, rules, preview "what would this cart pay"), activate/deactivate, and redemption stats.

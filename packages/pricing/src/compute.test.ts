@@ -178,6 +178,59 @@ describe("coupons", () => {
   });
 });
 
+describe("non-stackable discounts, line by line", () => {
+  const chandelier = line({ id: "chandelier", productId: "p-ch", family: "CHANDELIER", unitPrice: "4989.00", quantity: 2 });
+  const strip = line({ id: "strip", productId: "p-st", family: "INDOOR", unitPrice: "845.00" });
+  const chandeliers30 = rule({ id: "ch30", name: "Chandeliers", scope: "FAMILIES", families: ["CHANDELIER"], rate: "0.3000" });
+  const indoor13 = rule({ id: "in13", name: "Indoor", scope: "FAMILIES", families: ["INDOOR", "OUTDOOR"], rate: "0.1300" });
+
+  it("gives each product its own discount when they cover different products", () => {
+    // The case that shipped: the 30% on chandeliers won the whole cart and
+    // the strip — which it does not cover — was charged full price.
+    const result = computePricing({ lines: [chandelier, strip], discounts: [chandeliers30, indoor13], now: NOW });
+    const byId = Object.fromEntries(result.lines.map((l) => [l.id, l]));
+    expect(byId.chandelier?.total).toBe("6984.60");
+    expect(byId.strip?.total).toBe("735.15");
+    expect(result.applied.map((a) => a.discountId).sort()).toEqual(["ch30", "in13"]);
+    expect(result.rejected).toEqual([]);
+    expect(result.grandTotal).toBe("7719.75");
+  });
+
+  it("prices a product the same in a cart as it does alone", () => {
+    const alone = computePricing({ lines: [strip], discounts: [chandeliers30, indoor13], now: NOW });
+    const together = computePricing({ lines: [chandelier, strip], discounts: [chandeliers30, indoor13], now: NOW });
+    expect(together.lines.find((l) => l.id === "strip")?.total).toBe(alone.lines[0]?.total);
+  });
+
+  it("gives a line covered twice the better of the two, and the other rule the rest", () => {
+    const everything10 = rule({ id: "all10", scope: "FAMILIES", families: ["CHANDELIER", "INDOOR"], rate: "0.1000" });
+    const result = computePricing({ lines: [chandelier, strip], discounts: [chandeliers30, everything10], now: NOW });
+    const byId = Object.fromEntries(result.lines.map((l) => [l.id, l]));
+    expect(byId.chandelier?.discount).toBe("2993.40"); // 30%, not 10%
+    expect(byId.strip?.discount).toBe("84.50"); // the 10% keeps the line the 30% cannot reach
+    expect(result.rejected).toEqual([]);
+  });
+
+  it("drops a rule that wins no line, and says it was outranked", () => {
+    const chandeliers10 = rule({ id: "ch10", scope: "FAMILIES", families: ["CHANDELIER"], rate: "0.1000" });
+    const result = computePricing({ lines: [chandelier], discounts: [chandeliers30, chandeliers10], now: NOW });
+    expect(result.applied.map((a) => a.discountId)).toEqual(["ch30"]);
+    expect(result.rejected).toEqual([expect.objectContaining({ discountId: "ch10", reason: "outranked" })]);
+  });
+
+  it("lets an exclusive cart discount win only when it saves more than the lines do together", () => {
+    const cartBig = rule({ id: "cart40", scope: "CART", rate: "0.4000" });
+    const bigger = computePricing({ lines: [chandelier, strip], discounts: [chandeliers30, indoor13, cartBig], now: NOW });
+    expect(bigger.applied.map((a) => a.discountId)).toEqual(["cart40"]);
+    expect(bigger.rejected.map((r) => r.discountId).sort()).toEqual(["ch30", "in13"]);
+
+    const cartSmall = rule({ id: "cart5", scope: "CART", rate: "0.0500" });
+    const smaller = computePricing({ lines: [chandelier, strip], discounts: [chandeliers30, indoor13, cartSmall], now: NOW });
+    expect(smaller.applied.map((a) => a.discountId).sort()).toEqual(["ch30", "in13"]);
+    expect(smaller.rejected).toEqual([expect.objectContaining({ discountId: "cart5", reason: "outranked" })]);
+  });
+});
+
 describe("stacking", () => {
   it("lets the best non-stackable discount win and says the others were outranked", () => {
     const result = computePricing({

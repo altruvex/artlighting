@@ -108,6 +108,59 @@ function discountAmount(rule: DiscountRule, base: Decimal): Decimal {
   return roundMoney(money(rule.amount ?? 0).greaterThan(base) ? base : money(rule.amount ?? 0));
 }
 
+/** Ties break on priority (lower first), then id, so input order never matters. */
+function beats(a: { rule: DiscountRule; amount: Decimal }, b: { rule: DiscountRule; amount: Decimal }): boolean {
+  const diff = a.amount.comparedTo(b.amount);
+  if (diff !== 0) return diff > 0;
+  const byPriority = (a.rule.priority ?? 0) - (b.rule.priority ?? 0);
+  if (byPriority !== 0) return byPriority < 0;
+  return a.rule.id < b.rule.id;
+}
+
+/**
+ * Which non-stackable discounts apply, and to which lines.
+ *
+ * Line-scoped rules (products, categories, families) compete line by line:
+ * each line goes to the rule that takes the most off that line, and a rule
+ * then applies once, to the lines it won. A cart-scoped exclusive rule
+ * covers every line at once, so it competes with that whole set: the
+ * customer gets whichever saves more, and on a tie the line-by-line result
+ * stands — it is the price the product pages already showed.
+ */
+function chooseExclusiveWinners(exclusive: Candidate[], lines: CartLine[]): Candidate[] {
+  const lineScoped = exclusive.filter((c) => c.rule.scope !== "CART");
+  const cartScoped = exclusive.filter((c) => c.rule.scope === "CART");
+
+  const wonLines = new Map<string, CartLine[]>();
+  for (const line of lines) {
+    let best: { candidate: Candidate; rule: DiscountRule; amount: Decimal } | null = null;
+    for (const candidate of lineScoped) {
+      if (!candidate.lines.some((covered) => covered.id === line.id)) continue;
+      const entry = { candidate, rule: candidate.rule, amount: discountAmount(candidate.rule, lineSubtotal(line)) };
+      if (entry.amount.lessThanOrEqualTo(0)) continue;
+      if (!best || beats(entry, best)) best = entry;
+    }
+    if (best) {
+      const list = wonLines.get(best.rule.id) ?? [];
+      list.push(line);
+      wonLines.set(best.rule.id, list);
+    }
+  }
+
+  const lineWinners: Candidate[] = lineScoped
+    .filter((c) => wonLines.has(c.rule.id))
+    .map((c) => {
+      const won = wonLines.get(c.rule.id)!;
+      return { rule: c.rule, lines: won, amount: discountAmount(c.rule, sumMoney(won.map(lineSubtotal))) };
+    });
+
+  const bestCart = cartScoped.reduce<Candidate | null>((best, c) => (!best || beats(c, best) ? c : best), null);
+  if (!bestCart) return lineWinners;
+
+  const lineSaving = sumMoney(lineWinners.map((c) => c.amount));
+  return bestCart.amount.greaterThan(lineSaving) ? [bestCart] : lineWinners;
+}
+
 export function computePricing(input: PricingInput): PricingResult {
   const now = input.now ?? new Date();
   const lines = input.lines;
@@ -165,22 +218,19 @@ export function computePricing(input: PricingInput): PricingResult {
   const stackable = candidates.filter((c) => c.rule.stackable === true);
   const exclusive = candidates.filter((c) => c.rule.stackable !== true);
 
-  // Non-stackable discounts compete, and the customer wins: the biggest
-  // saving applies and the rest are told they were outranked. Ties break on
-  // priority, then id, so the outcome does not depend on input order.
-  const winner = exclusive.length
-    ? exclusive.reduce((best, c) => {
-        const diff = c.amount.comparedTo(best.amount);
-        if (diff > 0) return c;
-        if (diff < 0) return best;
-        const byPriority = (c.rule.priority ?? 0) - (best.rule.priority ?? 0);
-        if (byPriority !== 0) return byPriority < 0 ? c : best;
-        return c.rule.id < best.rule.id ? c : best;
-      })
-    : null;
+  // Non-stackable means "not on top of another discount", and it is decided
+  // per line. It used to be decided per cart: one exclusive rule won the
+  // whole call, so a cart holding a chandelier at 30% and an LED strip at
+  // 13% gave the strip nothing — the 30% had "outranked" a discount on a
+  // product it does not even cover, and the strip cost more in the cart
+  // than on its own product page. Now each line takes the best exclusive
+  // discount that covers it, and a rule applies to the lines it won.
+  const winners = chooseExclusiveWinners(exclusive, lines);
 
   for (const candidate of exclusive) {
-    if (candidate !== winner) reject(candidate.rule, "outranked");
+    if (!winners.some((winner) => winner.rule.id === candidate.rule.id)) {
+      reject(candidate.rule, "outranked");
+    }
   }
 
   // Stackable discounts all apply, in priority order so the result does not
@@ -188,7 +238,7 @@ export function computePricing(input: PricingInput): PricingResult {
   const ordered = [...stackable].sort(
     (a, b) => (a.rule.priority ?? 0) - (b.rule.priority ?? 0) || a.rule.id.localeCompare(b.rule.id),
   );
-  const chosen = winner ? [winner, ...ordered] : ordered;
+  const chosen = [...winners, ...ordered];
 
   // Attribute each discount to the lines it covers, so a line total is
   // explainable and so tax is charged on what was actually paid.

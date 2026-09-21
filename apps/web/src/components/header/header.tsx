@@ -12,7 +12,7 @@ import {
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { ChandelierItems, IndoorItems, OutdoorItems } from "@/constants"
 import { Link, usePathname } from "@/i18n/navigation"
-import { familySlug } from "@repo/catalog/families"
+import { familySlug, type ProductFamily } from "@repo/catalog/families"
 import { cn } from "@/lib/utils"
 import {
   BoxIcon,
@@ -97,7 +97,7 @@ export default function Header({ projectsForHeader }: HeaderProps) {
                       links={IndoorItems.map((item) => ({
                         key: item.id,
                         label: tProducts(`indoor.${item.id}`),
-                        href: item.href,
+                        href: shopHref("INDOOR", item.id),
                       }))}
                       browse={t("browse")}
                     />
@@ -107,7 +107,7 @@ export default function Header({ projectsForHeader }: HeaderProps) {
                       links={OutdoorItems.map((item) => ({
                         key: item.id,
                         label: tProducts(`outdoor.${item.id}`),
-                        href: item.href,
+                        href: shopHref("OUTDOOR", item.id),
                       }))}
                       browse={t("browse")}
                     />
@@ -117,7 +117,7 @@ export default function Header({ projectsForHeader }: HeaderProps) {
                       links={ChandelierItems.slice(0, 8).map((item) => ({
                         key: item.id,
                         label: tProducts(`chandelier.${item.id}`),
-                        href: item.href,
+                        href: shopHref("CHANDELIER", item.id),
                       }))}
                       browse={t("browse")}
                       more={{ label: t("models"), href: `/products?family=${familySlug("CHANDELIER")}` }}
@@ -299,6 +299,11 @@ export default function Header({ projectsForHeader }: HeaderProps) {
       </Container>
     </header>
   )
+}
+
+/** A lighting type, as the shop addresses it: the family plus the type facet. */
+function shopHref(family: ProductFamily, typeId: string) {
+  return `/products?family=${familySlug(family)}&type=${encodeURIComponent(typeId.toLowerCase())}`
 }
 
 const navTrigger =

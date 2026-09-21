@@ -1,127 +1,139 @@
-import { ChandelierItems, IndoorItems, OutdoorItems } from "@/constants";
-import { Link } from "@/i18n/navigation";
 import { Container } from "@/components/container";
-import { Facebook, Instagram, Youtube } from "lucide-react";
+import { Link } from "@/i18n/navigation";
+import { familySlug } from "@repo/catalog/families";
+import { Facebook, Instagram, MessageCircle, Phone, Youtube } from "lucide-react";
 import { useTranslations } from "next-intl";
 import ChangeTheme from "../theme-changer";
 
+/**
+ * The footer.
+ *
+ * It was a link farm: five columns, twenty-seven chandelier model codes
+ * among them, every heading bold gold at 20px — the widest, loudest part
+ * of the page, on every page. Nobody navigates a shop by model code; the
+ * shop page filters by family and type, and the search finds a code
+ * faster than a column of them.
+ *
+ * What is left is what a footer is for: the four ways into the catalogue,
+ * the company pages, a way to reach a human, and the legal line.
+ */
 export default function Footer() {
   const t = useTranslations("footer");
-  const tProducts = useTranslations("products");
+  const tCta = useTranslations("cta");
+  const tFamily = useTranslations("family");
+
+  const shop = [
+    { name: t("allProducts"), href: "/products" },
+    { name: tFamily("CHANDELIER"), href: `/products?family=${familySlug("CHANDELIER")}` },
+    { name: tFamily("INDOOR"), href: `/products?family=${familySlug("INDOOR")}` },
+    { name: tFamily("OUTDOOR"), href: `/products?family=${familySlug("OUTDOOR")}` },
+    { name: t("offers"), href: "/products?sale=1&sort=discount" },
+  ];
+
+  const company = [
+    { name: t("aboutUs"), href: "/about-us" },
+    { name: t("projects"), href: "/all-projects" },
+    { name: t("blog"), href: "/blog" },
+    { name: t("faqs"), href: "/faqs" },
+    { name: t("privacyPolicy"), href: "/privacy" },
+  ];
+
+  const social = [
+    { icon: Instagram, label: "Instagram", href: "https://www.instagram.com/artlightingofficial" },
+    { icon: Facebook, label: "Facebook", href: "https://www.facebook.com/ArtLightingOfficial/" },
+    { icon: Youtube, label: "YouTube", href: "https://www.youtube.com/channel/UC__8-8U4dAIgK1JYWvqv5cQ" },
+  ];
 
   return (
-    <footer className="bg-muted/30 py-12 shadow-lg">
+    <footer className="border-t border-border bg-card/40">
       <Container>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 md:gap-12 lg:gap-16">
+        <div className="grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4 lg:gap-12">
           <div className="space-y-4">
             <Link
               href="/"
-              className="text-2xl font-bold text-primary hover:text-primary-foreground transition-colors"
+              className="font-[family-name:var(--font-display-face)] text-[length:var(--text-xl)] font-semibold transition-colors duration-[var(--dur-hover)] hover:text-primary"
             >
               {t("brandName")}
             </Link>
-            <p className="text-sm text-muted-foreground">
-              {t("brandDescription")}
-            </p>
-          </div>
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-primary">{t("indoorLighting")}</h3>
-            <ul className="space-y-2">
-              {IndoorItems.map((IndoorItem) => (
-                <li key={IndoorItem.id} className="hover:text-primary transition-colors">
-                  <Link href={IndoorItem.href}>
-                    {tProducts(`indoor.${IndoorItem.id}`)}
-                  </Link>
+            <p className="max-w-xs text-[length:var(--text-sm)] text-muted-foreground">{t("brandDescription")}</p>
+            <ul className="flex gap-2">
+              {social.map(({ icon: Icon, label, href }) => (
+                <li key={label}>
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={label}
+                    className="grid size-9 place-items-center rounded-full border border-border text-muted-foreground transition-colors duration-[var(--dur-hover)] hover:border-primary hover:text-primary"
+                  >
+                    <Icon className="size-4" aria-hidden />
+                  </a>
                 </li>
               ))}
             </ul>
           </div>
+
+          <FooterColumn title={t("shop")} links={shop} />
+          <FooterColumn title={t("company")} links={company} />
+
           <div className="space-y-4">
-            <h3 className="text-xl font-bold text-primary">{t("outdoorLighting")}</h3>
-            <ul className="space-y-2">
-              {OutdoorItems.map((OutdoorItem) => (
-                <li key={OutdoorItem.id} className="hover:text-primary transition-colors">
-                  <Link href={OutdoorItem.href}>
-                    <span className="capitalize">
-                      {tProducts(`outdoor.${OutdoorItem.id}`)}
-                    </span>
-                  </Link>
-                </li>
-              ))}
+            <h3 className="text-[length:var(--text-sm)] font-semibold tracking-wide text-muted-foreground">
+              {t("help")}
+            </h3>
+            <ul className="space-y-3 text-[length:var(--text-sm)]">
+              <li>
+                <a
+                  href="tel:+201154466259"
+                  className="inline-flex items-center gap-2 transition-colors duration-[var(--dur-hover)] hover:text-primary"
+                >
+                  <Phone className="size-4 text-primary" aria-hidden />
+                  <span dir="ltr" className="tabular-nums">+20 115 446 6259</span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://wa.me/201154466259"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 transition-colors duration-[var(--dur-hover)] hover:text-primary"
+                >
+                  <MessageCircle className="size-4 text-primary" aria-hidden />
+                  {t("whatsapp")}
+                </a>
+              </li>
+              <li className="text-muted-foreground">{tCta("workingHours")}</li>
+              <li className="text-muted-foreground">{tCta("address")}</li>
             </ul>
-          </div>
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-primary">{t("chandeliers")}</h3>
-            <ul className="space-y-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-              {ChandelierItems.map((ChandelierItem) => (
-                <li key={ChandelierItem.id} className="hover:text-primary transition-colors">
-                  <Link href={ChandelierItem.href}>
-                    {tProducts(`chandelier.${ChandelierItem.id}`)}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-primary">{t("company")}</h3>
-              <ul className="space-y-2">
-                {[
-                  { name: t("aboutUs"), href: "/about-us" },
-                  { name: t("contact"), href: "/contact-us" },
-                  { name: t("faqs"), href: "/faqs" },
-                  { name: t("privacyPolicy"), href: "/privacy" },
-                ].map((item) => (
-                  <li key={item.name} className="hover:text-primary transition-colors">
-                    <Link href={item.href}>{item.name}</Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="pt-4">
-              <h4 className="text-lg font-semibold text-primary mb-2">{t("followUs")}</h4>
-              <div className="flex space-x-2">
-                <Link
-                  className="text-muted-foreground hover:text-primary hover:bg-accent p-2 rounded-full transition-colors"
-                  href="https://www.instagram.com/artlightingofficial"
-                  target="_blank"
-                  aria-label="Instagram"
-                >
-                  <Instagram size={20} />
-                </Link>
-                <Link
-                  className="text-muted-foreground hover:text-primary hover:bg-accent p-2 rounded-full transition-colors"
-                  href="https://www.facebook.com/ArtLightingOfficial/"
-                  target="_blank"
-                  aria-label="Facebook"
-                >
-                  <Facebook size={20} />
-                </Link>
-                <Link
-                  className="text-muted-foreground hover:text-primary hover:bg-accent p-2 rounded-full transition-colors"
-                  href="https://www.youtube.com/channel/UC__8-8U4dAIgK1JYWvqv5cQ"
-                  target="_blank"
-                  aria-label="YouTube"
-                >
-                  <Youtube size={20} />
-                </Link>
-              </div>
-            </div>
-            <div className="pt-2">
-              <h4 className="text-lg font-semibold text-primary mb-2">{t("theme")}</h4>
-              <ChangeTheme />
-            </div>
           </div>
         </div>
-        <div className="border-t border-border text-center mt-12 pt-6">
-          <p className="text-muted-foreground text-sm">
-            {t("copyright", {
-              year: new Date().getFullYear(),
-              brand: t("brandName"),
-            })}
+
+        <div className="flex flex-col items-center justify-between gap-4 border-t border-border py-6 sm:flex-row">
+          <p className="text-[length:var(--text-sm)] text-muted-foreground">
+            {t("copyright", { year: new Date().getFullYear(), brand: t("brandName") })}
           </p>
+          <ChangeTheme />
         </div>
       </Container>
     </footer>
+  );
+}
+
+function FooterColumn({ title, links }: { title: string; links: { name: string; href: string }[] }) {
+  return (
+    <div className="space-y-4">
+      <h3 className="text-[length:var(--text-sm)] font-semibold tracking-wide text-muted-foreground">{title}</h3>
+      <ul className="space-y-2.5 text-[length:var(--text-sm)]">
+        {links.map((link) => (
+          <li key={link.href}>
+            <Link
+              href={link.href}
+              className="underline-offset-4 transition-colors duration-[var(--dur-hover)] hover:text-primary hover:underline"
+            >
+              {link.name}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

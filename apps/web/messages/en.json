@@ -323,7 +323,19 @@
         "privacyPolicy": "Privacy Policy",
         "followUs": "Follow Us",
         "theme": "Theme",
-        "copyright": "© {year} {brand} | Your Lighting Store. All rights reserved."
+        "copyright": "© {year} {brand} | Your Lighting Store. All rights reserved.",
+        "shop": "Shop",
+        "allProducts": "All products",
+        "offers": "Offers",
+        "help": "Help",
+        "callUs": "Call us",
+        "whatsapp": "WhatsApp",
+        "projects": "Projects",
+        "blog": "Blog",
+        "themeLabel": "Change theme",
+        "themeLight": "Light",
+        "themeDark": "Dark",
+        "themeSystem": "System"
     },
     "products": {
         "indoor": {

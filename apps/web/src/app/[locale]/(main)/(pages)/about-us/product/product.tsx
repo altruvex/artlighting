@@ -28,7 +28,7 @@ function Product() {
             <p className="sm:text-lg md:text-xl text-base font-medium text-muted-foreground mb-4 leading-relaxed">
               {t("indoor.description")}
             </p>
-            <Button destination="./category/balcom/indoor" />
+            <Button destination="/products?brand=balcom&family=indoor" />
           </div>
         </div>
         <div className="flex flex-col lg:flex-row items-start mt-24 pb-16 border-b border-gray-300 border-opacity-35">
@@ -47,7 +47,7 @@ function Product() {
             <p className="sm:text-lg md:text-xl text-base font-medium text-muted-foreground mb-4 leading-relaxed">
               {t("outdoor.description")}
             </p>
-            <Button destination="./category/balcom/outdoor" />
+            <Button destination="/products?brand=balcom&family=outdoor" />
           </div>
         </div>
         <div className="flex flex-col lg:flex-row items-start mt-24">
@@ -66,7 +66,7 @@ function Product() {
             <p className="sm:text-lg md:text-xl text-base font-medium text-muted-foreground mb-4 leading-relaxed">
               {t("chandelier.description")}
             </p>
-            <Button destination="./category/mister-led/chandelier" />
+            <Button destination="/products?brand=mister-led&family=chandelier" />
           </div>
         </div>
       </Container>

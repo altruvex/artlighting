@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 import { GUEST_COOKIE } from "./lib/guest-token";
 import { routing } from "./i18n/routing";
-import { familyFromSlug } from "@repo/catalog/families";
+import { familyFromSlug, familySlug } from "@repo/catalog/families";
 
 // Create intl middleware instance
 const intlMiddleware = createIntlMiddleware(routing);
@@ -16,6 +16,17 @@ export default function middleware(req: NextRequest) {
   }
 
   const response = intlMiddleware(req);
+
+  // The retired category funnel. The pages under it redirect too, but a
+  // loading.tsx above them means the response has already started
+  // streaming by the time they run, so the hop lands as a 200 with a
+  // client-side redirect in the body — right for a visitor, wrong for a
+  // crawler following a link that moved. Here it is a real 308.
+  const moved = shopUrl(req.nextUrl.pathname);
+  if (moved && !isRedirect(response)) {
+    const url = new URL(moved, req.nextUrl.origin);
+    return withGuestToken(req, NextResponse.redirect(url, 308));
+  }
 
   // The status is forced on top of what next-intl decided, not instead of
   // it. Returning a bare rewrite here skipped the intl middleware
@@ -33,6 +44,35 @@ export default function middleware(req: NextRequest) {
 /** next-intl sends a locale-less URL to its prefixed form; leave that alone. */
 function isRedirect(response: NextResponse): boolean {
   return response.status >= 300 && response.status < 400;
+}
+
+/**
+ * Where a retired listing URL now lives, or null when the path is not one.
+ *
+ * /category, /category/<brand>, /category/<brand>/<section> and
+ * /category/<brand>/<section>/<type> were four levels of a funnel the shop
+ * page replaced; a product under them keeps its own URL and is left alone.
+ */
+function shopUrl(pathname: string): string | null {
+  const parts = pathname.split("/").filter(Boolean);
+  const [locale, category, brand, section, type, product] = parts;
+  if (category !== "category" || !routing.locales.includes(locale as never)) return null;
+  // Five segments after the locale is a product page, not a listing.
+  if (product) return null;
+
+  const shop = `/${locale}/products`;
+  if (!brand) return shop;
+  if (brand !== "balcom" && brand !== "mister-led") return null;
+
+  const query = new URLSearchParams({ brand });
+  if (section) {
+    const family = familyFromSlug(section);
+    // An unknown section is a 404, handled below, not a redirect.
+    if (!family) return null;
+    query.set("family", familySlug(family));
+    if (type) query.set("type", type.toLowerCase());
+  }
+  return `${shop}?${query.toString()}`;
 }
 
 /**

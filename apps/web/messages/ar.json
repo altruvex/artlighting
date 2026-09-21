@@ -113,7 +113,19 @@
         "privacyPolicy": "سياسة الخصوصية",
         "followUs": "تابعنا",
         "theme": "السمة",
-        "copyright": "© {year} {brand} | متجرك للإضاءة. جميع الحقوق محفوظة."
+        "copyright": "© {year} {brand} | متجرك للإضاءة. جميع الحقوق محفوظة.",
+        "shop": "تسوّق",
+        "allProducts": "كل المنتجات",
+        "offers": "العروض",
+        "help": "المساعدة",
+        "callUs": "كلّمنا",
+        "whatsapp": "واتساب",
+        "projects": "المشاريع",
+        "blog": "الاحداث",
+        "themeLabel": "تغيير السمة",
+        "themeLight": "فاتح",
+        "themeDark": "داكن",
+        "themeSystem": "حسب النظام"
     },
     "products": {
         "indoor": {

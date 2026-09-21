@@ -2,13 +2,15 @@ import Breadcrumb from "@/components/breadcrumb/custom-breadcrumb"
 import { auth } from "@/lib/auth-server";
 import { readGuestToken } from "@/lib/guest-token";
 import ProductRouter from "@/components/product-router"
+import { ProductRail } from "@/components/home/product-rail"
+import { relatedCards } from "@/lib/shop.server"
 import { formatNumber } from "@/lib/numbers"
 import { getLocaleFromParams } from "@/lib/i18n/utils"
 import { constructMetadata } from "@/lib/metadata"
 import { ProductService } from "@/lib/services/product.service"
 import { PagePropsTypes } from "@/types"
 import { Metadata } from "next"
-import { familyFromSlug } from "@repo/catalog"
+import { familyFromSlug, familySlug } from "@repo/catalog"
 import { getTranslations } from "next-intl/server"
 import { notFound } from "next/navigation"
 
@@ -37,21 +39,23 @@ export default async function Page({ params }: PagePropsTypes) {
 
   if (!product) notFound()
 
-  const [configuration, relatedProducts] = await Promise.all([
+  const [configuration, related, t] = await Promise.all([
     ProductService.getOrCreateConfiguration(product, (await auth()).userId, await readGuestToken()),
-    ProductService.getRelatedProducts(product.productId, "balcom", family, locale, {
-      spotlightType: product.spotlightType,
-      maxIP: product.maxIP ?? undefined,
-    }),
+    // The same cards the shop and the home page render, rather than a card
+    // shape assembled here field by field.
+    relatedCards({ productId: product.productId, family, lightingTypeSlug: product.spotlightType }, locale),
+    getTranslations({ locale, namespace: "home.rails" }),
   ])
 
   return (
     <>
       <Breadcrumb />
-      <ProductRouter
-        product={product}
-        relatedProducts={relatedProducts}
-        configuration={configuration}
+      <ProductRouter product={product} configuration={configuration} locale={locale} />
+      <ProductRail
+        title={t("related")}
+        href={`/products?family=${familySlug(family)}`}
+        hrefLabel={t("relatedLink")}
+        products={related}
         locale={locale}
       />
     </>

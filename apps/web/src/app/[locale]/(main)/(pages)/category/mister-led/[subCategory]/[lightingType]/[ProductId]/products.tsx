@@ -1,18 +1,14 @@
 "use client";
 
-import ProductCard from "@/components/product-card/product-card";
 import { specNumbersByKey, specsByKey } from "@/lib/specs-view";
-import { multiplyMoney, serializeMoney, serializeRate } from "@repo/money"
+import { multiplyMoney, serializeMoney } from "@repo/money"
 import ProductImages from "@/components/product-images-for-chand";
 import ProductMainInfo from "@/components/product-main-Info";
 import ProductSpecifications from "@/components/product-specifications-table";
 import {
-  LocalizedProductWithRelations,
   Order,
-  ProductSpecification,
   ProductsProps,
   SpecificationsTable,
-  ProductCardProps,
   OrderStatus
 } from "@/types/products";
 import { Container } from "@/components/container";
@@ -36,7 +32,6 @@ const pageVariants: Variants = {
 
 export default function ChandelierProducts({
   product,
-  relatedProducts,
   configuration,
   locale,
 }: ProductsProps) {
@@ -142,76 +137,18 @@ export default function ChandelierProducts({
   // Addressed by language-neutral key, so a lookup works in either locale.
   const specs = specsByKey(product.specGroups ?? []);
   const specNumbers = specNumbersByKey(product.specGroups ?? []);
-  const transformToChandelierProductCardProps = (relatedProduct: LocalizedProductWithRelations): ProductCardProps => {
-    const specs = relatedProduct.localizedSpecs || {};
-
-    const mockSpecification: ProductSpecification = {
-      id: `spec-${relatedProduct.productId}`,
-      productId: relatedProduct.productId,
-      language: locale,
-      input: specs.input || relatedProduct.input || null,
-      mainMaterial: specs.mainMaterial || relatedProduct.mainMaterial || null,
-      finish: specs.finish || relatedProduct.finish || null,
-      colorTemperature: specs.colorTemperature || relatedProduct.colorTemperature || null,
-      lampBase: specs.lampBase || relatedProduct.lampBase || null,
-      lifeTime: specs.lifeTime || relatedProduct.lifeTime || null,
-      bulb: specs.bulb || null,
-      brandOfLed: null,
-      luminousFlux: null,
-      cri: null,
-      beamAngle: null,
-      workingTemperature: null,
-      fixtureDimmable: null,
-      electrical: null,
-      powerFactor: null,
-      ip: null,
-      energySaving: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    return {
-      productId: relatedProduct.productId,
-      productName: relatedProduct.productName,
-      price: serializeMoney(relatedProduct.price),
-      discount: relatedProduct.discount,
-      productImages: relatedProduct.productImages,
-      Brand: relatedProduct.brand,
-      brand: relatedProduct.brand,
-      chandelierLightingType: relatedProduct.chandelierLightingType || "",
-      // The related card's description comes from these, the same way the
-      // page above it builds its own; see @repo/catalog/describe.
-      specGroups: relatedProduct.specGroups,
-      lightingTypeName: relatedProduct.lightingtype?.translations?.[0]?.name ?? relatedProduct.lightingtype?.name ?? undefined,
-      bulbChoices: relatedProduct.bulbChoices ?? [],
-      sectionType: relatedProduct.sectionType,
-      specification: mockSpecification,
-      hNumber: relatedProduct.hNumber ?? undefined,
-      spotlightType: relatedProduct.spotlightType,
-      mainMaterial: specs.mainMaterial || (relatedProduct.mainMaterial ?? undefined),
-      colorTemperature: specs.colorTemperature || (relatedProduct.colorTemperature ?? undefined),
-      lifeTime: specs.lifeTime || (relatedProduct.lifeTime ?? undefined),
-      finish: specs.finish || (relatedProduct.finish ?? undefined),
-      input: specs.input || (relatedProduct.input ?? undefined),
-      lampBase: specs.lampBase || (relatedProduct.lampBase ?? undefined),
-      maximumWattage: undefined,
-      beamAngle: undefined,
-      luminousFlux: undefined,
-      energySaving: undefined,
-      cri: undefined,
-      brandOfLed: undefined,
-      electrical: undefined,
-      ip: undefined,
-    };
-  };
-
   return (
     <motion.div initial="hidden" animate="visible" variants={pageVariants}>
-      <div className="py-8 md:py-16" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="py-8 md:py-12" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
         <Container>
-          <div className="space-y-12">
-            <div className="flex items-start flex-col md:flex-row gap-8">
-              <ProductImages productImages={product.productImages} />
+          <div className="space-y-16">
+            {/* The gallery holds its place while the decisions scroll: on a
+                wide screen a shopper comparing options should still be able
+                to see what they are buying. */}
+            <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)] lg:gap-12">
+              <div className="lg:sticky lg:top-24">
+                <ProductImages productImages={product.productImages} />
+              </div>
               <ProductMainInfo
                 productName={product.productName}
                 price={product.price}

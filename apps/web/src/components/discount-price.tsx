@@ -1,11 +1,11 @@
 "use client"
 
-import { addMoney, applyRate, clampNonNegative, money, type MoneyInput, multiplyMoney, subtractMoney } from "@repo/money"
+import { money, type MoneyInput } from "@repo/money"
 import type { ProductFamily } from "@repo/catalog/families";
 import { formatNumberWithConversion } from "@/lib/numbers"
+import { priceLine } from "@/lib/pricing"
+import { cn } from "@/lib/utils"
 import { useLocale } from "next-intl"
-
-type RoundingMode = "round" | "ceil" | "floor"
 
 interface DiscountPriceProps {
   price: MoneyInput
@@ -16,6 +16,7 @@ interface DiscountPriceProps {
   sectionType?: ProductFamily
   priceIncrease?: MoneyInput
   lampPriceIncrease?: MoneyInput
+  className?: string
 }
 
 export default function DiscountPrice({
@@ -25,24 +26,22 @@ export default function DiscountPrice({
   shippingPrice = 0,
   priceIncrease = 0,
   lampPriceIncrease = 0,
+  className,
 }: DiscountPriceProps) {
   const locale = useLocale()
 
-  // `discount` is a rate (0.13 = 13%). This used to guess with
-  // `discount > 1 ? discount / 100 : discount` and round each step with
-  // Math.ceil, which drifted from what the server charged.
-  const discountedBase = clampNonNegative(subtractMoney(price, applyRate(price, discount)))
-  const unitPriceWithIncreases = addMoney(discountedBase, priceIncrease, lampPriceIncrease)
-  const itemsTotal = multiplyMoney(unitPriceWithIncreases, Math.max(1, quantity))
-  const finalTotal = addMoney(itemsTotal, money(shippingPrice))
+  // Through priceLine, the one owner of how a line is assembled. This used
+  // to discount the base price and then add the wattage and bulb upgrades
+  // on top undiscounted, so a configured chandelier was quoted more here
+  // than the cart and the order went on to charge.
+  const { total } = priceLine({
+    unitPrice: price,
+    quantity: Math.max(1, quantity),
+    priceIncrease,
+    lampPriceIncrease,
+    discountRate: discount,
+    shippingPrice,
+  })
 
-  const formattedFinal = formatNumberWithConversion(finalTotal, locale)
-
-  return (
-    <div className="flex flex-col gap-1">
-      <p className="font-semibold text-destructive">
-        {formattedFinal}
-      </p>
-    </div>
-  )
+  return <span className={cn("tabular-nums", className)}>{formatNumberWithConversion(money(total), locale)}</span>
 }

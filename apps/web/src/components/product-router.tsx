@@ -7,14 +7,12 @@ import type { Configuration } from "@/types/products"
 
 interface ProductRouterProps {
     product: LocalizedProductData
-    relatedProducts?: LocalizedProductData[]
     configuration?: Configuration
     locale: string
 }
 
 export default function ProductRouter({
     product,
-    relatedProducts = [],
     configuration,
     locale,
 }: ProductRouterProps) {
@@ -22,7 +20,6 @@ export default function ProductRouter({
         return (
             <BalcomProducts
                 product={product as any}
-                relatedProducts={relatedProducts.filter((p) => p.brand === "balcom") as any}
                 configuration={configuration}
                 locale={locale}
             />
@@ -33,11 +30,6 @@ export default function ProductRouter({
         return (
             <ChandelierProducts
                 product={product as any}
-                relatedProducts={
-                    relatedProducts.filter(
-                        (p) => p.brand === "mister-led" && p.sectionType === "CHANDELIER"
-                    ) as any
-                }
                 configuration={configuration}
                 locale={locale}
             />
@@ -47,7 +39,6 @@ export default function ProductRouter({
     return (
         <BalcomProducts
             product={product as any}
-            relatedProducts={relatedProducts as any}
             configuration={configuration}
             locale={locale}
         />

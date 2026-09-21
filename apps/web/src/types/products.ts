@@ -497,7 +497,6 @@ export interface LightingTypeSectionProps {
 export interface ProductsProps {
   product: LocalizedProductWithRelations
   configuration?: Configuration
-  relatedProducts: LocalizedProductWithRelations[]
   locale: string
 }
 

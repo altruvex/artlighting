@@ -312,7 +312,10 @@
         "adding": "جاري الإضافة...",
         "orderNow": "اطلب الآن",
         "processingOrder": "جاري معالجة الطلب...",
-        "off": "خصم"
+        "off": "خصم",
+        "save": "وفّر",
+        "delivery": "التوصيل خلال ٤ أيام عمل",
+        "cod": "الدفع عند الاستلام"
     },
     "product-description": {
         "fixture": "وحدة إضاءة",
@@ -971,7 +974,9 @@
             "featuredSub": "اختيار المعرض",
             "featuredLink": "تسوّق الكل",
             "newest": "وصل حديثًا",
-            "newestLink": "تسوّق الأحدث"
+            "newestLink": "تسوّق الأحدث",
+            "related": "منتجات من نفس العائلة",
+            "relatedLink": "شوف الكل"
         },
         "trust": {
             "label": "وعودنا",

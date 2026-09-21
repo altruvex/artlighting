@@ -522,7 +522,10 @@
         "adding": "Adding...",
         "orderNow": "Order Now",
         "processingOrder": "Processing Order...",
-        "off": "OFF"
+        "off": "OFF",
+        "save": "Save",
+        "delivery": "Delivered in four working days",
+        "cod": "Cash on delivery"
     },
     "product-description": {
         "fixture": "light fixture",
@@ -1184,7 +1187,9 @@
             "featuredSub": "Picked by the showroom",
             "featuredLink": "Shop all",
             "newest": "New arrivals",
-            "newestLink": "Shop the newest"
+            "newestLink": "Shop the newest",
+            "related": "More from this family",
+            "relatedLink": "See all"
         },
         "trust": {
             "label": "Our promises",

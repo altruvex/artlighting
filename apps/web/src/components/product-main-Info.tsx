@@ -28,7 +28,7 @@ import { ProductIP, type Configuration, type Order, type SupportedCurrency } fro
 import { useAuth } from "@/lib/auth-hooks"
 import type { ProductIP as PrismaProductIP, ProductChandLamp, ProductColorTemp } from "@repo/database"
 import { useMutation } from "@tanstack/react-query"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, BanknoteIcon, TruckIcon } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react"
 import { toast } from "sonner"
@@ -183,6 +183,12 @@ export default function ProductMainInfo({
   const discountedUnitPrice = useMemo(
     () => serializeMoney(clampNonNegative(subtractMoney(totalPriceBeforeDiscount, applyRate(totalPriceBeforeDiscount, discount)))),
     [totalPriceBeforeDiscount, discount]
+  )
+
+  /** What the discount takes off this configuration, at this quantity. */
+  const savingTotal = useMemo(
+    () => serializeMoney(multiplyMoney(subtractMoney(totalPriceBeforeDiscount, discountedUnitPrice), currentQuantity)),
+    [totalPriceBeforeDiscount, discountedUnitPrice, currentQuantity]
   )
 
   const finalTotalPrice = useMemo(
@@ -358,12 +364,55 @@ export default function ProductMainInfo({
   const fullDescription = useProductDescription(describable, "full")
 
   return (
-    <div className="md:ml-7 ml-0">
-      <div className="space-y-4">
-        <h1 className="text-2xl lg:text-3xl font-bold uppercase tracking-tight">{productName}</h1>
-        <p className="text-muted-foreground text-sm md:text-base lg:text-lg leading-relaxed">
+    <div>
+      <div className="space-y-3">
+        {lightingTypeName && (
+          <p className="text-[length:var(--text-sm)] font-medium tracking-wide text-muted-foreground">
+            {lightingTypeName}
+          </p>
+        )}
+        <h1 className="font-[family-name:var(--font-display-face)] text-[length:var(--text-3xl)] font-semibold tracking-tight">
+          {productName}
+        </h1>
+        <p className="text-[length:var(--text-base)] leading-relaxed text-muted-foreground">
           {shortDescription}
         </p>
+      </div>
+
+      {/* The price sits above the options, and moves as they are chosen:
+          the upgrade a shopper is weighing is priced in the same figure
+          they will be charged. */}
+      <div className="mt-6 space-y-1 border-y border-border py-5">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span className="font-[family-name:var(--font-display-face)] text-[length:var(--text-2xl)] font-semibold tabular-nums">
+            {money(discount).greaterThan(0) ? (
+              <DiscountPrice
+                price={price}
+                discount={discount}
+                quantity={currentQuantity}
+                priceIncrease={priceIncrease}
+                lampPriceIncrease={lampPriceIncrease}
+              />
+            ) : (
+              <NormalPrice price={totalPriceBeforeDiscount} quantity={currentQuantity} />
+            )}
+          </span>
+          {money(discount).greaterThan(0) && (
+            <>
+              <s className="text-[length:var(--text-base)] tabular-nums text-muted-foreground">
+                <NormalPrice price={totalPriceBeforeDiscount} quantity={currentQuantity} />
+              </s>
+              <span className="rounded-md bg-primary px-2 py-0.5 text-[length:var(--text-xs)] font-semibold tabular-nums text-primary-foreground">
+                {formatPercent(discount, locale)} {t("off")}
+              </span>
+            </>
+          )}
+        </div>
+        {money(savingTotal).greaterThan(0) && (
+          <p className="flex items-center gap-1 text-[length:var(--text-sm)] font-medium tabular-nums text-primary">
+            {t("save")} <NormalPrice price={savingTotal} />
+          </p>
+        )}
       </div>
 
       <div className="space-y-6 mt-6">
@@ -404,39 +453,16 @@ export default function ProductMainInfo({
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
-          {money(discount).greaterThan(0) ? (
-            <>
-              <span className="text-xl font-semibold">
-                <DiscountPrice
-                  price={price}
-                  discount={discount}
-                  quantity={currentQuantity}
-                  priceIncrease={priceIncrease}
-                  lampPriceIncrease={lampPriceIncrease}
-                />
-              </span>
-              <s className="text-muted-foreground text-base">
-                <NormalPrice price={totalPriceBeforeDiscount} quantity={currentQuantity} />
-              </s>
-              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-md text-sm font-medium">
-                {formatPercent(discount, locale)} {t("off")}
-              </span>
-            </>
-          ) : (
-            <span className="text-xl font-semibold">
-              <NormalPrice price={totalPriceBeforeDiscount} quantity={currentQuantity} />
-            </span>
-          )}
-        </div>
-
-        <div className="flex justify-between items-center py-4 border-t border-b">
-          <div className="flex items-center text-primary">
-            <span className="text-base md:text-lg font-medium">{t("checkAvailability")}</span>
-            <ArrowRight className="w-5 h-5 ml-2 rtl:rotate-180" />
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+          <div className="flex items-center gap-2 text-primary">
+            <span className="text-[length:var(--text-sm)] font-medium">{t("checkAvailability")}</span>
+            <ArrowRight className="size-4 rtl:rotate-180" aria-hidden />
           </div>
-          <div className="text-right">
-            <span className="text-green-600 font-medium">{t("inStock")}</span>
+          <div className="text-end">
+            <span className="inline-flex items-center gap-2 text-[length:var(--text-sm)] font-medium">
+              <span aria-hidden className="size-2 rounded-full bg-primary" />
+              {t("inStock")}
+            </span>
             {showIP20Text && <div className="text-destructive text-[13px] font-medium">{t("availableOnlyIP20")}</div>}
             {showMaxIpText && <div className="text-destructive text-[13px] font-medium">{t("availableOnlyIP20IP44IP54")}</div>}
             {showOutdoorText && <div className="text-destructive text-[13px] font-medium">{t("availableOnlyIP65IP68")}</div>}
@@ -444,7 +470,7 @@ export default function ProductMainInfo({
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-10 bg-white dark:bg-neutral-900 border-t shadow-lg px-4 md:relative md:bg-transparent md:border-0 md:shadow-none md:p-0 md:mt-6">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 backdrop-blur md:relative md:mt-6 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
         <div className="flex flex-col gap-3 mx-auto md:max-w-none md:p-0 py-4">
           <div className="flex items-center gap-4">
             <QuantitySelector
@@ -478,9 +504,22 @@ export default function ProductMainInfo({
         </div>
       </div>
 
+      {/* The two promises the business already makes, where the decision
+          is taken rather than three sections further down the page. */}
+      <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-[length:var(--text-sm)] text-muted-foreground">
+        <li className="flex items-center gap-2">
+          <TruckIcon className="size-4 text-primary" aria-hidden />
+          {t("delivery")}
+        </li>
+        <li className="flex items-center gap-2">
+          <BanknoteIcon className="size-4 text-primary" aria-hidden />
+          {t("cod")}
+        </li>
+      </ul>
+
       <div className="mt-8 mb-20 md:mb-0">
-        <h2 className="text-xl font-semibold mb-4">{t("description")}</h2>
-        <p className="text-muted-foreground leading-relaxed text-base">{fullDescription}</p>
+        <h2 className="text-[length:var(--text-xl)] font-semibold mb-3">{t("description")}</h2>
+        <p className="text-[length:var(--text-base)] leading-relaxed text-muted-foreground">{fullDescription}</p>
       </div>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>

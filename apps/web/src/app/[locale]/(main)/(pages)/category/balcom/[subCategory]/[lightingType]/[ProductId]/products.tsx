@@ -2,19 +2,14 @@
 
 import ColorTemperatureSection from "@/components/color-temperature-section";
 import { specNumbersByKey, specsByKey } from "@/lib/specs-view";
-import { parseLocalizedInt } from "@/lib/numbers";
-import { multiplyMoney, serializeMoney, serializeRate } from "@repo/money"
+import { multiplyMoney, serializeMoney } from "@repo/money"
 import { Container } from "@/components/container";
-import ProductCard from "@/components/product-card/product-card";
 import ProductFeatures from "@/components/product-features";
 import ProductImages from "@/components/product-images";
 import ProductMainInfo from "@/components/product-main-Info";
 import ProductSpecifications from "@/components/product-specifications-table";
 import {
-  LocalizedProductWithRelations,
   Order,
-  ProductCardProps,
-  ProductSpecification,
   ProductsProps,
   SpecificationsTable,
   OrderStatus,
@@ -41,7 +36,6 @@ const pageVariants: Variants = {
 
 export default function BalcomProducts({
   product,
-  relatedProducts,
   configuration,
   locale,
 }: ProductsProps) {
@@ -184,78 +178,18 @@ export default function BalcomProducts({
   const specs = specsByKey(product.specGroups ?? []);
   const specNumbers = specNumbersByKey(product.specGroups ?? []);
 
-  const transformToBalcomProductCardProps = (relatedProduct: LocalizedProductWithRelations): ProductCardProps => {
-    const specs = relatedProduct.localizedSpecs || {};
-
-    const mockSpecification: ProductSpecification = {
-      id: `spec-${relatedProduct.productId}`,
-      productId: relatedProduct.productId,
-      language: locale,
-      input: specs.input || relatedProduct.input || null,
-      maximumWattage: parseLocalizedInt(specs.maximumWattage) ?? relatedProduct.maximumWattage ?? undefined,
-      brandOfLed: specs.brandOfLed || relatedProduct.brandOfLed || null,
-      luminousFlux: specs.luminousFlux || relatedProduct.luminousFlux || null,
-      mainMaterial: specs.mainMaterial || relatedProduct.mainMaterial || null,
-      cri: specs.cri || relatedProduct.cri || null,
-      beamAngle: specs.beamAngle || relatedProduct.beamAngle || null,
-      workingTemperature: specs.workingTemperature || relatedProduct.workingTemperature || null,
-      fixtureDimmable: specs.fixtureDimmable || relatedProduct.fixtureDimmable || null,
-      electrical: specs.electrical || relatedProduct.electrical || null,
-      powerFactor: specs.powerFactor || relatedProduct.powerFactor || null,
-      colorTemperature: specs.colorTemperature || relatedProduct.colorTemperature || null,
-      ip: specs.ip || relatedProduct.ip?.toString() || null,
-      energySaving: specs.energySaving || relatedProduct.energySaving || null,
-      lifeTime: specs.lifeTime || relatedProduct.lifeTime || null,
-      finish: specs.finish || relatedProduct.finish || null,
-      lampBase: specs.lampBase || relatedProduct.lampBase || null,
-      bulb: null,
-      customSpecs: undefined,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    return {
-      productId: relatedProduct.productId,
-      productName: relatedProduct.productName,
-      price: serializeMoney(relatedProduct.price),
-      discount: serializeRate(relatedProduct.discount ?? 0),
-      productImages: relatedProduct.productImages,
-      Brand: relatedProduct.brand,
-      brand: relatedProduct.brand,
-      chandelierLightingType: relatedProduct.chandelierLightingType || "",
-      // The related card's description comes from these, the same way the
-      // page above it builds its own; see @repo/catalog/describe.
-      specGroups: relatedProduct.specGroups,
-      lightingTypeName: relatedProduct.lightingtype?.translations?.[0]?.name ?? relatedProduct.lightingtype?.name ?? undefined,
-      bulbChoices: relatedProduct.bulbChoices ?? [],
-      sectionType: relatedProduct.sectionType,
-      specification: mockSpecification,
-      maximumWattage: parseLocalizedInt(specs.maximumWattage) ?? relatedProduct.maximumWattage ?? undefined,
-      mainMaterial: specs.mainMaterial || (relatedProduct.mainMaterial ?? undefined),
-      beamAngle: specs.beamAngle || (relatedProduct.beamAngle ?? undefined),
-      spotlightType: relatedProduct.spotlightType,
-      luminousFlux: specs.luminousFlux || (relatedProduct.luminousFlux ?? undefined),
-      colorTemperature: specs.colorTemperature || (relatedProduct.colorTemperature ?? undefined),
-      lifeTime: specs.lifeTime || (relatedProduct.lifeTime ?? undefined),
-      energySaving: specs.energySaving || (relatedProduct.energySaving ?? undefined),
-      cri: specs.cri || (relatedProduct.cri ?? undefined),
-      brandOfLed: specs.brandOfLed || (relatedProduct.brandOfLed ?? undefined),
-      electrical: specs.electrical || (relatedProduct.electrical ?? undefined),
-      finish: specs.finish || (relatedProduct.finish ?? undefined),
-      input: specs.input || (relatedProduct.input ?? undefined),
-      lampBase: specs.lampBase || (relatedProduct.lampBase ?? undefined),
-      ip: parseLocalizedInt(specs.ip) ?? relatedProduct.ip ?? undefined,
-      hNumber: relatedProduct.hNumber ?? undefined,
-    };
-  };
-
   return (
     <motion.div initial="hidden" animate="visible" variants={pageVariants}>
-      <div className="py-8 md:py-16" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="py-8 md:py-12" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
         <Container>
-          <div className="space-y-12">
-            <div className="flex items-start flex-col md:flex-row gap-8">
-              <ProductImages productImages={product.productImages} />
+          <div className="space-y-16">
+            {/* The gallery holds its place while the decisions scroll: on a
+                wide screen a shopper comparing options should still be able
+                to see what they are buying. */}
+            <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)] lg:gap-12">
+              <div className="lg:sticky lg:top-24">
+                <ProductImages productImages={product.productImages} />
+              </div>
               <ProductMainInfo
                 productName={product.productName}
                 price={product.price}
@@ -316,39 +250,6 @@ export default function BalcomProducts({
                   specs={specs}
                 />
               )}
-              <section className="space-y-8">
-                <div className="text-center space-y-2">
-                  <h2 className="text-2xl md:text-3xl font-semibold">
-                    {locale === 'ar' ? 'منتجات بالكوم ذات صلة' : 'Related Balcom Products'}
-                  </h2>
-                  {relatedProducts.length > 0 ? (
-                    <p className="text-muted-foreground text-lg">
-                      {locale === 'ar'
-                        ? 'منتجات تقنية قد تعجبك أيضاً'
-                        : 'Technical lighting products you might also like'
-                      }
-                    </p>
-                  ) : (
-                    <p className="text-muted-foreground text-lg">
-                      {locale === 'ar'
-                        ? 'لم يتم العثور على منتجات ذات صلة'
-                        : 'No related products found'
-                      }
-                    </p>
-                  )}
-                </div>
-                {relatedProducts.length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 mb-12">
-                    {relatedProducts.map((relatedProduct) => (
-                      <ProductCard
-                        key={relatedProduct.productId}
-                        product={transformToBalcomProductCardProps(relatedProduct) as any}
-                        locale={locale}
-                      />
-                    ))}
-                  </div>
-                )}
-              </section>
             </div>
           </div>
         </Container>

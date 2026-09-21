@@ -263,3 +263,27 @@ export async function homeData(locale: string, perRail = 10): Promise<HomeData> 
     newest: [...all].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, perRail),
   };
 }
+
+/**
+ * What else to look at, from the same rows every other card reads.
+ *
+ * The product page built its related cards by hand, filling a card shape
+ * field by field and casting away the mismatch — so a related card showed
+ * a list price where the shop showed the discounted one, and the two
+ * disagreed about the same product on the same visit. Nearest first: the
+ * same lighting type, then the rest of the family.
+ */
+export async function relatedCards(
+  { productId, family, lightingTypeSlug }: { productId: string; family: ProductFamily; lightingTypeSlug?: string },
+  locale: string,
+  limit = 10,
+): Promise<ShopCard[]> {
+  const rows = await loadCardRows(locale, { sectionType: family, productId: { not: productId } });
+  const rates = await productDiscountRates(rows, prisma);
+  const cards = rows.map((row) => toCard(row, locale, rates[row.id] ?? serializeRate(0)));
+
+  const rank = (card: ShopCard) =>
+    (lightingTypeSlug && card.lightingTypeSlug === lightingTypeSlug ? 0 : 1) + (card.quantity > 0 ? 0 : 2);
+
+  return [...cards].sort((a, b) => rank(a) - rank(b)).slice(0, limit);
+}

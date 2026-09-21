@@ -20,7 +20,8 @@
         "noResults": "No results found",
         "showingResults": "Showing results for",
         "searching": "Searching...",
-        "viewAll": "View All"
+        "viewAll": "View All",
+        "submit": "Search"
     },
     "header": {
         "about-us": "About Us",
@@ -1097,7 +1098,11 @@
         "discount": "discount",
         "viewProduct": "View Product",
         "orderNow": "Order Now",
-        "count": "{count, plural, one {# item} other {# items}}"
+        "count": "{count, plural, one {# item} other {# items}}",
+        "subtotal": "Subtotal",
+        "saved": "You save",
+        "perItemNote": "Each product is ordered on its own — use “Order now” on the one you want.",
+        "continueShopping": "Keep shopping"
     },
     "login": {
         "loginRequired": "Login Required",

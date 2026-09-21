@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge"
 import type { ProductFamily } from "@repo/catalog/families";
-import { money, type MoneyInput, serializeMoney, sumMoney } from "@repo/money";
+import { money, multiplyMoney, serializeMoney, subtractMoney, sumMoney } from "@repo/money";
 import { priceLine } from "@/lib/pricing";
 import { formatPercent } from "@/lib/numbers";
 import { Button } from "@/components/ui/button"
@@ -156,7 +156,15 @@ export function CartSidebar() {
   }
 
   const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0)
+  // The sheet computed this and then never showed it: a cart that adds up
+  // to nothing the shopper can see.
   const totalPrice = serializeMoney(sumMoney(cartItems.map((item) => item.totalPrice)))
+  const totalSaved = serializeMoney(
+    subtractMoney(
+      sumMoney(cartItems.map((item) => multiplyMoney(item.price, item.quantity))),
+      sumMoney(cartItems.map((item) => item.totalPrice)),
+    ),
+  )
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -178,10 +186,10 @@ export function CartSidebar() {
         </Button>
       </SheetTrigger>
       <SheetContent className="flex flex-col p-0 w-full sm:max-w-lg z-50">
-        <SheetHeader className="border-b border-border/50 px-6 py-5 bg-gradient-to-b from-background to-muted/20">
-          <SheetTitle className="flex items-center gap-3 text-xl font-bold">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <ShoppingBag className="h-5 w-5 text-primary" />
+        <SheetHeader className="border-b border-border px-6 py-5">
+          <SheetTitle className="flex items-center gap-3 text-[length:var(--text-xl)] font-semibold">
+            <div className="grid size-9 place-items-center rounded-lg bg-primary/12">
+              <ShoppingBag className="size-5 text-primary" aria-hidden />
             </div>
             <span>{t("title")}</span>
             {totalItems > 0 && (
@@ -202,7 +210,12 @@ export function CartSidebar() {
           ) : isLoading ? (
             <LoadingState />
           ) : cartItems.length === 0 ? (
-            <EmptyState icon={ShoppingCart} title={t("emptyCart.title")} description={t("emptyCart.description")} />
+            <EmptyState
+              icon={ShoppingCart}
+              title={t("emptyCart.title")}
+              description={t("emptyCart.description")}
+              action={{ href: "/products", label: t("emptyCart.continueShopping"), onClick: handleCloseSheet }}
+            />
           ) : (
             <>
               <CartItemsList
@@ -212,6 +225,7 @@ export function CartSidebar() {
                 onRemoveItem={removeItem}
                 onCloseSheet={handleCloseSheet}
               />
+              <CartSummary total={totalPrice} saved={totalSaved} onCloseSheet={handleCloseSheet} />
             </>
           )}
         </div>
@@ -224,10 +238,12 @@ function EmptyState({
   icon: Icon,
   title,
   description,
+  action,
 }: {
   icon: any
   title: string
   description: string
+  action?: { href: string; label: string; onClick?: () => void }
 }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
@@ -236,6 +252,47 @@ function EmptyState({
       </div>
       <h3 className="text-lg font-bold mb-2">{title}</h3>
       <p className="text-sm text-muted-foreground max-w-xs">{description}</p>
+      {action && (
+        <Link href={action.href} onClick={action.onClick} className="mt-6">
+          <Button>{action.label}</Button>
+        </Link>
+      )}
+    </div>
+  )
+}
+
+/** What the cart comes to, and how each line is ordered from here. */
+function CartSummary({
+  total,
+  saved,
+  onCloseSheet,
+}: {
+  total: string
+  saved: string
+  onCloseSheet: () => void
+}) {
+  const t = useTranslations("cart")
+
+  return (
+    <div className="border-t border-border bg-card/50 px-6 py-5 space-y-3">
+      <div className="flex items-baseline justify-between gap-4">
+        <span className="font-medium">{t("subtotal")}</span>
+        <span className="font-[family-name:var(--font-display-face)] text-[length:var(--text-xl)] font-semibold tabular-nums">
+          <NormalPrice price={total} />
+        </span>
+      </div>
+      {money(saved).greaterThan(0) && (
+        <p className="flex items-center justify-between gap-4 text-[length:var(--text-sm)] font-medium text-primary">
+          <span>{t("saved")}</span>
+          <NormalPrice price={saved} />
+        </p>
+      )}
+      <p className="text-[length:var(--text-sm)] text-muted-foreground">{t("perItemNote")}</p>
+      <Link href="/products" onClick={onCloseSheet} className="block">
+        <Button variant="outline" className="w-full bg-transparent">
+          {t("continueShopping")}
+        </Button>
+      </Link>
     </div>
   )
 }
@@ -323,10 +380,7 @@ function CartItemCard({
               className="object-cover rounded-lg shadow-sm"
             />
             {money(item.discount).greaterThan(0) && (
-              <Badge
-                variant="destructive"
-                className="absolute -top-2 -left-2 text-xs px-2 py-1 font-bold shadow-md"
-              >
+              <Badge className="absolute -top-2 -start-2 px-2 py-0.5 text-[length:var(--text-xs)] font-semibold tabular-nums">
                 -{formatPercent(item.discount, locale)}
               </Badge>
             )}

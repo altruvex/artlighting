@@ -20,7 +20,8 @@
         "noResults": "لا توجد نتائج",
         "showingResults": "عرض النتائج",
         "searching": "جاري البحث...",
-        "viewAll": "عرض الكل"
+        "viewAll": "عرض الكل",
+        "submit": "ابحث"
     },
     "header": {
         "about-us": "عن الشركة",
@@ -884,7 +885,11 @@
         "discount": "خصم",
         "viewProduct": "عرض المنتج",
         "orderNow": "اطلب الآن",
-        "count": "{count, plural, zero {لا عناصر} one {عنصر واحد} two {عنصران} few {# عناصر} many {# عنصرًا} other {# عنصر}}"
+        "count": "{count, plural, zero {لا عناصر} one {عنصر واحد} two {عنصران} few {# عناصر} many {# عنصرًا} other {# عنصر}}",
+        "subtotal": "الإجمالي",
+        "saved": "وفّرت",
+        "perItemNote": "كل منتج بيتطلب لوحده — اضغط «اطلب الآن» على المنتج اللي عايزه.",
+        "continueShopping": "كمّل تسوّق"
     },
     "login": {
         "loginRequired": "تسجيل الدخول مطلوب",

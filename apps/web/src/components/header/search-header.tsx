@@ -4,7 +4,7 @@ import { searchProducts } from "@/actions/search"
 import type { ProductFamily } from "@repo/catalog/families";
 import { money, type MoneyInput } from "@repo/money";
 import { Input } from "@/components/ui/input"
-import { Link } from "@/i18n/navigation"
+import { Link, useRouter } from "@/i18n/navigation"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Loader2, Search } from "lucide-react"
@@ -47,6 +47,7 @@ export function SearchHeader({ isMobile = false, isMobileSheet = false }: Search
     const searchRef = useRef<HTMLDivElement>(null)
     const t = useTranslations("search")
     const locale = useLocale()
+    const router = useRouter()
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -109,6 +110,17 @@ export function SearchHeader({ isMobile = false, isMobileSheet = false }: Search
         setSearchTerm("")
     }
 
+    // Enter goes to the shop, filtered by the same words — the dropdown
+    // showed six matches and hid the rest behind a button that had been
+    // commented out, pointing at /search, a page that does not exist.
+    const handleSubmit = (event: React.FormEvent) => {
+        event.preventDefault()
+        const query = searchTerm.trim()
+        if (!query) return
+        setShowResults(false)
+        router.push(`/products?q=${encodeURIComponent(query)}`)
+    }
+
     if (isMobile && !isMobileSheet) {
         return (
             <Button
@@ -124,17 +136,26 @@ export function SearchHeader({ isMobile = false, isMobileSheet = false }: Search
 
     return (
         <div className="relative" ref={searchRef}>
-            <div className={`relative ${isMobileSheet ? "w-full" : "w-64"}`}>
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground rtl:left-auto rtl:right-3" />
+            <form role="search" onSubmit={handleSubmit} className={`relative ${isMobileSheet ? "w-full" : "w-64"}`}>
+                {/* A real submit button, not a decorative icon: it is what
+                    makes Enter submit the field, and it gives the search a
+                    control a keyboard and a screen reader can reach. */}
+                <button
+                    type="submit"
+                    aria-label={t("submit", { defaultMessage: "Search" })}
+                    className="absolute inset-y-0 start-0 grid w-10 place-items-center text-muted-foreground transition-colors duration-[var(--dur-hover)] hover:text-foreground"
+                >
+                    <Search className="size-4" aria-hidden />
+                </button>
                 <Input
                     type="search"
                     placeholder={t("placeholder", { defaultMessage: "Search products..." })}
-                    className="pl-10 rtl:pl-3 rtl:pr-10 w-full bg-background border-border/50 focus:border-primary/50 transition-all"
+                    className="w-full bg-background ps-10 transition-colors focus:border-primary/50"
                     value={searchTerm}
                     onChange={handleInputChange}
                     onFocus={handleInputFocus}
                 />
-            </div>
+            </form>
             {showResults && (
                 <SearchResults
                     isSearching={isSearching}
@@ -302,13 +323,13 @@ function ViewAllResults({ totalResults, searchTerm, onResultClick, t }: {
                 total: totalResults
             })}
             <Link
-                href={`/search?q=${encodeURIComponent(searchTerm)}`}
+                href={`/products?q=${encodeURIComponent(searchTerm)}`}
                 onClick={onResultClick}
-                className="block mt-2"
+                className="mt-2 block"
             >
-                {/* <Button variant="outline" size="sm" className="w-full bg-transparent hover:bg-accent/50">
+                <Button variant="outline" size="sm" className="w-full bg-transparent">
                     {t("viewAll", { defaultMessage: "View All Results" })}
-                </Button> */}
+                </Button>
             </Link>
         </div>
     )

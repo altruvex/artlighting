@@ -1180,7 +1180,12 @@
             "price-desc": "Price: high to low",
             "discount": "Biggest discount",
             "newest": "Newest"
-        }
+        },
+        "prev": "Previous",
+        "next": "Next",
+        "pageOf": "Page {page} of {pages}",
+        "pagination": "Result pages",
+        "goToPage": "Page {page}"
     },
     "home": {
         "hero": {

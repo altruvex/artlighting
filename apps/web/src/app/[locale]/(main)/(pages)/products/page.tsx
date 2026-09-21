@@ -1,5 +1,6 @@
 import ProductCard from "@/components/product-card/product-card";
 import { ShopFilters } from "@/components/shop/shop-filters";
+import { ShopPagination } from "@/components/shop/shop-pagination";
 import { ShopSort } from "@/components/shop/shop-sort";
 import { Link } from "@/i18n/navigation";
 import { getLocaleFromParams } from "@/lib/i18n/utils";
@@ -116,13 +117,21 @@ export default async function ShopPage({ params, searchParams }: Props) {
               </Link>
             </div>
           ) : (
-            <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 md:grid-cols-3 xl:grid-cols-4">
-              {result.products.map((product) => (
-                <li key={product.id}>
-                  <ProductCard product={product} locale={locale} />
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 md:grid-cols-3 xl:grid-cols-4">
+                {result.products.map((product) => (
+                  <li key={product.id}>
+                    <ProductCard product={product} locale={locale} />
+                  </li>
+                ))}
+              </ul>
+              <ShopPagination
+                page={result.page}
+                pageCount={result.pageCount}
+                params={raw}
+                locale={locale}
+              />
+            </>
           )}
         </section>
       </div>

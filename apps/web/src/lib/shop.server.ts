@@ -31,6 +31,7 @@ import { localizeSpecGroups, specGroupSelect } from "@/lib/spec-groups";
 export type ShopSort = "featured" | "price-asc" | "price-desc" | "discount" | "newest";
 
 export interface ShopQuery {
+  page: number;
   families: ProductFamily[];
   brands: string[];
   types: string[];
@@ -57,7 +58,9 @@ export function parseShopQuery(params: Record<string, string | string[] | undefi
     return Number.isFinite(value) && value >= 0 ? value : null;
   };
   const sort = list("sort")[0] as ShopSort | undefined;
+  const page = Math.max(1, Math.trunc(number("page") ?? 1) || 1);
   return {
+    page,
     families: list("family").map(familyFromSlug).filter((f): f is ProductFamily => f !== null),
     brands: list("brand").filter((b) => b === "balcom" || b === "mister-led"),
     types: list("type"),
@@ -135,9 +138,15 @@ export interface Facet {
   count: number;
 }
 
+/** How many cards a shop page shows before it asks for the next one. */
+export const PER_PAGE = 24;
+
 export interface ShopResult {
+  /** This page of results, not the whole match. */
   products: ShopCard[];
   total: number;
+  page: number;
+  pageCount: number;
   /** Across the whole catalogue, so the price slider never narrows itself. */
   priceBounds: { min: number; max: number };
   facets: { family: Facet[]; brand: Facet[]; type: Facet[]; sale: number };
@@ -203,9 +212,16 @@ export async function searchShop(query: ShopQuery, locale: string): Promise<Shop
   });
 
   const prices = all.map(priceOf);
+  // 117 cards in one response is 117 images the browser has to lay out
+  // before the first of them is useful. The page is part of the URL, so a
+  // crawler and the back button both follow it.
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PER_PAGE));
+  const page = Math.min(query.page, pageCount);
   return {
-    products: sorted,
+    products: sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE),
     total: sorted.length,
+    page,
+    pageCount,
     // Not Math.min(...prices, 0): the 0 was meant to guard an empty list and
     // instead made the lower bound 0 every time.
     priceBounds: prices.length

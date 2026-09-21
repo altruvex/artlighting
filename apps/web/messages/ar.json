@@ -967,7 +967,12 @@
             "price-desc": "السعر: من الأعلى",
             "discount": "أكبر خصم",
             "newest": "الأحدث"
-        }
+        },
+        "prev": "السابق",
+        "next": "التالي",
+        "pageOf": "صفحة {page} من {pages}",
+        "pagination": "صفحات النتائج",
+        "goToPage": "صفحة {page}"
     },
     "home": {
         "hero": {

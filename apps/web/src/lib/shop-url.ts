@@ -21,6 +21,12 @@ function toMap(params: ShopParams): Map<string, string[]> {
   return map;
 }
 
+/** Narrowing the list invalidates the page number that went with the old one. */
+function resetPage(map: Map<string, string[]>): Map<string, string[]> {
+  map.delete("page");
+  return map;
+}
+
 function toHref(map: Map<string, string[]>): string {
   const search = new URLSearchParams();
   for (const [key, values] of map) {
@@ -37,26 +43,26 @@ export function toggleParam(params: ShopParams, key: string, value: string): str
   const current = map.get(key) ?? [];
   const next = current.includes(value) ? current.filter((v) => v !== value) : [...current, value];
   map.set(key, next);
-  return toHref(map);
+  return toHref(resetPage(map));
 }
 
 export function setParam(params: ShopParams, key: string, value: string | null): string {
   const map = toMap(params);
   if (value === null || value === "") map.delete(key);
   else map.set(key, [value]);
-  return toHref(map);
+  return toHref(key === "page" ? map : resetPage(map));
 }
 
 /** Drops several keys at once — a price range is two, and removing one of them is half a chip. */
 export function removeParams(params: ShopParams, keys: string[]): string {
   const map = toMap(params);
   for (const key of keys) map.delete(key);
-  return toHref(map);
+  return toHref(resetPage(map));
 }
 
 export function clearFilters(params: ShopParams): string {
   // The sort and the search survive "clear filters" — they are not filters.
   const map = toMap(params);
   for (const key of [...map.keys()]) if (key !== "sort" && key !== "q") map.delete(key);
-  return toHref(map);
+  return toHref(resetPage(map));
 }

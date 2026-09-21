@@ -28,7 +28,15 @@
         "products": "Products",
         "blog": "Blog",
         "contact-us": "Contact Us",
-        "view-details": "View details"
+        "view-details": "View details",
+        "shop": "Shop",
+        "offers": "Offers",
+        "all-products": "All products",
+        "menu": "Menu",
+        "browse": "Browse by type",
+        "see-offers": "Everything discounted right now",
+        "models": "All models",
+        "account": "Account"
     },
     "new-collection": {
         "line-lamp-title": "Line — Up/Down LED Suspended Lamp",
@@ -1073,7 +1081,8 @@
         },
         "discount": "discount",
         "viewProduct": "View Product",
-        "orderNow": "Order Now"
+        "orderNow": "Order Now",
+        "count": "{count, plural, one {# item} other {# items}}"
     },
     "login": {
         "loginRequired": "Login Required",

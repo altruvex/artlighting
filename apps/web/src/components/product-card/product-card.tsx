@@ -1,6 +1,7 @@
 "use client"
 
 import { addToCart } from "@/actions/cart";
+import { notifyCartChanged } from "@/lib/cart-events";
 import { familySlug, type ProductFamily } from "@repo/catalog/families";
 import type { BulbChoice } from "@repo/catalog/bulb-pricing";
 import type { LocalizedSpecGroup } from "@/lib/specs-view";
@@ -134,6 +135,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     startTransition(async () => {
       try {
         await addToCart(product.productId);
+        notifyCartChanged();
         toast.success(tToast("addToCartSuccess", { productName: displayName }));
       } catch (error) {
         console.error("Cart addition failed:", error);

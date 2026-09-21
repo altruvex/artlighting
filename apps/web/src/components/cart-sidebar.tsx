@@ -17,6 +17,7 @@ import { toast } from "sonner"
 import DiscountPrice from "./discount-price"
 import NormalPrice from "./normal-price"
 import { Link } from "@/i18n/navigation"
+import { notifyCartChanged, onCartChanged } from "@/lib/cart-events"
 
 interface CartItem {
   id: string
@@ -41,29 +42,40 @@ export function CartSidebar() {
   const [isUpdating, setIsUpdating] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchCartItems = async () => {
-      if (!isSignedIn || !userId) return
-      setIsLoading(true)
+    if (!isSignedIn || !userId) {
+      setCartItems([])
+      return
+    }
+
+    let cancelled = false
+    // Loud when the shopper is looking at the sheet, silent when this is
+    // only the badge catching up in the background — a toast about a cart
+    // nobody opened is noise.
+    const fetchCartItems = async (visible: boolean) => {
+      if (visible) setIsLoading(true)
       try {
         const response = await fetch("/api/cart")
-        if (response.ok) {
-          const items = await response.json()
-          setCartItems(items)
-        } else {
+        if (!response.ok) {
           const errorData = await response.json()
           console.error("Failed to fetch cart items:", errorData)
-          toast.error(t("messages.failedToLoad"))
+          if (visible) toast.error(t("messages.failedToLoad"))
+          return
         }
+        const items = await response.json()
+        if (!cancelled) setCartItems(items)
       } catch (error) {
         console.error("Error fetching cart items:", error)
-        toast.error(t("messages.errorLoading"))
+        if (visible) toast.error(t("messages.errorLoading"))
       } finally {
-        setIsLoading(false)
+        if (visible && !cancelled) setIsLoading(false)
       }
     }
 
-    if (isOpen && isSignedIn) {
-      fetchCartItems()
+    fetchCartItems(isOpen)
+    const stop = onCartChanged(() => fetchCartItems(false))
+    return () => {
+      cancelled = true
+      stop()
     }
   }, [isOpen, isSignedIn, userId, t])
 
@@ -97,6 +109,7 @@ export function CartSidebar() {
         const updatedItem = await response.json()
         setCartItems((prevItems) => prevItems.map((item) => (item.id === itemId ? updatedItem : item)))
         localStorage.setItem(`quantity-${itemId}`, newQuantity.toString())
+        notifyCartChanged()
         toast.success(t("messages.quantityUpdated"))
       } else {
         setCartItems(previousItems)
@@ -124,6 +137,7 @@ export function CartSidebar() {
 
       if (response.ok) {
         localStorage.removeItem(`quantity-${itemId}`)
+        notifyCartChanged()
         toast.success(t("messages.itemRemoved"))
       } else {
         setCartItems(previousItems)
@@ -156,8 +170,7 @@ export function CartSidebar() {
           <ShoppingCart className="h-4 w-4" />
           {totalItems > 0 && (
             <Badge
-              variant="destructive"
-              className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs font-semibold shadow-lg"
+              className="absolute -top-2 -end-2 h-5 min-w-5 justify-center rounded-full p-0 px-1 text-[length:var(--text-xs)] font-semibold tabular-nums"
             >
               {totalItems > 99 ? "99+" : totalItems}
             </Badge>
@@ -172,8 +185,8 @@ export function CartSidebar() {
             </div>
             <span>{t("title")}</span>
             {totalItems > 0 && (
-              <Badge variant="secondary" className="ml-auto text-sm font-semibold px-3 py-1">
-                {totalItems} {totalItems === 1 ? 'item' : 'items'}
+              <Badge variant="secondary" className="ms-auto px-3 py-1 text-[length:var(--text-sm)] font-semibold">
+                {t("count", { count: totalItems })}
               </Badge>
             )}
           </SheetTitle>

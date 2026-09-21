@@ -10,75 +10,91 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SignedIn, SignedOut, SignInButton, SignUpButton, useUser } from "@/lib/auth-hooks"
 import { UserButton } from "@/components/user-button"
-import { ChevronDown, LogIn, UserPlus } from "lucide-react"
+import { LogIn, UserPlus } from "lucide-react"
 import { useTranslations } from "next-intl"
-import { CartSidebar } from "../cart-sidebar"
+import { useEffect, useState } from "react"
 
-export default function AuthSection() {
+/**
+ * The account control in the header bar, and the pair of buttons in the
+ * mobile menu.
+ *
+ * The bar holds one control at every width — an avatar when signed in, one
+ * account button when not — so the row does not reflow between breakpoints.
+ * The full sign-in/sign-up pair belongs in the sheet, where there is room
+ * for it.
+ */
+export default function AuthSection({ variant = "bar" }: { variant?: "bar" | "sheet" }) {
   const { isLoaded } = useUser()
   const t = useTranslations("auth-section")
+  const tHeader = useTranslations("header")
+  // The server reads the session and renders the signed-in tree; the
+  // browser's first render starts with the hook unloaded and renders the
+  // skeleton — two different trees, which is the hydration error every page
+  // logged. Both render the skeleton until this has mounted, so they agree,
+  // and the real state replaces it a frame later. suppressHydrationWarning
+  // did not help: it silences a mismatched attribute, not a different tree.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
-  if (!isLoaded) {
-    return <AuthSkeleton />
+  if (!mounted || !isLoaded) {
+    return variant === "sheet" ? (
+      <div className="flex items-center gap-2">
+        <div className="h-9 flex-1 animate-pulse rounded-md bg-muted" />
+        <div className="h-9 flex-1 animate-pulse rounded-md bg-muted" />
+      </div>
+    ) : (
+      <div className="h-9 w-9 animate-pulse rounded-md bg-muted" />
+    )
+  }
+
+  if (variant === "sheet") {
+    return (
+      <>
+        <SignedOut>
+          <SheetAuthButtons t={t} />
+        </SignedOut>
+        <SignedIn>
+          <UserButton className="h-9 w-9" />
+        </SignedIn>
+      </>
+    )
   }
 
   return (
-    <div className="flex items-center gap-2 sm:gap-4 rtl:flex-row-reverse" suppressHydrationWarning>
-      {/* Desktop View */}
-      <div className="hidden lg:flex items-center gap-3 rtl:flex-row-reverse">
-        <SignedOut>
-          <DesktopAuthButtons t={t} />
-        </SignedOut>
-        <SignedIn>
-          <UserAvatar />
-        </SignedIn>
-        <CartSidebar />
-      </div>
-
-      {/* Mobile View */}
-      <div className="flex lg:hidden items-center w-full gap-2 rtl:flex-row-reverse">
-        <SignedOut>
-          <MobileAuthButtons t={t} />
-        </SignedOut>
-        <SignedIn>
-          <div className="flex items-center gap-2 rtl:flex-row-reverse">
-            <UserAvatar isMobile />
-            <CartSidebar />
-          </div>
-        </SignedIn>
-      </div>
-    </div>
-  )
-}
-
-function AuthSkeleton() {
-  return (
-    <div className="flex items-center gap-3">
-      <div className="h-9 w-24 bg-muted rounded-md animate-pulse" />
-      <div className="h-9 w-20 bg-muted rounded-md animate-pulse" />
-    </div>
+    <>
+      <SignedOut>
+        <AccountMenu t={t} label={tHeader("account")} />
+      </SignedOut>
+      <SignedIn>
+        <UserButton className="h-9 w-9" />
+      </SignedIn>
+    </>
   )
 }
 
 interface AuthProps {
-  t: any
+  t: ReturnType<typeof useTranslations>
 }
 
-function DesktopAuthButtons({ t }: AuthProps) {
+/** One button in the bar; the choice between signing in and up is inside it. */
+function AccountMenu({ t, label }: AuthProps & { label: string }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 font-medium bg-transparent">
-          <LogIn className="w-4 h-4" />
-          <span>{t("account", { defaultMessage: "Account" })}</span>
-          <ChevronDown className="w-4 h-4 opacity-60" />
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-9 w-9 bg-transparent"
+          aria-label={label}
+        >
+          <LogIn className="size-4" />
         </Button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-48" sideOffset={8}>
         <SignInButton>
-          <DropdownMenuItem className="cursor-pointer">
-            <LogIn className="w-4 h-4 rtl:ml-2 rtl:mr-0 mr-2" />
+          <DropdownMenuItem className="cursor-pointer gap-2">
+            <LogIn className="size-4" />
             <span>{t("signIn", { defaultMessage: "Sign In" })}</span>
           </DropdownMenuItem>
         </SignInButton>
@@ -86,8 +102,8 @@ function DesktopAuthButtons({ t }: AuthProps) {
         <DropdownMenuSeparator />
 
         <SignUpButton>
-          <DropdownMenuItem className="cursor-pointer">
-            <UserPlus className="w-4 h-4 rtl:ml-2 rtl:mr-0 mr-2" />
+          <DropdownMenuItem className="cursor-pointer gap-2">
+            <UserPlus className="size-4" />
             <span>{t("signUp", { defaultMessage: "Sign Up" })}</span>
           </DropdownMenuItem>
         </SignUpButton>
@@ -96,30 +112,22 @@ function DesktopAuthButtons({ t }: AuthProps) {
   )
 }
 
-function MobileAuthButtons({ t }: AuthProps) {
+function SheetAuthButtons({ t }: AuthProps) {
   return (
-    <div className="flex items-center gap-2 flex-1">
+    <div className="flex items-center gap-2">
       <SignInButton>
-        <Button variant="outline" size="sm" className="flex-1 font-medium bg-transparent">
-          <LogIn className="w-4 h-4" />
-          <span className="hidden xs:inline">{t("signIn", { defaultMessage: "Sign In" })}</span>
+        <Button variant="outline" size="sm" className="flex-1 bg-transparent font-medium">
+          <LogIn className="size-4" />
+          <span>{t("signIn", { defaultMessage: "Sign In" })}</span>
         </Button>
       </SignInButton>
 
       <SignUpButton>
         <Button size="sm" className="flex-1 font-medium">
-          <UserPlus className="w-4 h-4" />
-          <span className="hidden xs:inline">{t("signUp", { defaultMessage: "Sign Up" })}</span>
+          <UserPlus className="size-4" />
+          <span>{t("signUp", { defaultMessage: "Sign Up" })}</span>
         </Button>
       </SignUpButton>
     </div>
   )
-}
-
-interface UserAvatarProps {
-  isMobile?: boolean
-}
-
-function UserAvatar({ isMobile = false }: UserAvatarProps) {
-  return <UserButton className={isMobile ? "w-9 h-9" : "w-10 h-10"} />
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import { addToCart } from "@/actions/cart"
+import { notifyCartChanged } from "@/lib/cart-events"
 import type { ProductFamily } from "@repo/catalog/families";
 import { addMoney, applyRate, clampNonNegative, money, type MoneyInput, multiplyMoney, serializeMoney, subtractMoney } from "@repo/money"
 import { updateProductIP } from "@/actions/product-ip"
@@ -331,6 +332,7 @@ export default function ProductMainInfo({
       }
       try {
         await addToCart(productId)
+        notifyCartChanged()
         toast.success(tNotification("addedToCart", { productName }))
       } catch {
         toast.error(tNotification("failedToAdd"))

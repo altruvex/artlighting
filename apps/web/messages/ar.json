@@ -28,7 +28,15 @@
         "products": "المنتجات",
         "blog": "الاحداث",
         "contact-us": "اتصل بنا",
-        "view-details": "اعرف المزيد"
+        "view-details": "اعرف المزيد",
+        "shop": "المتجر",
+        "offers": "العروض",
+        "all-products": "كل المنتجات",
+        "menu": "القائمة",
+        "browse": "تصفّح حسب النوع",
+        "see-offers": "المنتجات المخفّضة دلوقتي",
+        "models": "كل الموديلات",
+        "account": "حسابي"
     },
     "new-collection": {
         "line-lamp-title": "لاين — مصباح ليد معلق صعوداً/هبوطاً",
@@ -860,7 +868,8 @@
         },
         "discount": "خصم",
         "viewProduct": "عرض المنتج",
-        "orderNow": "اطلب الآن"
+        "orderNow": "اطلب الآن",
+        "count": "{count, plural, zero {لا عناصر} one {عنصر واحد} two {عنصران} few {# عناصر} many {# عنصرًا} other {# عنصر}}"
     },
     "login": {
         "loginRequired": "تسجيل الدخول مطلوب",

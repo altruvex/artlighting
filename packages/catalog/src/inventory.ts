@@ -74,13 +74,17 @@ export async function defaultLocation(db: Db = prisma) {
   });
 }
 
-/** The inventory row for a variant at a location, created empty if absent. */
+/**
+ * The inventory row for a variant at a location, created empty if absent.
+ * An upsert, not find-then-create: two first movements for the same variant
+ * at the same moment would both miss and both try to create it.
+ */
 async function itemFor(db: Db, variantId: string, locationId: string) {
-  const existing = await db.inventoryItem.findUnique({
+  return db.inventoryItem.upsert({
     where: { variantId_locationId: { variantId, locationId } },
+    update: {},
+    create: { variantId, locationId },
   });
-  if (existing) return existing;
-  return db.inventoryItem.create({ data: { variantId, locationId } });
 }
 
 interface MovementInput {
@@ -131,31 +135,42 @@ export async function recordMovement(input: MovementInput, db: Db = prisma): Pro
     const item = await itemFor(tx, variantId, locationId);
 
     const delta = EFFECT[kind](quantity);
-    const onHand = item.onHand + delta.onHand;
-    const reserved = item.reserved + delta.reserved;
 
     const variant = await tx.productVariant.findUniqueOrThrow({
       where: { id: variantId },
       select: { sku: true, productId: true },
     });
 
-    // Checked here so the caller gets a useful error naming the SKU; the
-    // database CHECK constraints are the backstop for anything that reaches
-    // them another way.
-    if (onHand < 0) {
-      throw new InsufficientStockError(variant.sku, quantity, item.onHand);
-    }
-    if (reserved < 0) {
-      throw new Error(`Cannot release ${quantity} of ${variant.sku}: only ${item.reserved} reserved`);
-    }
-    if (reserved > onHand) {
-      throw new InsufficientStockError(variant.sku, quantity, item.onHand - item.reserved);
-    }
+    // One guarded UPDATE, relative to whatever the row holds when it runs.
+    //
+    // This used to read the row, work out the new numbers in code and write
+    // them back as absolutes. Two orders reserving the same variant at once
+    // both read reserved = 0 and both wrote 1: one reservation vanished, and
+    // the database's CHECK constraints could not see it, because each write
+    // was individually valid. Postgres locks the row for the UPDATE, so
+    // concurrent movements queue behind each other, and the WHERE clause is
+    // the oversell check — a movement that would go negative or promise
+    // more than is on hand matches no row instead of raising, which leaves
+    // the caller's transaction usable for the error it reports.
+    const [updated] = await tx.$queryRaw<{ onHand: number; reserved: number; incoming: number; reorderPoint: number | null }[]>`
+      UPDATE "inventory_items"
+      SET "onHand" = "onHand" + ${delta.onHand},
+          "reserved" = "reserved" + ${delta.reserved},
+          "updatedAt" = NOW()
+      WHERE "id" = ${item.id}
+        AND "onHand" + ${delta.onHand} >= 0
+        AND "reserved" + ${delta.reserved} >= 0
+        AND "reserved" + ${delta.reserved} <= "onHand" + ${delta.onHand}
+      RETURNING "onHand", "reserved", "incoming", "reorderPoint"`;
 
-    const updated = await tx.inventoryItem.update({
-      where: { id: item.id },
-      data: { onHand, reserved },
-    });
+    if (!updated) {
+      const current = await tx.inventoryItem.findUniqueOrThrow({ where: { id: item.id } });
+      if (current.reserved + delta.reserved < 0) {
+        throw new Error(`Cannot release ${quantity} of ${variant.sku}: only ${current.reserved} reserved`);
+      }
+      throw new InsufficientStockError(variant.sku, quantity, current.onHand - current.reserved);
+    }
+    const { onHand, reserved } = updated;
 
     await tx.stockMovement.create({
       data: {
@@ -172,17 +187,16 @@ export async function recordMovement(input: MovementInput, db: Db = prisma): Pro
     });
 
     return {
-      itemId: updated.id,
+      itemId: item.id,
       variantId,
       sku: variant.sku,
       locationCode: DEFAULT_LOCATION_CODE,
-      onHand: updated.onHand,
-      reserved: updated.reserved,
-      available: updated.onHand - updated.reserved,
+      onHand,
+      reserved,
+      available: onHand - reserved,
       incoming: updated.incoming,
       reorderPoint: updated.reorderPoint,
-      belowReorderPoint:
-        updated.reorderPoint !== null && updated.onHand - updated.reserved <= updated.reorderPoint,
+      belowReorderPoint: updated.reorderPoint !== null && onHand - reserved <= updated.reorderPoint,
     };
   });
 }

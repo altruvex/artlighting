@@ -736,16 +736,34 @@
         "userMenu": "User menu"
     },
     "auth": {
-        "backToHome": "Back to Home",
+        "welcomeBack": "Welcome back",
+        "signInTitle": "Sign in",
+        "signInSubtitle": "Sign in to track orders and manage your account",
+        "joinUs": "Join us",
+        "signUpTitle": "Create your account",
+        "signUpSubtitle": "Join Art Lighting",
+        "name": "Name",
+        "email": "Email",
+        "password": "Password",
+        "signIn": "Sign in",
+        "signingIn": "Signing in...",
+        "signUp": "Sign up",
+        "creatingAccount": "Creating account...",
+        "noAccount": "Don't have an account?",
+        "haveAccount": "Already have an account?",
+        "backHome": "Back to home",
+        "panelSignInTitle": "Sign in to Art Lighting",
+        "panelSignInBody": "Welcome back — sign in to continue",
+        "panelSignUpTitle": "Join Art Lighting",
+        "panelSignUpBody": "Create your account and start lighting your space",
+        "imageAlt": "Lighting by Art Lighting",
         "loading": "Loading...",
-        "imageAlt": "Art Lighting Showcase",
-        "signIn": {
-            "title": "Sign in to Art Lighting",
-            "description": "Welcome back! Please sign in to continue"
-        },
-        "signUp": {
-            "title": "Join Art Lighting",
-            "description": "Create your account and start illuminating your space"
+        "errors": {
+            "invalidCredentials": "That email and password do not match",
+            "userExists": "An account with this email already exists",
+            "weakPassword": "That password is too short — use at least 8 characters",
+            "signInFailed": "We could not sign you in. Please try again",
+            "signUpFailed": "We could not create your account. Please try again"
         }
     },
     "preview": {

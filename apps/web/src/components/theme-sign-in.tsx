@@ -9,9 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/password-input";
 import { authClient } from "@/lib/auth-client";
+import { useTranslations } from "next-intl";
+import { authErrorKey } from "@/lib/auth-errors";
 
 export function ThemedSignIn() {
   const router = useRouter();
+  const t = useTranslations("auth");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +27,9 @@ export function ThemedSignIn() {
     const { error } = await authClient.signIn.email({ email, password });
     setIsLoading(false);
     if (error) {
-      setError(error.message ?? "Invalid email or password");
+      // Better Auth answers in English with a code; the code is what we
+      // translate, so the customer reads the reason in their own language.
+      setError(t(authErrorKey(error, "signInFailed")));
       return;
     }
     router.push("/");
@@ -37,13 +42,9 @@ export function ThemedSignIn() {
       className="w-full max-w-sm animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6"
     >
       <div>
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary">
-          Welcome back
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold text-foreground">Sign in</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Sign in to track orders and manage your account
-        </p>
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary">{t("welcomeBack")}</p>
+        <h1 className="mt-2 text-2xl font-semibold text-foreground">{t("signInTitle")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t("signInSubtitle")}</p>
       </div>
 
       {error && (
@@ -59,7 +60,7 @@ export function ThemedSignIn() {
 
       <div className="space-y-4">
         <div className="glow-ring-focus space-y-2 rounded-xl">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t("email")}</Label>
           <div className="relative">
             <Mail className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -75,7 +76,7 @@ export function ThemedSignIn() {
         </div>
 
         <div className="glow-ring-focus space-y-2 rounded-xl">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{t("password")}</Label>
           <PasswordInput
             id="password"
             autoComplete="current-password"
@@ -94,17 +95,17 @@ export function ThemedSignIn() {
         {isLoading ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Signing in...
+            {t("signingIn")}
           </>
         ) : (
-          "Sign in"
+          t("signIn")
         )}
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{" "}
+        {t("noAccount")}{" "}
         <Link href="/sign-up" className="font-medium text-primary hover:underline">
-          Sign up
+          {t("signUp")}
         </Link>
       </p>
     </form>

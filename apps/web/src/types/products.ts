@@ -170,7 +170,7 @@ export interface BaseProduct {
   price: string
   priceIncrease?: string
   sectionType: ProductFamily
-  quantity: number
+  quantity: number | null
   brand: string
   discount: string
   chandelierLightingType?: string
@@ -221,7 +221,7 @@ export interface LocalizedProduct {
   price: string;
   discount?: string;
   priceIncrease?: string;
-  quantity: number;
+  quantity: number | null;
   images: string[];
   productImages?: string[];
   sectionType: ProductFamily;
@@ -307,7 +307,7 @@ export interface ProductCardProps {
   discount?: string
   brand: string
   Brand?: string
-  quantity?: number
+  quantity?: number | null
   maxIP?: number
   spotlightType: string
   sectionType: ProductFamily

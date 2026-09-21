@@ -23,6 +23,8 @@ export interface InventoryRow extends Record<string, unknown> {
   available: number;
   incoming: number;
   reorderPoint: number;
+  /** False: made or bought in to order; orders do not reserve it. */
+  tracked: boolean;
   low: boolean;
 }
 
@@ -80,6 +82,11 @@ export function InventoryTable({ rows, canWrite }: { rows: InventoryRow[]; canWr
             {row.original.low && (
               <Badge variant="outline" className="border-danger/40 text-danger">
                 {t("low")}
+              </Badge>
+            )}
+            {!row.original.tracked && (
+              <Badge variant="outline" className="text-muted-foreground">
+                {t("untracked")}
               </Badge>
             )}
           </span>

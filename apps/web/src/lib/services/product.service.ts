@@ -1,7 +1,7 @@
 import { prisma } from "@repo/database";
 import { parseLocalizedInt } from "@/lib/numbers";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { availableFrom, familiesMatching, inventorySelect, productBulbSelect, productDiscountRates, type ProductFamily } from "@repo/catalog";
+import { sellableFrom, familiesMatching, inventorySelect, productBulbSelect, productDiscountRates, type ProductFamily } from "@repo/catalog";
 import { bulbChoices, type BulbChoice } from "@repo/catalog/bulb-pricing";
 import { localizeSpecGroups, specGroupSelect, specNumbersByKey, type LocalizedSpecGroup } from "@/lib/spec-groups";
 import { serializeMoney, serializeRate } from "@repo/money";
@@ -48,7 +48,8 @@ export interface LocalizedProductData {
   specGroups: LocalizedSpecGroup[];
   sectionType: ProductFamily;
   spotlightType: string;
-  quantity: number;
+  /** Units a customer may buy; null when the product is not tracked (no limit). */
+  quantity: number | null;
   isActive: boolean;
   featured: boolean;
   maxIP: number | null;
@@ -155,7 +156,7 @@ export function transformToLocalizedProduct(
     bulbChoices: bulbChoices(product.bulbs, product.hNumber, language),
     sectionType: product.sectionType,
     spotlightType: product.spotlightType,
-    quantity: availableFrom(product.variants?.[0]?.inventory),
+    quantity: sellableFrom(product, product.variants?.[0]?.inventory),
     isActive: product.isActive ?? true,
     featured: product.featured ?? false,
     maxIP: product.maxIP ?? null,

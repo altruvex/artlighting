@@ -273,6 +273,21 @@ export function availableFrom(
   return inventory.reduce((total, row) => total + Math.max(0, row.onHand - row.reserved), 0);
 }
 
+/**
+ * What a customer may buy of a product: its available units, or null when
+ * the product is not tracked (Product.trackInventory = false) — made or
+ * bought in to order, so there is no count to run out of. Every storefront
+ * reader of availability goes through this, so "sold out" and "only N left"
+ * mean the same thing on a card, a product page and at checkout, and an
+ * untracked product is never either.
+ */
+export function sellableFrom(
+  product: { trackInventory: boolean },
+  inventory: { onHand: number; reserved: number }[] | null | undefined,
+): number | null {
+  return product.trackInventory ? availableFrom(inventory) : null;
+}
+
 /** Current levels for one variant, across every location it sits in. */
 export async function stockFor(variantId: string, db: Db = prisma): Promise<StockLevel[]> {
   const items = await db.inventoryItem.findMany({
@@ -304,7 +319,7 @@ export async function stockFor(variantId: string, db: Db = prisma): Promise<Stoc
 export async function lowStock(db: Db = prisma) {
   const items = await db.inventoryItem.findMany({
     include: {
-      variant: { select: { sku: true, product: { select: { id: true, productId: true, productName: true, lowStockThreshold: true } } } },
+      variant: { select: { sku: true, product: { select: { id: true, productId: true, productName: true, lowStockThreshold: true, trackInventory: true } } } },
       location: { select: { code: true } },
     },
   });
@@ -322,10 +337,12 @@ export async function lowStock(db: Db = prisma) {
         incoming: item.incoming,
         threshold,
         reorderQuantity: item.reorderQuantity,
+        tracked: item.variant.product.trackInventory,
         below: available <= threshold,
       };
     })
-    .filter((row) => row.below)
+    // Untracked products have no count to run low on.
+    .filter((row) => row.below && row.tracked)
     .sort((a, b) => a.available - b.available);
 }
 

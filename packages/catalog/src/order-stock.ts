@@ -18,6 +18,11 @@ import { recordMovement, type StockMovementKind } from "./inventory";
  *   shipped, delivered, fulfilled   sold — gone, and the reservation with them
  *   cancelled, refunded             released — if they never left
  *
+ * A product marked untracked (Product.trackInventory = false) is made or
+ * bought in to order, so no status holds or sells its stock; a reservation
+ * it held from before it was untracked is given back the next time its
+ * order moves.
+ *
  * A cancelled or refunded order that had already shipped is left as sold.
  * A refund is not proof the goods came back; when they do, that is a
  * return an admin records, not something a status change should assume.
@@ -138,7 +143,13 @@ export async function syncOrderStock(
 
   const lines = await tx.orderItem.findMany({
     where: { orderId },
-    select: { id: true, productId: true, productVariantId: true, quantity: true },
+    select: {
+      id: true,
+      productId: true,
+      productVariantId: true,
+      quantity: true,
+      product: { select: { trackInventory: true } },
+    },
   });
   if (lines.length === 0) return;
 
@@ -154,6 +165,7 @@ export async function syncOrderStock(
   const defaultByProduct = new Map(defaults.map((variant) => [variant.productId, variant.id]));
 
   const quantityByVariant = new Map<string, number>();
+  const untracked = new Set<string>();
   for (const line of lines) {
     const variantId = line.productVariantId ?? defaultByProduct.get(line.productId);
     if (!variantId) {
@@ -163,6 +175,7 @@ export async function syncOrderStock(
       await tx.orderItem.update({ where: { id: line.id }, data: { productVariantId: variantId } });
     }
     quantityByVariant.set(variantId, (quantityByVariant.get(variantId) ?? 0) + line.quantity);
+    if (!line.product.trackInventory) untracked.add(variantId);
   }
 
   const movements = await tx.stockMovement.findMany({
@@ -173,7 +186,10 @@ export async function syncOrderStock(
   const stage = stageFor(status);
   for (const [variantId, quantity] of quantityByVariant) {
     const position = positionFrom(movements.filter((movement) => movement.item.variantId === variantId));
-    for (const step of movementsFor(stage, quantity, position)) {
+    // Untracked: hold nothing. "released" gives back anything still
+    // promised and leaves what already left as it is.
+    const target = untracked.has(variantId) ? "released" : stage;
+    for (const step of movementsFor(target, quantity, position)) {
       await recordMovement(
         { variantId, kind: step.kind, quantity: step.quantity, orderId, actorId, reason: `order ${orderId}: ${status}` },
         tx,

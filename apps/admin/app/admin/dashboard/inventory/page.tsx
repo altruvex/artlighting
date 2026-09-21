@@ -29,6 +29,7 @@ export default async function InventoryPage() {
               id: true,
               productName: true,
               lowStockThreshold: true,
+              trackInventory: true,
               translations: { where: { language: locale }, select: { name: true }, take: 1 },
             },
           },
@@ -53,7 +54,10 @@ export default async function InventoryPage() {
       available,
       incoming: item.incoming,
       reorderPoint: threshold,
-      low: available <= threshold,
+      tracked: item.variant.product.trackInventory,
+      // An untracked product's count does not limit a sale, so it is never
+      // on the reorder list.
+      low: item.variant.product.trackInventory && available <= threshold,
     };
   });
 

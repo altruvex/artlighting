@@ -28,7 +28,8 @@
     },
     "stock": {
       "out": "Out of stock",
-      "low": "{count} left"
+      "low": "{count} left",
+      "untracked": "Not tracked"
     },
     "empty": {
       "title": "No products yet",
@@ -87,6 +88,12 @@
       "apply": "{count, plural, =0 {Apply} one {Apply # row} other {Apply # rows}}",
       "applied": "{count, plural, one {# product updated} other {# products updated}}",
       "cancel": "Cancel"
+    },
+    "bulkTrack": {
+      "untrack": "Stop tracking inventory",
+      "track": "Track inventory",
+      "untracked": "{count, plural, one {Stopped tracking # product} other {Stopped tracking # products}}",
+      "tracked": "{count, plural, one {Tracking # product} other {Tracking # products}}"
     }
   },
   "ProductEditor": {
@@ -144,7 +151,11 @@
       "activeLabel": "Active",
       "activeHint": "Inactive products are hidden from the storefront.",
       "featuredLabel": "Featured",
-      "featuredHint": "Featured products appear in the home page selection."
+      "featuredHint": "Featured products appear in the home page selection.",
+      "trackInventoryLabel": "Track inventory",
+      "trackInventoryHint": "When off, orders don't reserve stock and the product never shows as sold out or \"only N left\". For products made or bought in to order.",
+      "tracked": "Tracked",
+      "untracked": "Not tracked"
     },
     "translations": {
       "title": "Localized content",
@@ -437,7 +448,8 @@
       "quantityInvalid": "Enter a whole number greater than zero.",
       "belowReserved": "{reserved} units are promised to orders that have not shipped. Release those first."
     },
-    "system": "System"
+    "system": "System",
+    "untracked": "Not tracked"
   },
   "Discounts": {
     "title": "Discounts",

@@ -4,6 +4,7 @@ import { type AdminColumn, ColumnHeader, DataTable } from "@/components/data-tab
 import { formatMoney, moneySortKey } from "@/lib/money";
 import { EmptyState } from "@/components/empty-state";
 import { BulkPriceDialog } from "./bulk-price-dialog";
+import { BulkTrackInventory } from "./bulk-track-inventory";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { PackageIcon } from "lucide-react";
@@ -22,6 +23,8 @@ export interface ProductRow extends Record<string, unknown> {
   price: string;
   stock: number;
   lowStockThreshold: number;
+  /** False: made or bought in to order; orders do not reserve its stock. */
+  trackInventory: boolean;
   isActive: boolean;
   featured: boolean;
   imageUrl: string | null;
@@ -31,11 +34,14 @@ export function ProductsTable({
   products,
   categories,
   canEditPrices,
+  canEditProducts,
 }: {
   products: ProductRow[];
   categories: { id: string; label: string }[];
-  /** ADMIN only: price:write. STAFF sees the table without the selection column. */
+  /** ADMIN only: price:write. */
   canEditPrices: boolean;
+  /** product:write — staff have it; turns on the inventory-tracking bulk action. */
+  canEditProducts: boolean;
 }) {
   const t = useTranslations("Products");
   const tCommon = useTranslations("Common");
@@ -102,7 +108,9 @@ export function ProductsTable({
         accessorFn: (row) => row.stock,
         header: ({ column }) => <ColumnHeader column={column} title={t("columns.stock")} />,
         cell: ({ row }) => {
-          const { stock, lowStockThreshold } = row.original;
+          const { stock, lowStockThreshold, trackInventory } = row.original;
+          // Untracked stock is never "out" or "low": it does not limit a sale.
+          if (!trackInventory) return <StatusBadge tone="info">{t("stock.untracked")}</StatusBadge>;
           const tone = stock === 0 ? "danger" : stock <= lowStockThreshold ? "warning" : "neutral";
           const label = stock === 0 ? t("stock.out") : stock <= lowStockThreshold ? t("stock.low", { count: stock }) : String(stock);
           return tone === "neutral" ? (
@@ -177,8 +185,13 @@ export function ProductsTable({
       // Passing bulkActions is what turns the selection column on, so STAFF
       // simply never sees a checkbox they could not act on.
       bulkActions={
-        canEditPrices
-          ? (selected, clear) => <BulkPriceDialog selected={selected} clear={clear} />
+        canEditPrices || canEditProducts
+          ? (selected, clear) => (
+              <>
+                {canEditProducts && <BulkTrackInventory selected={selected} clear={clear} />}
+                {canEditPrices && <BulkPriceDialog selected={selected} clear={clear} />}
+              </>
+            )
           : undefined
       }
       emptyState={

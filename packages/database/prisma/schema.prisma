@@ -461,6 +461,11 @@ model Product {
   /// Below this, the admin list flags the row. Per product, because a
   /// chandelier and a 5W spotlight do not restock at the same pace.
   lowStockThreshold      Int              @default(5)
+  /// Whether orders reserve and sell this product's stock. Off for what is
+  /// made or bought in to order — LED strip by the metre, a chandelier for a
+  /// project — where the count on the shelf is not what limits a sale: no
+  /// reservation, no "only N left", never sold out.
+  trackInventory         Boolean          @default(true)
   featured               Boolean          @default(false)
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt

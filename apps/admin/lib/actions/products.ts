@@ -34,6 +34,7 @@ export async function updateProductGeneral(
     brand?: string;
     isActive?: boolean;
     featured?: boolean;
+    trackInventory?: boolean;
     categoryId?: string;
     lightingtypeId?: string;
     maxIP?: number | null;
@@ -432,5 +433,24 @@ export async function applyBulkPrice(productIds: string[], operation: catalog.Bu
     const result = await catalog.applyBulkPrice(productIds, operation, admin.id);
     revalidatePath("/admin/dashboard/products");
     return result;
+  });
+}
+
+/**
+ * Turns inventory tracking on or off for several products at once — the
+ * way to mark a whole line as made to order (every LED strip, say) without
+ * opening each one. product:write, not price:write: whether stock limits a
+ * sale is a catalogue decision, and staff who edit products make it.
+ */
+export async function setProductsTrackInventory(ids: string[], track: boolean) {
+  return run(async () => {
+    await requirePermission("product:write");
+    const { count } = await prisma.product.updateMany({
+      where: { id: { in: ids } },
+      data: { trackInventory: track },
+    });
+    revalidatePath("/admin/dashboard/products");
+    revalidatePath("/admin/dashboard/inventory");
+    return { updated: count };
   });
 }

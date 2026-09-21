@@ -159,6 +159,8 @@ interface Props {
     price: string;
     isActive: boolean;
     featured: boolean;
+    /** Whether orders reserve and sell this product's stock. */
+    trackInventory: boolean;
     deletedAt: Date | null;
     categoryId: string;
     lightingtypeId: string;
@@ -214,6 +216,7 @@ export default function ProductEditor({
   const [brand, setBrand] = useState(product.brand);
   const [isActive, setIsActive] = useState(product.isActive);
   const [featured, setFeatured] = useState(product.featured);
+  const [trackInventory, setTrackInventory] = useState(product.trackInventory);
   const [categoryId, setCategoryId] = useState(product.categoryId);
   const [lightingtypeId, setLightingtypeId] = useState(product.lightingtypeId);
   const [productColor, setProductColor] = useState(product.productColor);
@@ -247,6 +250,7 @@ export default function ProductEditor({
       brand,
       isActive,
       featured,
+      trackInventory,
       categoryId,
       lightingtypeId,
       productColor,
@@ -262,6 +266,7 @@ export default function ProductEditor({
       brand,
       isActive,
       featured,
+      trackInventory,
       categoryId,
       lightingtypeId,
       productColor,
@@ -280,6 +285,7 @@ export default function ProductEditor({
       brand: product.brand,
       isActive: product.isActive,
       featured: product.featured,
+      trackInventory: product.trackInventory,
       categoryId: product.categoryId,
       lightingtypeId: product.lightingtypeId,
       productColor: product.productColor,
@@ -306,6 +312,7 @@ export default function ProductEditor({
     setBrand(savedDetails.brand);
     setIsActive(savedDetails.isActive);
     setFeatured(savedDetails.featured);
+    setTrackInventory(savedDetails.trackInventory);
     setCategoryId(savedDetails.categoryId);
     setLightingtypeId(savedDetails.lightingtypeId);
     setProductColor(savedDetails.productColor);
@@ -346,6 +353,7 @@ export default function ProductEditor({
           brand,
           isActive,
           featured,
+          trackInventory,
           categoryId,
           lightingtypeId,
           productColor: productColor as never,
@@ -791,6 +799,15 @@ export default function ProductEditor({
                 onPressedChange={setFeatured}
                 onLabel={t("general.featured")}
                 offLabel={t("general.notFeatured")}
+              />
+              <Separator />
+              <ToggleRow
+                label={t("visibility.trackInventoryLabel")}
+                hint={t("visibility.trackInventoryHint")}
+                pressed={trackInventory}
+                onPressedChange={setTrackInventory}
+                onLabel={t("visibility.tracked")}
+                offLabel={t("visibility.untracked")}
               />
             </div>
           </Section>

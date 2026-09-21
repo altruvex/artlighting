@@ -1,7 +1,7 @@
 import "server-only";
 
 import {
-  availableFrom,
+  sellableFrom,
   discountsForCart,
   InsufficientStockError,
   inventorySelect,
@@ -193,8 +193,8 @@ export async function placeOrder(
   // Said now, before the customer types an address. The binding check is
   // the reservation when they confirm; this only spares them the form.
   for (const draft of drafts) {
-    const available = availableFrom(draft.product.variants[0]?.inventory);
-    if (draft.quantity > available) {
+    const available = sellableFrom(draft.product, draft.product.variants[0]?.inventory);
+    if (available !== null && draft.quantity > available) {
       throw new CheckoutError("out_of_stock", { product: draft.product.productName, available });
     }
   }

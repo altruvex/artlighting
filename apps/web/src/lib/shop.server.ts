@@ -2,7 +2,7 @@ import "server-only";
 
 import { prisma } from "@repo/database";
 import {
-  availableFrom,
+  sellableFrom,
   familyFromSlug,
   inventorySelect,
   productBulbSelect,
@@ -112,7 +112,8 @@ export function toCard(row: CardRow, locale: string, rate: string) {
     sectionType: row.sectionType,
     spotlightType: row.spotlightType,
     discount: rate,
-    quantity: availableFrom(row.variants[0]?.inventory),
+    // null: not tracked, never sold out — see sellableFrom.
+    quantity: sellableFrom(row, row.variants[0]?.inventory),
     isActive: row.isActive,
     featured: row.featured,
     createdAt: row.createdAt.toISOString(),
@@ -260,7 +261,7 @@ export async function homeData(locale: string, perRail = 10): Promise<HomeData> 
   const all = rows.map((row) => toCard(row, locale, rates[row.id] ?? serializeRate(0)));
 
   const saving = (card: ShopCard) => Number(card.price) - Number(card.effectivePrice);
-  const inStock = (card: ShopCard) => card.quantity > 0;
+  const inStock = (card: ShopCard) => card.quantity !== 0;
 
   const counts = new Map<ProductFamily, number>();
   for (const card of all) counts.set(card.sectionType as ProductFamily, (counts.get(card.sectionType as ProductFamily) ?? 0) + 1);
@@ -299,7 +300,7 @@ export async function relatedCards(
   const cards = rows.map((row) => toCard(row, locale, rates[row.id] ?? serializeRate(0)));
 
   const rank = (card: ShopCard) =>
-    (lightingTypeSlug && card.lightingTypeSlug === lightingTypeSlug ? 0 : 1) + (card.quantity > 0 ? 0 : 2);
+    (lightingTypeSlug && card.lightingTypeSlug === lightingTypeSlug ? 0 : 1) + (card.quantity !== 0 ? 0 : 2);
 
   return [...cards].sort((a, b) => rank(a) - rank(b)).slice(0, limit);
 }

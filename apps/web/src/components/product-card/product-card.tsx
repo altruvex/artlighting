@@ -30,7 +30,8 @@ interface Product {
   /** Rate, not percent: 0.13 = 13%. */
   discount: string;
   /** What can be bought now; absent where a caller does not know it. */
-  quantity?: number;
+  /** Units a customer may buy; null when the product is not tracked (never sold out). */
+  quantity?: number | null;
   chandelierLightingType?: string;
   hNumber?: number;
   maximumWattage?: string;
@@ -235,7 +236,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           )}
           {soldOut ? (
             <p className="text-[length:var(--text-xs)] text-muted-foreground">{t("soldOut")}</p>
-          ) : stock !== undefined && stock <= LOW_STOCK ? (
+          ) : stock !== undefined && stock !== null && stock <= LOW_STOCK ? (
             <p className="text-[length:var(--text-xs)] text-muted-foreground">{t("fewLeft", { count: stock })}</p>
           ) : null}
         </div>

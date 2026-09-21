@@ -53,13 +53,15 @@ export default async function ProductsPage() {
     price: serializeMoney(product.price),
     stock: availableFrom(product.variants[0]?.inventory),
     lowStockThreshold: LOW_STOCK_THRESHOLD,
+    trackInventory: product.trackInventory,
     isActive: product.isActive,
     featured: product.featured,
     imageUrl: product.images[0]?.url ?? null,
   }));
 
   const activeCount = rows.filter((row) => row.isActive).length;
-  const lowStockCount = rows.filter((row) => row.stock <= LOW_STOCK_THRESHOLD).length;
+  // Untracked products have no count to run low on.
+  const lowStockCount = rows.filter((row) => row.trackInventory && row.stock <= LOW_STOCK_THRESHOLD).length;
 
   return (
     <PageShell>
@@ -92,6 +94,7 @@ export default async function ProductsPage() {
         products={rows}
         categories={topCategories.map((c) => ({ id: c.id, label: c.translations[0]?.name ?? c.name }))}
         canEditPrices={can(admin.role, "price:write")}
+        canEditProducts={can(admin.role, "product:write")}
       />
     </PageShell>
   );

@@ -114,6 +114,7 @@ export const updateProductGeneralSchema = z.object({
   lightingtypeId: z.string().min(1).optional(),
   isActive: z.boolean().optional(),
   featured: z.boolean().optional(),
+  trackInventory: z.boolean().optional(),
   maxIP: z.number().int().min(0).max(100).nullable().optional(),
   hNumber: z.number().int().min(0).max(1000).nullable().optional(),
   chandelierLightingType: z.string().trim().max(80).nullable().optional(),
@@ -161,5 +162,7 @@ export const importRowSchema = z.object({
   stock: stockSchema.optional(),
   isActive: z.boolean().optional(),
   featured: z.boolean().optional(),
+  /** false: made or bought in to order; orders do not reserve its stock. */
+  trackInventory: z.boolean().optional(),
 });
 export type ImportRow = z.infer<typeof importRowSchema>;

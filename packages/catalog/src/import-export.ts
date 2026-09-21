@@ -29,6 +29,7 @@ export const PRODUCT_COLUMNS = [
   "stock",
   "isActive",
   "featured",
+  "trackInventory",
 ] as const;
 
 export type ProductColumn = (typeof PRODUCT_COLUMNS)[number];
@@ -56,6 +57,7 @@ export async function exportProducts(
       sectionType: true,
       isActive: true,
       featured: true,
+      trackInventory: true,
       translations: { select: { language: true, name: true, description: true } },
       variants: { where: { isDefault: true }, select: { id: true, inventory: inventorySelect() }, take: 1 },
     },
@@ -82,6 +84,7 @@ export async function exportProducts(
       stock: availableFrom(product.variants[0]?.inventory),
       isActive: product.isActive,
       featured: product.featured,
+      trackInventory: product.trackInventory,
     };
   });
 }
@@ -154,6 +157,7 @@ export async function planImport(rawRows: unknown[], db: Db = prisma): Promise<I
       price: true,
       isActive: true,
       featured: true,
+      trackInventory: true,
       categoryId: true,
       lightingtypeId: true,
       sectionType: true,
@@ -237,6 +241,7 @@ export async function planImport(rawRows: unknown[], db: Db = prisma): Promise<I
     if (row.stock !== undefined) note("stock", availableFrom(current.variants[0]?.inventory), row.stock);
     if (row.isActive !== undefined) note("isActive", current.isActive, row.isActive);
     if (row.featured !== undefined) note("featured", current.featured, row.featured);
+    if (row.trackInventory !== undefined) note("trackInventory", current.trackInventory, row.trackInventory);
 
     rows.push({
       rowNumber: entry.rowNumber,
@@ -300,6 +305,7 @@ export async function applyImport(
         if (row.brand !== undefined) data.brand = row.brand;
         if (row.isActive !== undefined) data.isActive = row.isActive;
         if (row.featured !== undefined) data.featured = row.featured;
+        if (row.trackInventory !== undefined) data.trackInventory = row.trackInventory;
         if (row.name_en !== undefined) data.productName = row.name_en;
 
         if (Object.keys(data).length > 0) {

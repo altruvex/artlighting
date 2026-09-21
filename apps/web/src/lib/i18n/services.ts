@@ -1,6 +1,6 @@
 import type { LocalizedCategory, LocalizedProduct, SectionType, SupportedLanguage } from "@/types/products";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { availableFrom, inventorySelect, productBulbSelect, productDiscountRates, type ProductFamily } from "@repo/catalog";
+import { sellableFrom, inventorySelect, productBulbSelect, productDiscountRates, type ProductFamily } from "@repo/catalog";
 import { bulbChoices } from "@repo/catalog/bulb-pricing";
 import { localizeSpecGroups, specGroupSelect } from "@/lib/spec-groups";
 import { serializeMoney, serializeRate } from "@repo/money";
@@ -282,7 +282,7 @@ export class I18nService {
                     // From the engine, not from a rate on the row.
                     discount: rates[product.id] ?? serializeRate(0),
                     priceIncrease: serializeMoney(product.priceIncrease ?? 0),
-                    quantity: availableFrom(product.variants?.[0]?.inventory),
+                    quantity: sellableFrom(product, product.variants?.[0]?.inventory),
                     images: imageUrls(product),
                     productImages: imageUrls(product),
                     sectionType: product.sectionType,
@@ -415,7 +415,7 @@ export class I18nService {
                         ...this.formatSpecifications(product.specifications[0])
                     }
                     : undefined,
-                quantity: availableFrom(product.variants?.[0]?.inventory),
+                quantity: sellableFrom(product, product.variants?.[0]?.inventory),
                 maxIP: product.maxIP || undefined,
                 spotlightType: product.spotlightType,
                 sectionType: product.sectionType,

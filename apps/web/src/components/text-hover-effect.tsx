@@ -80,7 +80,7 @@ export const TextHover = ({
         </motion.div>
       </motion.div>
       <motion.div
-        className="absolute -top-2 -left-2 w-1.5 h-1.5 rounded-full bg-linear-to-r from-white to-yellow-200"
+        className="absolute -top-2 -left-2 w-1.5 h-1.5 rounded-full bg-linear-to-r from-primary-foreground to-primary"
         initial={{ opacity: 0, scale: 0 }}
         animate={{
           opacity: isHovered ? 0.6 : 0,
@@ -92,7 +92,7 @@ export const TextHover = ({
         }}
       />
       <motion.div
-        className="absolute -bottom-2 -right-2 w-1.5 h-1.5 rounded-full bg-linear-to-r from-yellow-200 to-white"
+        className="absolute -bottom-2 -right-2 w-1.5 h-1.5 rounded-full bg-linear-to-r from-primary to-primary-foreground"
         initial={{ opacity: 0, scale: 0 }}
         animate={{
           opacity: isHovered ? 0.6 : 0,

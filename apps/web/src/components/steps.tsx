@@ -1,105 +1,62 @@
 "use client";
 
-import { cn } from "@/lib/utils"
-import { motion } from "framer-motion";
-import { CheckCircle, Circle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Check } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
-import React, { useEffect, useState } from "react";
 
+const STEPS = ["preview", "confirm", "complete"] as const;
+
+/**
+ * Where the shopper is in the order, in three steps.
+ *
+ * Two things were wrong with it. Its labels and descriptions were English
+ * strings in the component — the one path where a customer is typing an
+ * address and agreeing to a price, in an interface that is otherwise
+ * Arabic. And it fetched `/api/products/` on mount with an empty id, with
+ * the state it set as the effect's own dependency; the request 404'd on
+ * every checkout page and the value it wanted was already in the URL.
+ */
 const Steps = () => {
   const pathname = usePathname();
-  const [productId, setProductId] = useState("");
+  const t = useTranslations("steps");
 
-  useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        const response = await fetch(`/api/products/${productId}`);
-        const data = await response.json();
-        setProductId(data.productId);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-    fetchProduct();
-  }, [productId]);
-
-  const STEPS = [
-    {
-      name: "Preview",
-      description: "Review your product before confirming your order.",
-      url: `/preview/${productId}`,
-    },
-    {
-      name: "Confirm",
-      description: "Enter your shipping address and information.",
-      url: "/confirm",
-    },
-    {
-      name: "Complete",
-      description: "Review your order, shipping price, and all information.",
-      url: "/complete",
-    },
-  ];
-
-  const getCurrentStepIndex = () => {
-    return STEPS.findIndex((step) => pathname.includes(step.url));
-  };
+  const current = Math.max(
+    0,
+    STEPS.findIndex((step) => pathname.includes(`/${step}`)),
+  );
 
   return (
-    <div className="bg-linear-to-r from-neutral-50-50 to-background dark:from-[#1c1a17] dark:to-[#1d1d1d] rounded-lg shadow-md px-4 sm:px-6 pb-8 pt-10 mb-8">
-      <div className="grid grid-cols-1 md:grid-cols-3 md:gap-8 gap-4 relative">
-        {STEPS.map((step, i) => {
-          const currentStepIndex = getCurrentStepIndex();
-          const isCurrent = i === currentStepIndex;
-          const isCompleted = i < currentStepIndex;
+    <nav aria-label={t("label")} className="mb-8 rounded-2xl border border-border bg-card/50 px-4 py-8 sm:px-6">
+      <ol className="grid gap-6 md:grid-cols-3">
+        {STEPS.map((step, index) => {
+          const isCurrent = index === current;
+          const isDone = index < current;
           return (
-            <React.Fragment key={step.name}>
-              <motion.div
-                className="flex flex-col items-center relative z-10"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
+            <li key={step} className="flex flex-col items-center text-center">
+              <span
+                aria-hidden
+                className={cn(
+                  "grid size-12 place-items-center rounded-full border text-[length:var(--text-base)] font-semibold tabular-nums transition-colors duration-[var(--dur-hover)]",
+                  isCurrent && "border-primary bg-primary text-primary-foreground shadow-[var(--shadow-glow)]",
+                  isDone && "border-primary/40 bg-primary/12 text-primary",
+                  !isCurrent && !isDone && "border-border bg-muted text-muted-foreground",
+                )}
               >
-                <div
-                  className={cn(
-                    "flex items-center justify-center md:w-16 md:h-16 w-12 h-12 rounded-full font-medium md:text-xl text-lg transition-colors duration-300",
-                    {
-                      "bg-primary text-primary-foreground shadow-lg": isCurrent,
-                      "bg-white dark:bg-gray-950 text-primary border-2 border-green-500":
-                        isCompleted,
-                      "bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400":
-                        !isCurrent && !isCompleted,
-                    },
-                  )}
-                >
-                  {isCompleted ? (
-                    <CheckCircle className="md:w-8 md:h-8 w-6 h-6 text-green-500 dark:text-green-400" />
-                  ) : (
-                    <Circle className="md:w-8 md:h-8 w-6 h-6" />
-                  )}
-                </div>
-                <div className="mt-4 text-center">
-                  <span
-                    className={cn("block md:text-lg text-base font-semibold", {
-                      "text-primary dark:text-primary": isCurrent,
-                      "text-gray-900 dark:text-gray-200": !isCurrent,
-                    })}
-                  >
-                    {step.name}
-                  </span>
-                  <span className="text-sm text-gray-600 dark:text-gray-400 mt-2 block max-w-xs mx-auto">
-                    {step.description}
-                  </span>
-                </div>
-              </motion.div>
-              {i === 0 && (
-                <div className="hidden md:block absolute top-8 left-1/3 w-1/3 h-0.5 bg-gray-300 dark:bg-gray-700 -translate-y-1/2" />
-              )}
-            </React.Fragment>
+                {isDone ? <Check className="size-5" /> : index + 1}
+              </span>
+              <span className="mt-3 flex items-center gap-2 font-semibold">
+                {t(`${step}.name`)}
+                <span className="sr-only">{isCurrent ? t("current") : isDone ? t("done") : ""}</span>
+              </span>
+              <span className="mt-1 max-w-xs text-[length:var(--text-sm)] text-muted-foreground">
+                {t(`${step}.description`)}
+              </span>
+            </li>
           );
         })}
-      </div>
-    </div>
+      </ol>
+    </nav>
   );
 };
 

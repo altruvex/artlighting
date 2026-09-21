@@ -104,7 +104,7 @@ export default function About() {
             </div>
           </div>
           <div className="relative animate-element">
-            <div className="after:absolute after:inset-y-0 after:w-px after:bg-gray-500/20 relative pl-6 after:left-0 grid gap-10">
+            <div className="after:absolute after:inset-y-0 after:w-px after:bg-border relative pl-6 after:left-0 grid gap-10">
               {t.raw("timeline").map((item, index) => (
                 <div
                   key={index}

@@ -8,11 +8,11 @@ function Product() {
 
   return (
     <div className="pt-16 pb-16">
-      <h2 className="text-center text-4xl md:text-5xl font-medium tracking-wide text-gray-800 dark:text-gray-100 mb-16">
+      <h2 className="text-center text-4xl md:text-5xl font-medium tracking-wide text-foreground  mb-16">
         {t("title")}
       </h2>
       <Container>
-        <div className="flex flex-col lg:flex-row items-start mt-24 pb-16 border-b border-gray-300 border-opacity-35">
+        <div className="flex flex-col lg:flex-row items-start mt-24 pb-16 border-b border-border border-opacity-35">
           <div className="lg:w-1/4">
             <Image
               src="/indoor/products500/jy-535-5w/JY-535-5W (1).png"
@@ -31,7 +31,7 @@ function Product() {
             <Button destination="/products?brand=balcom&family=indoor" />
           </div>
         </div>
-        <div className="flex flex-col lg:flex-row items-start mt-24 pb-16 border-b border-gray-300 border-opacity-35">
+        <div className="flex flex-col lg:flex-row items-start mt-24 pb-16 border-b border-border border-opacity-35">
           <div className="lg:w-1/4">
             <Image
               src="/outdoor/Bollard/JY-BO-001-650MM-8W/JY-BO-001-650MM-8W (1).png"

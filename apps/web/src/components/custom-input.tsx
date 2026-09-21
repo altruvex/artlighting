@@ -79,7 +79,7 @@ const CustomInput = <T extends FieldValues>({
                     "h-10",
                     IconComponent && "pl-10",
                     isPasswordType && "pr-10",
-                    fieldState.error && "border-red-500",
+                    fieldState.error && "border-destructive",
                   )}
                 />
                 {isPasswordType && (
@@ -100,7 +100,7 @@ const CustomInput = <T extends FieldValues>({
               </div>
             </FormControl>
           </div>
-          {fieldState.error && <FormMessage className="text-red-600 text-sm">{fieldState.error.message}</FormMessage>}
+          {fieldState.error && <FormMessage className="text-destructive text-sm">{fieldState.error.message}</FormMessage>}
         </div>
       )}
     />

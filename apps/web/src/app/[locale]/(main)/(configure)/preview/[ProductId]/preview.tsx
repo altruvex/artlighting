@@ -240,7 +240,7 @@ export default function Preview({
     return (
       <div className="w-full h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           <h3 className="font-semibold text-2xl">{t('loadingTitle')}</h3>
           <p>{t('loadingSubtitle')}</p>
         </div>
@@ -276,7 +276,7 @@ export default function Preview({
               {finalProduct.productImages && finalProduct.productImages.length > 0 ? (
                 <ProductImages productImages={finalProduct.productImages} />
               ) : (
-                <div className="w-full h-[450px] flex items-center justify-center bg-gray-100 rounded-lg">
+                <div className="w-full h-[450px] flex items-center justify-center bg-muted rounded-lg">
                   <p>{t('noImagesAvailable')}</p>
                 </div>
               )}
@@ -290,12 +290,12 @@ export default function Preview({
                         {finalProduct.productName}
                       </h2>
                       <div className="mt-3 flex items-center gap-1.5 text-base">
-                        <Check className="h-4 w-4 text-green-500" />
+                        <Check className="h-4 w-4 text-primary" />
                         {t('inStock')}
                       </div>
                     </div>
                     <div className="sm:col-span-12 md:col-span-9 text-base mb-6">
-                      <div className="grid grid-cols-1 border-b border-gray-200 py-4 sm:py-2 md:py-4">
+                      <div className="grid grid-cols-1 border-b border-border py-4 sm:py-2 md:py-4">
                         <p className="font-bold md:text-xl text-lg -ml-4">{t('highlights')}</p>
                         <ol className="mt-3 list-disc space-y-1">
                           <li className="md:text-lg text-base">
@@ -326,7 +326,7 @@ export default function Preview({
                             <>
                               <div className="flex items-center justify-between py-1 mt-2">
                                 <p className="md:text-lg text-base">{t('pricePerItem')}</p>
-                                <s className="text-gray-500 md:text-lg text-base">
+                                <s className="text-muted-foreground md:text-lg text-base">
                                   <NormalPrice price={priceCalculations.configPrice} />
                                 </s>
                               </div>
@@ -336,7 +336,7 @@ export default function Preview({
                               </div>
                               <div className="flex items-center justify-between py-1 mt-2">
                                 <p className="md:text-lg text-base">{t('discountAmount')}</p>
-                                <span className="text-green-600 font-semibold md:text-lg text-base">
+                                <span className="text-primary font-semibold md:text-lg text-base">
                                   {priceCalculations.discountPercentage}%
                                 </span>
                               </div>

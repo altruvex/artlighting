@@ -95,7 +95,7 @@ const OrderSummary = ({ order }: { order: Order }) => {
         <div className="flex justify-between items-center text-muted-foreground">
           <span>{`${t("orderSummary.subtotal")} (${priceCalculations.quantity} ${itemsText})`}</span>
           {priceCalculations.hasDiscount ? (
-            <s className="text-gray-400">
+            <s className="text-muted-foreground">
               <NormalPrice price={priceCalculations.subtotal} />
             </s>
           ) : (
@@ -103,7 +103,7 @@ const OrderSummary = ({ order }: { order: Order }) => {
           )}
         </div>
         {priceCalculations.hasDiscount && (
-          <div className="flex justify-between items-center text-green-600">
+          <div className="flex justify-between items-center text-primary">
             <span>{`${t("orderSummary.discount")} (${priceCalculations.discountPercentage}%)`}</span>
             <span>
               -<NormalPrice price={priceCalculations.discountAmount} />
@@ -139,11 +139,11 @@ const ErrorState = ({ error, onRetry }: { error: Error; onRetry: () => void }) =
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="max-w-md w-full text-center">
-        <div className="w-16 h-16 mx-auto mb-6 bg-red-50 rounded-full flex items-center justify-center">
+        <div className="w-16 h-16 mx-auto mb-6 bg-destructive/10 rounded-full flex items-center justify-center">
           <AlertCircle className="w-8 h-8 text-destructive" />
         </div>
         <h2 className="text-2xl font-semibold text-foreground mb-3">{t("errors.unableToLoad")}</h2>
-        <p className="text-gray-600 mb-8">{error.message || t("errors.somethingWentWrong")}</p>
+        <p className="text-muted-foreground mb-8">{error.message || t("errors.somethingWentWrong")}</p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button
             onClick={onRetry}
@@ -155,7 +155,7 @@ const ErrorState = ({ error, onRetry }: { error: Error; onRetry: () => void }) =
           </Button>
           <Button
             onClick={() => (window.location.href = "/")}
-            className="flex items-center gap-2 rounded-full px-6 bg-black hover:bg-gray-800"
+            className="flex items-center gap-2 rounded-full px-6 bg-foreground hover:bg-foreground/90"
           >
             <Home className="w-4 h-4" />
             {t("buttons.goHome")}
@@ -172,12 +172,12 @@ const NotFoundState = ({ onGoHome }: { onGoHome: () => void }) => {
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="max-w-md w-full text-center">
-        <div className="w-16 h-16 mx-auto mb-6 bg-gray-50 rounded-full flex items-center justify-center">
-          <AlertCircle className="w-8 h-8 text-gray-400" />
+        <div className="w-16 h-16 mx-auto mb-6 bg-muted rounded-full flex items-center justify-center">
+          <AlertCircle className="w-8 h-8 text-muted-foreground" />
         </div>
         <h2 className="text-2xl font-semibold text-foreground mb-3">{t("errors.orderNotFound")}</h2>
-        <p className="text-gray-600 mb-8">{t("errors.orderNotFoundDesc")}</p>
-        <Button onClick={onGoHome} className="flex items-center gap-2 rounded-full px-6 bg-black hover:bg-gray-800">
+        <p className="text-muted-foreground mb-8">{t("errors.orderNotFoundDesc")}</p>
+        <Button onClick={onGoHome} className="flex items-center gap-2 rounded-full px-6 bg-foreground hover:bg-foreground/90">
           <Home className="w-4 h-4" />
           {t("buttons.returnHome")}
         </Button>
@@ -369,7 +369,7 @@ const Confirm = () => {
                         <span className="text-foreground text-[17px]">{t("productDetails.pricePerItem")}</span>
                         {priceCalculations.hasDiscount ? (
                           <div className="text-right">
-                            <div className="line-through text-gray-400 text-sm">
+                            <div className="line-through text-muted-foreground text-sm">
                               <NormalPrice price={priceCalculations.configPrice} />
                             </div>
                             <div className="text-destructive font-semibold">
@@ -389,9 +389,9 @@ const Confirm = () => {
                         </Badge>
                       </div>
                       {priceCalculations.hasDiscount && (
-                        <div className="flex justify-between items-center py-3 px-4 bg-green-50 rounded-xl">
-                          <span className="text-green-700 font-medium">{t("orderSummary.youSave")}</span>
-                          <span className="text-green-700 font-semibold">
+                        <div className="flex justify-between items-center py-3 px-4 bg-primary/12 rounded-xl">
+                          <span className="text-primary font-medium">{t("orderSummary.youSave")}</span>
+                          <span className="text-primary font-semibold">
                             {priceCalculations.discountPercentage}% {t("orderSummary.off")}
                           </span>
                         </div>

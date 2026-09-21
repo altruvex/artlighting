@@ -126,10 +126,10 @@ export default function ProjectsClient({
               <Link
                 className={cn(
                   "flex items-center justify-center transition-colors border-[1.5px] font-medium h-14 md:px-10 px-7 md:text-lg text-sm w-full rounded",
-                  "bg-background text-foreground border-border hover:bg-gray-950 hover:text-muted hover:border-gray-950",
+                  "bg-background text-foreground border-border hover:bg-foreground hover:text-muted hover:border-foreground",
                   "dark:bg-background dark:text-foreground dark:border-border dark:hover:bg-accent dark:hover:text-accent-foreground",
                   {
-                    "bg-accent text-accent-foreground dark:bg-accent dark:text-accent-foreground border-gray-950":
+                    "bg-accent text-accent-foreground dark:bg-accent dark:text-accent-foreground border-foreground":
                       isClicked,
                   },
                 )}

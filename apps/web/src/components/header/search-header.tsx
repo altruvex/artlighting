@@ -296,7 +296,7 @@ function ProductPrice({ product }: { product: Product }) {
                         sectionType={product.sectionType}
                     />
                 </span>
-                <s className="text-gray-500 italic text-xs">
+                <s className="text-muted-foreground text-xs">
                     <NormalPrice price={product.price} sectionType={product.sectionType} />
                 </s>
             </div>

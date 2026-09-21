@@ -79,7 +79,7 @@ export default function Achievements() {
   const t = useTranslations("achievements");
   return (
     <div className={`py-16 stats`}>
-      <h2 className="text-center text-4xl md:text-5xl font-medium tracking-wide text-gray-800 dark:text-gray-100 mb-8">
+      <h2 className="text-center text-4xl md:text-5xl font-medium tracking-wide text-foreground  mb-8">
         {t('title')}
       </h2>
       <Container>
@@ -87,7 +87,7 @@ export default function Achievements() {
           <div className="text-center">
             <div className={`flex justify-center items-center my-4 mx-4 rtl:flex-row-reverse `}>
               <div
-                className="number text-4xl bg-clip-text text-transparent bg-linear-to-r from-blue-600 via-blue-400 to-indigo-300 transition-all duration-300 ease-in-out"
+                className="number text-4xl bg-clip-text text-transparent bg-linear-to-r from-primary via-primary to-primary/60 transition-all duration-300 ease-in-out"
                 data-goal="87"
               >
                 0
@@ -118,7 +118,7 @@ export default function Achievements() {
           <div className="text-center">
             <div className="flex justify-center items-center my-4 mx-4 rtl:flex-row-reverse">
               <div
-                className="number text-4xl bg-clip-text text-transparent bg-linear-to-r from-blue-600 via-blue-400 to-indigo-300 transition-all duration-300 ease-in-out"
+                className="number text-4xl bg-clip-text text-transparent bg-linear-to-r from-primary via-primary to-primary/60 transition-all duration-300 ease-in-out"
                 data-goal="95"
               >
                 0

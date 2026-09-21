@@ -78,10 +78,10 @@ export default function Project({ children, locale }: { children?: React.ReactNo
             />
             <p className="my-5 md:text-lg text-sm tracking-wide text-muted-foreground">{project.ProjectDescription}</p>
             <div className="space-y-2 my-4 mb-6">
-              <p className="text-lg text-gray-700 tracking-wide">
+              <p className="text-lg text-foreground tracking-wide">
                 {t('lighting')}: <span>{tCompany('name')}</span>
               </p>
-              <p className="text-lg text-gray-700 tracking-wide">
+              <p className="text-lg text-foreground tracking-wide">
                 {t('project-name')}: <span>{project.ProjectName}</span>
               </p>
               {project.usedProducts && (

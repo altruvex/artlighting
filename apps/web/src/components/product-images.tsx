@@ -47,7 +47,7 @@ export default function ProductImages({ productImages }: ProductImagesProps) {
               type="button"
               onClick={onClickHandler}
               title={label}
-              className="absolute z-2 w-[35px] h-[35px] left-0 rounded-full bg-gray-50 dark:bg-gray-950 cursor-pointer border-none shadow-md flex items-center justify-center"
+              className="absolute z-2 w-[35px] h-[35px] left-0 rounded-full bg-card cursor-pointer border-none shadow-md flex items-center justify-center"
               style={{
                 top: "calc(50% - 20px)",
               }}
@@ -73,7 +73,7 @@ export default function ProductImages({ productImages }: ProductImagesProps) {
               type="button"
               onClick={onClickHandler}
               title={label}
-              className="absolute z-2 w-[35px] h-[35px] right-0 rounded-full bg-gray-50 dark:bg-gray-950 cursor-pointer border-none shadow-md flex items-center justify-center"
+              className="absolute z-2 w-[35px] h-[35px] right-0 rounded-full bg-card cursor-pointer border-none shadow-md flex items-center justify-center"
               style={{
                 top: "calc(50% - 20px)",
               }}

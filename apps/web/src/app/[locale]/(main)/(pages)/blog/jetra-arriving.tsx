@@ -20,9 +20,9 @@ export default function JetraArriving() {
               </p>
             </div>
             <div className="w-full max-w-sm">
-              <div className="rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
+              <div className="rounded-lg border border-border bg-card p-8 shadow-sm">
                 <div className="flex justify-center">
-                  <div className="w-32 h-32 rounded-full bg-gray-100 flex items-center justify-center">
+                  <div className="w-32 h-32 rounded-full bg-muted flex items-center justify-center">
                     <Image
                       width={500}
                       height={500}
@@ -34,7 +34,7 @@ export default function JetraArriving() {
                 <h3 className="mt-6 text-xl font-medium text-destructive">
                   {t("comingSoon")}
                 </h3>
-                <p className="mt-2 text-sm text-gray-500">
+                <p className="mt-2 text-sm text-muted-foreground">
                   {t("description")}
                 </p>
               </div>

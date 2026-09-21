@@ -1222,5 +1222,22 @@
                 "title": "Talk to the showroom"
             }
         }
+    },
+    "steps": {
+        "preview": {
+            "name": "Preview",
+            "description": "Review your product before confirming your order."
+        },
+        "confirm": {
+            "name": "Confirm",
+            "description": "Enter your shipping address and information."
+        },
+        "complete": {
+            "name": "Complete",
+            "description": "Review your order, shipping price and details."
+        },
+        "label": "Order steps",
+        "current": "Current step",
+        "done": "Done"
     }
 }

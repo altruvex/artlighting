@@ -203,7 +203,7 @@ export default function ThankYou({
     return (
       <div className="flex items-center justify-center h-screen text-lg">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{t('errorLoadingOrderDetails')}</p>
+          <p className="text-destructive mb-4">{t('errorLoadingOrderDetails')}</p>
           <p className="text-sm text-muted-foreground">{(error as Error).message}</p>
         </div>
       </div>
@@ -262,7 +262,7 @@ export default function ThankYou({
               </p>
             </div>
 
-            <div className="mt-10 md:-mb-10 border-t border-zinc-200">
+            <div className="mt-10 md:-mb-10 border-t border-border">
               <div className="mt-10 flex flex-auto flex-col">
                 <h4 className="text-xl font-semibold">
                   {t('greatChoice')}
@@ -423,7 +423,7 @@ export default function ThankYou({
                               <div className="font-medium text-muted-foreground">
                                 {t('subtotal')}
                               </div>
-                              <div className={`text-base font-semibold text-gray-500 line-through ${isRTL ? "text-left" : "text-right"}`}>
+                              <div className={`text-base font-semibold text-muted-foreground line-through ${isRTL ? "text-left" : "text-right"}`}>
                                 <NormalPrice price={priceCalculations.subtotal} />
                               </div>
                             </div>
@@ -431,7 +431,7 @@ export default function ThankYou({
                               <div className="font-medium text-muted-foreground">
                                 {t('discount')}
                               </div>
-                              <div className={`text-base font-semibold text-green-600 flex justify-end ${isRTL ? "text-left" : "text-right"}`}>
+                              <div className={`text-base font-semibold text-primary flex justify-end ${isRTL ? "text-left" : "text-right"}`}>
                                 <span>
                                   -{priceCalculations.discountPercentage}%
                                 </span>

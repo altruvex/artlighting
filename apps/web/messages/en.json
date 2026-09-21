@@ -1292,7 +1292,8 @@
             "unavailable": "A product in your cart is no longer available — remove it and try again",
             "not_found": "We could not find that order",
             "invalid": "Please check the details you entered",
-            "failed": "Something went wrong. Please try again"
+            "failed": "Something went wrong. Please try again",
+            "out_of_stock": "There isn't enough {product} — {available} left right now"
         }
     }
 }

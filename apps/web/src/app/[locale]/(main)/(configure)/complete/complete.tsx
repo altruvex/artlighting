@@ -3,6 +3,7 @@
 import { confirmOrder } from "@/actions/checkout"
 import { Container } from "@/components/container"
 import { OrderLines, OrderTotals } from "@/components/order/order-lines"
+import { orderErrorText } from "@/components/order/order-error"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "@/i18n/navigation"
 import { notifyCartChanged } from "@/lib/cart-events"
@@ -39,7 +40,7 @@ export default function Complete({ order }: { order: OrderView }) {
     startConfirm(async () => {
       const result = await confirmOrder(order.id)
       if (!result.ok) {
-        toast.error(t("complete-notifications.error.title"), { description: tOrder(`errors.${result.error}`) })
+        toast.error(t("complete-notifications.error.title"), { description: orderErrorText(tOrder as never, locale, result) })
         return
       }
       // The server took these products out of the cart; the header's badge

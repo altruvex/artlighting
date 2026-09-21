@@ -73,7 +73,8 @@
       }
     },
     "statusChanged": "تم تغيير حالة الطلب إلى {status}",
-    "moreProducts": "{count, plural, one {+ منتج آخر} two {+ منتجان آخران} few {+ # منتجات أخرى} many {+ # منتجًا آخر} other {+ # منتج آخر}}"
+    "moreProducts": "{count, plural, one {+ منتج آخر} two {+ منتجان آخران} few {+ # منتجات أخرى} many {+ # منتجًا آخر} other {+ # منتج آخر}}",
+    "insufficientStock": "مفيش مخزون كفاية من {sku}: المطلوب {requested} والمتاح {available}. عدّل المخزون الأول أو غيّر الطلب."
   },
   "OrderDetail": {
     "title": "الطلب رقم {id}",

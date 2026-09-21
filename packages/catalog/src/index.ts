@@ -3,6 +3,7 @@ export * from "./bulb-pricing";
 export * from "./describe";
 export * from "./schemas";
 export * from "./inventory";
+export * from "./order-stock";
 export * from "./bulbs";
 export * from "./discounts";
 export * from "./products";

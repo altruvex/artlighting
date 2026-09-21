@@ -22,6 +22,7 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { createOrder } from "./action";
+import { orderErrorText } from "@/components/order/order-error";
 import { PricingService } from "@/lib/pricing.server";
 
 export interface ProductWithSpecs {
@@ -121,6 +122,7 @@ export default function Preview({
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const locale = useLocale();
   const t = useTranslations('preview');
+  const tOrder = useTranslations('order');
 
   const [authState, setAuthState] = useState({
     isAuthChecked: false,
@@ -188,7 +190,12 @@ export default function Preview({
         throw new Error("Authentication required");
       }
     },
-    onSuccess: ({ userId, orderId }) => {
+    onSuccess: (result) => {
+      if (!result.ok) {
+        toast.error(orderErrorText(tOrder as never, locale, result));
+        return;
+      }
+      const { orderId } = result;
       try {
         localStorage.removeItem("configurationId");
         localStorage.removeItem(`quantity-${actualProductId}`);

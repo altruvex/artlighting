@@ -32,9 +32,13 @@ export async function createOrder({
       { kind: "configuration", configurationId: configId, quantity },
       { coupon: coupon ?? null, customerLanguage: (await getLocale()) === "en" ? "en" : "ar" },
     )
-    return { userId, orderId }
+    return { ok: true as const, userId, orderId }
   } catch (error) {
-    if (error instanceof CheckoutError) throw new Error(`Checkout failed: ${error.code}`)
+    // Returned, not thrown: a production build replaces a thrown message
+    // with a digest, and "only 2 left" is the whole point of this one.
+    if (error instanceof CheckoutError) {
+      return { ok: false as const, error: error.code === "not_yours" ? "not_found" : error.code, detail: error.detail }
+    }
     throw error
   }
 }

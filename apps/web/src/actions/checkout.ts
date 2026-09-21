@@ -13,11 +13,18 @@ import { z } from "zod";
  * "sign in first".
  */
 
-type Result<T> = { ok: true; value: T } | { ok: false; error: "signed_out" | "empty" | "unavailable" | "not_found" | "invalid" | "failed" };
+type Result<T> =
+  | { ok: true; value: T }
+  | {
+      ok: false;
+      error: "signed_out" | "empty" | "unavailable" | "not_found" | "invalid" | "failed" | "out_of_stock";
+      /** For out_of_stock: which product ran short, and how many are left. */
+      detail?: { product: string; available: number };
+    };
 
 function failure(error: unknown): Result<never> {
   if (error instanceof CheckoutError) {
-    return { ok: false, error: error.code === "not_yours" ? "not_found" : error.code };
+    return { ok: false, error: error.code === "not_yours" ? "not_found" : error.code, detail: error.detail };
   }
   console.error("Checkout failed:", error);
   return { ok: false, error: "failed" };

@@ -4,6 +4,7 @@ import { submitShippingAddress } from "@/actions/checkout"
 import { Container } from "@/components/container"
 import CustomInput from "@/components/custom-input"
 import { OrderLines, OrderTotals } from "@/components/order/order-lines"
+import { orderErrorText } from "@/components/order/order-error"
 import { Button } from "@/components/ui/button"
 import { Form } from "@/components/ui/form"
 import { useRouter } from "@/i18n/navigation"
@@ -11,7 +12,7 @@ import type { OrderView } from "@/lib/order-view"
 import { authFormConfirmingOrderSchema } from "@/lib/utils"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { CheckCircle, Loader2 } from "lucide-react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useTransition } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
@@ -30,6 +31,7 @@ type AddressForm = z.infer<typeof authFormConfirmingOrderSchema>
 export default function Confirm({ order, prefill }: { order: OrderView; prefill: AddressForm }) {
   const t = useTranslations("confirm")
   const tOrder = useTranslations("order")
+  const locale = useLocale()
   const router = useRouter()
   const [isSubmitting, startSubmit] = useTransition()
 
@@ -42,7 +44,7 @@ export default function Confirm({ order, prefill }: { order: OrderView; prefill:
     startSubmit(async () => {
       const result = await submitShippingAddress(order.id, data)
       if (!result.ok) {
-        toast.error(t("errors.orderProcessingFailed"), { description: tOrder(`errors.${result.error}`) })
+        toast.error(t("errors.orderProcessingFailed"), { description: orderErrorText(tOrder as never, locale, result) })
         return
       }
       router.push(`/complete?orderId=${order.id}`)

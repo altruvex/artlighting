@@ -18,6 +18,7 @@ import DiscountPrice from "./discount-price"
 import NormalPrice from "./normal-price"
 import { Link, useRouter } from "@/i18n/navigation"
 import { checkoutCart } from "@/actions/checkout"
+import { orderErrorText } from "@/components/order/order-error"
 import { familySlug } from "@repo/catalog/families"
 import { notifyCartChanged, onCartChanged } from "@/lib/cart-events"
 
@@ -290,7 +291,7 @@ function CartSummary({
     startCheckout(async () => {
       const result = await checkoutCart(locale)
       if (!result.ok) {
-        toast.error(tOrder(`errors.${result.error}`))
+        toast.error(orderErrorText(tOrder as never, locale, result))
         return
       }
       onCloseSheet()

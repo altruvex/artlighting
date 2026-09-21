@@ -1,6 +1,15 @@
 import "server-only";
 
-import { discountsForCart, redeemDiscount, redemptionsByCustomer, toCartLine } from "@repo/catalog";
+import {
+  availableFrom,
+  discountsForCart,
+  InsufficientStockError,
+  inventorySelect,
+  redeemDiscount,
+  redemptionsByCustomer,
+  syncOrderStock,
+  toCartLine,
+} from "@repo/catalog";
 import { prisma } from "@repo/database";
 import { addMoney, money, serializeMoney } from "@repo/money";
 import { computePricing, type PricingResult } from "@repo/pricing";
@@ -31,7 +40,11 @@ import { familySlug } from "@repo/catalog/families";
 /** Standard delivery, charged once per order however many lines it has. */
 export const STANDARD_SHIPPING = "69.00";
 
-const productInclude = { images: productImageSelect() } as const;
+const productInclude = {
+  images: productImageSelect(),
+  // The variant stock is taken from, and what it has left to sell.
+  variants: { where: { isDefault: true }, select: { id: true, inventory: inventorySelect() }, take: 1 },
+} as const;
 
 type ProductRow = NonNullable<Awaited<ReturnType<typeof loadProduct>>>;
 
@@ -127,7 +140,11 @@ export type CheckoutSource =
   | { kind: "configuration"; configurationId: string; quantity: number };
 
 export class CheckoutError extends Error {
-  constructor(public readonly code: "empty" | "not_found" | "not_yours" | "unavailable") {
+  constructor(
+    public readonly code: "empty" | "not_found" | "not_yours" | "unavailable" | "out_of_stock",
+    /** For out_of_stock: which product, and how many are left to sell. */
+    public readonly detail?: { product: string; available: number },
+  ) {
     super(code);
   }
 }
@@ -173,6 +190,14 @@ export async function placeOrder(
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
   const drafts = await draftsFor(userId, source);
   if (drafts.some((draft) => !draft.product.isActive)) throw new CheckoutError("unavailable");
+  // Said now, before the customer types an address. The binding check is
+  // the reservation when they confirm; this only spares them the form.
+  for (const draft of drafts) {
+    const available = availableFrom(draft.product.variants[0]?.inventory);
+    if (draft.quantity > available) {
+      throw new CheckoutError("out_of_stock", { product: draft.product.productName, available });
+    }
+  }
 
   const priced = await priceDrafts(drafts, {
     userId,
@@ -219,6 +244,7 @@ export async function placeOrder(
             const line = pricedByKey.get(draft.key)!;
             return {
               productId: draft.product.id,
+              productVariantId: draft.product.variants[0]?.id ?? null,
               quantity: draft.quantity,
               configPrice: line.unitPrice,
               configurationId: draft.configuration?.id ?? null,
@@ -281,27 +307,51 @@ export async function saveShippingAddress(orderId: number, userId: string, input
 }
 
 /**
- * The customer confirms. Marks the order complete and takes what it bought
- * out of their cart — in one transaction, so a completed order never leaves
- * its products sitting in the cart to be bought again by accident.
+ * The customer confirms. Marks the order complete, reserves its stock, and
+ * takes what it bought out of their cart — one transaction, so a confirmed
+ * order always holds its units, and a product that ran out between the
+ * cart and the button fails the confirmation instead of being sold twice.
+ *
+ * Confirming twice (a double click, a retry) is not an error: the second
+ * finds the order complete and its stock already reserved.
  */
 export async function completeOrder(orderId: number, userId: string): Promise<boolean> {
-  return prisma.$transaction(async (tx) => {
-    const { count } = await tx.order.updateMany({
-      where: { id: orderId, userId },
-      data: { isCompleted: true },
-    });
-    if (count === 0) return false;
+  try {
+    return await prisma.$transaction(
+      async (tx) => {
+        const order = await tx.order.findFirst({
+          where: { id: orderId, userId },
+          select: { isCompleted: true, status: true },
+        });
+        if (!order) return false;
+        if (order.isCompleted) return true;
 
-    const items = await tx.orderItem.findMany({ where: { orderId }, select: { productId: true } });
-    const cart = await tx.cart.findUnique({ where: { userId }, select: { id: true } });
-    if (cart && items.length > 0) {
-      await tx.cartItem.deleteMany({
-        where: { cartId: cart.id, productId: { in: items.map((item) => item.productId) } },
+        await tx.order.update({ where: { id: orderId }, data: { isCompleted: true } });
+        await syncOrderStock(orderId, order.status, `customer:${userId}`, tx);
+
+        const items = await tx.orderItem.findMany({ where: { orderId }, select: { productId: true } });
+        const cart = await tx.cart.findUnique({ where: { userId }, select: { id: true } });
+        if (cart && items.length > 0) {
+          await tx.cartItem.deleteMany({
+            where: { cartId: cart.id, productId: { in: items.map((item) => item.productId) } },
+          });
+        }
+        return true;
+      },
+      // A reservation per line over a remote database; the default five
+      // seconds is short for a large cart.
+      { timeout: 20_000 },
+    );
+  } catch (error) {
+    if (error instanceof InsufficientStockError) {
+      const line = await prisma.orderItem.findFirst({
+        where: { orderId, variant: { sku: error.sku } },
+        select: { productName: true },
       });
+      throw new CheckoutError("out_of_stock", { product: line?.productName ?? error.sku, available: error.available });
     }
-    return true;
-  });
+    throw error;
+  }
 }
 
 /**

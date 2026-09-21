@@ -73,7 +73,8 @@
       }
     },
     "statusChanged": "Order status changed to {status}",
-    "moreProducts": "{count, plural, one {+ # more product} other {+ # more products}}"
+    "moreProducts": "{count, plural, one {+ # more product} other {+ # more products}}",
+    "insufficientStock": "Not enough {sku} in stock: {requested} needed, {available} available. Adjust the stock or the order first."
   },
   "OrderDetail": {
     "title": "Order #{id}",

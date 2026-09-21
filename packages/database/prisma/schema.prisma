@@ -271,14 +271,33 @@ model OrderItem {
   productId        String
   productVariantId String?
   quantity         Int
+  /// One unit as configured — the product's price plus the wattage, IP and
+  /// bulb upgrades the customer chose — before any discount.
   configPrice      Decimal @db.Decimal(12, 2)
   configurationId  String?
   localizedName    String?
+
+  /// Snapshots, taken when the order is placed. Copies and not relations:
+  /// an invoice must still show what was bought after the product is
+  /// renamed, re-photographed or repriced.
+  productName      String   @default("")
+  productImages    String[] @default([])
+  brand            String?
+  productIp        String?
+  productColorTemp String?
+  /// SetNull, like Order.bulbId: retiring a bulb must not delete a line.
+  bulbId           String?
+
+  /// What the discounts took off this line, and what it came to after
+  /// them. lineTotal = configPrice × quantity − discountAmount.
+  discountAmount Decimal @default(0) @db.Decimal(12, 2)
+  lineTotal      Decimal @default(0) @db.Decimal(12, 2)
 
   order         Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product       Product         @relation(fields: [productId], references: [id])
   variant       ProductVariant? @relation(fields: [productVariantId], references: [id])
   configuration Configuration?  @relation(fields: [configurationId], references: [id])
+  bulb          Bulb?           @relation(fields: [bulbId], references: [id], onDelete: SetNull)
 
   @@index([orderId])
   @@index([productId])
@@ -290,34 +309,41 @@ model OrderItem {
 model Order {
   id                     Int         @id @default(autoincrement())
   userId                 String
-  productId              String
-  productName            String
+  /// The single-product columns below predate order lines. Orders placed
+  /// from now on leave them empty and keep their products in orderItems;
+  /// older orders were copied into orderItems when lines were introduced.
+  productId              String?
+  productName            String?
   /// A snapshot taken when the order was placed. Deliberately a copy, not a
   /// relation: an invoice must still show what the customer actually bought
   /// after the product's images are replaced.
   productImages          String[]
-  productColorTemp       String
-  productIp              String
+  productColorTemp       String?
+  productIp              String?
   /// Which bulb the fixture was bought with. A relation and not a string:
   /// the name is translated, and a receipt has to render in either language
   /// years later. productChandLamp below is the string this replaces — it
   /// only ever held the product's unused default, so every order said 9 W
   /// whatever the customer picked and paid for.
   bulbId                 String?
-  productChandLamp       String
-  quantity               Int
+  productChandLamp       String?
+  quantity               Int?
   isCompleted            Boolean     @default(false)
   status                 OrderStatus @default(awaiting_shipment)
   currency               String      @default("EGP")
   customerLanguage       String      @default("ar")
   createdAt              DateTime    @default(now())
   updatedAt              DateTime    @updatedAt
-  productPrice           Decimal     @db.Decimal(12, 2)
+  productPrice           Decimal?    @db.Decimal(12, 2)
   discountedPrice        Decimal?    @db.Decimal(12, 2)
   discountApplied        Boolean     @default(false)
   discountRate           Decimal     @default(0) @db.Decimal(5, 4)
+  /// Everything the customer pays: subtotal − discountTotal + shippingPrice.
   totalPrice             Decimal     @db.Decimal(12, 2)
-  configPrice            Decimal     @db.Decimal(12, 2)
+  configPrice            Decimal?    @db.Decimal(12, 2)
+  /// The lines before discounts, and what the discounts took off them.
+  subtotal               Decimal     @default(0) @db.Decimal(12, 2)
+  discountTotal          Decimal     @default(0) @db.Decimal(12, 2)
   priceIncrease          Decimal     @default(0) @db.Decimal(12, 2)
   shippingPrice          Decimal     @default(0) @db.Decimal(12, 2)
   brand                  String?
@@ -328,7 +354,9 @@ model Order {
 
   orderItems          OrderItem[]
   stockMovements      StockMovement[]
-  product             Product              @relation(fields: [productId], references: [id])
+  // Restrict, as it was while the column was required: making it optional
+  // must not quietly turn a product delete into orders that forget it.
+  product             Product?             @relation(fields: [productId], references: [id], onDelete: Restrict)
   shippingAddress     ShippingAddress?     @relation(fields: [shippingAddressId], references: [id])
   user                User                 @relation(fields: [userId], references: [id])
   configuration       Configuration?       @relation("ConfigurationToOrder", fields: [configurationId], references: [id])
@@ -1022,6 +1050,7 @@ model Bulb {
   products       ProductBulb[]
   configurations Configuration[]
   orders         Order[]
+  orderItems     OrderItem[]
 
   @@index([isActive, position])
   @@map("bulbs")

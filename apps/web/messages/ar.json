@@ -1056,5 +1056,30 @@
         "skipToContent": "تخطَّ إلى المحتوى",
         "showPassword": "إظهار كلمة المرور",
         "hidePassword": "إخفاء كلمة المرور"
+    },
+    "order": {
+        "products": "المنتجات",
+        "quantity": "الكمية",
+        "each": "للقطعة",
+        "lineOf": "{quantity} × {unit}",
+        "bulb": "اللمبة",
+        "protection": "الحماية",
+        "discount": "خصم",
+        "summary": "ملخص الطلب",
+        "subtotal": "المجموع قبل الخصم",
+        "discounts": "الخصومات",
+        "shipping": "الشحن",
+        "total": "الإجمالي",
+        "count": "{count, plural, zero {لا منتجات} one {منتج واحد} two {منتجان} few {{formatted} منتجات} many {{formatted} منتجًا} other {{formatted} منتج}}",
+        "checkout": "إتمام الطلب",
+        "checkingOut": "جاري تجهيز الطلب...",
+        "errors": {
+            "signed_out": "سجّل دخولك الأول عشان تكمل الطلب",
+            "empty": "السلة فاضية",
+            "unavailable": "فيه منتج في السلة مبقاش متاح — شيله وجرّب تاني",
+            "not_found": "الطلب ده مش موجود",
+            "invalid": "راجع البيانات اللي كتبتها",
+            "failed": "حصلت مشكلة. جرّب تاني"
+        }
     }
 }

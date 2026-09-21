@@ -72,7 +72,8 @@
         "led": "ليد"
       }
     },
-    "statusChanged": "تم تغيير حالة الطلب إلى {status}"
+    "statusChanged": "تم تغيير حالة الطلب إلى {status}",
+    "moreProducts": "{count, plural, one {+ منتج آخر} two {+ منتجان آخران} few {+ # منتجات أخرى} many {+ # منتجًا آخر} other {+ # منتج آخر}}"
   },
   "OrderDetail": {
     "title": "الطلب رقم {id}",
@@ -101,7 +102,10 @@
     "subtotal": "المجموع الفرعي",
     "discountWithRate": "الخصم ({rate})",
     "priceIncrease": "زيادة السعر",
-    "shipping": "الشحن"
+    "shipping": "الشحن",
+    "discount": "الخصومات",
+    "bulb": "اللمبة",
+    "lineDiscount": "خصم {amount}"
   },
   "Notifications": {
     "title": "الإشعارات",

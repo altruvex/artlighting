@@ -1,72 +1,56 @@
+import { auth } from "@/lib/auth-server"
+import { orderForCustomer, toOrderView } from "@/lib/checkout.server"
 import { getLocaleFromParams } from "@/lib/i18n/utils"
-import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { constructMetadata } from "@/lib/metadata"
+import { redirect } from "@/i18n/navigation"
 import { PagePropsTypes } from "@/types"
 import { prisma } from "@repo/database"
-import { Metadata } from "next"
+import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 import { notFound } from "next/navigation"
 import Confirm from "./confirm"
 
+/**
+ * The address step.
+ *
+ * It loaded the order by id alone — anyone could read anyone's order by
+ * changing the number in the URL — and then rendered it on the client from
+ * a second fetch. The order is loaded here, scoped to the signed-in
+ * customer, and handed to the form.
+ */
+export default async function Page({ params, searchParams }: PagePropsTypes) {
+  const locale = getLocaleFromParams(await params)
+  const orderId = Number((await searchParams)?.orderId)
 
-export default async function Page({ searchParams }: PagePropsTypes) {
-  const resolvedSearchParams = searchParams ? await searchParams : undefined
-  const orderId = resolvedSearchParams?.orderId
+  const { userId } = await auth()
+  if (!userId) redirect({ href: "/sign-in", locale })
 
-  if (!orderId || typeof orderId !== "string") {
-    return notFound()
-  }
+  const order = await orderForCustomer(orderId, userId!, locale)
+  if (!order) notFound()
+  if (order.isCompleted) redirect({ href: `/thank-you?orderId=${order.id}`, locale })
 
-  const order = await prisma.order.findUnique({
-    where: { id: Number.parseInt(orderId, 10) },
-    include: {
-      configuration: true,
-      product: true,
-    },
-  })
+  // The customer's saved address, including the name and phone the account
+  // already has when no address has been typed yet.
+  const saved = await prisma.shippingAddress.findUnique({ where: { userId: userId! } })
 
-  if (!order) {
-    return notFound()
-  }
-
-  return <Confirm />
+  return (
+    <Confirm
+      order={toOrderView(order, locale)}
+      prefill={{
+        fullName: saved?.fullName ?? "",
+        phoneNumber: saved?.phoneNumber ?? "",
+        address: saved?.address ?? "",
+        city: saved?.city ?? "",
+        state: saved?.state ?? "",
+        zipCode: saved?.zipCode ?? "",
+        country: saved?.country ?? "",
+      }}
+    />
+  )
 }
 
-export async function generateMetadata({ params, searchParams }: PagePropsTypes): Promise<Metadata> {
-  const resolvedSearchParams = searchParams ? await searchParams : undefined
-  const orderId = resolvedSearchParams?.orderId
-  const resolvedParams = await params
-  const locale = getLocaleFromParams(resolvedParams)
-
-  const titles: Record<string, string> = {
-    en: "Confirm your order by typing all your info",
-    ar: "أكد طلبك عن طريق كتابة جميع معلوماتك",
-  }
-
-  const descriptions: Record<string, string> = {
-    en: "Review your order carefully and click 'Send data' to confirm. Once submitted",
-    ar: "راجع طلبك بعناية واضغط على زر 'إرسال البيانات' للتأكيد. بمجرد الإرسال...",
-  }
-
-  let productImage: string = locale === 'ar' ? "/logo-ar.png" : "/logo-en.png"
-
-  if (orderId && typeof orderId === "string") {
-    const order = await prisma.order.findUnique({
-      where: { id: Number.parseInt(orderId, 10) },
-      include: {
-        configuration: true,
-        product: { include: { images: productImageSelect() } },
-      },
-    })
-
-    const [firstImage] = imageUrls(order?.product ?? {})
-    if (firstImage) {
-      productImage = firstImage
-    }
-  }
-
-  return constructMetadata({
-    title: titles[locale] || titles.en,
-    description: descriptions[locale] || descriptions.en,
-    image: productImage,
-  })
+export async function generateMetadata({ params }: PagePropsTypes): Promise<Metadata> {
+  const locale = getLocaleFromParams(await params)
+  const t = await getTranslations({ locale, namespace: "confirm" })
+  // A checkout step is the customer's own page; nothing here belongs in search.
+  return { title: t("title"), robots: { index: false, follow: false } }
 }

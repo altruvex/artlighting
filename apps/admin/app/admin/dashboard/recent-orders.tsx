@@ -15,6 +15,8 @@ export interface RecentOrderRow extends Record<string, unknown> {
   id: number;
   customer: string | null;
   productName: string;
+  /** Lines after the first. */
+  moreProducts: number;
   /** Serialized money (see @repo/money): a string, never a float. */
   total: string;
   /** Epoch milliseconds: sorts as a number, formats as a date. */
@@ -27,6 +29,7 @@ export interface RecentOrderRow extends Record<string, unknown> {
 export function RecentOrders({ orders }: { orders: RecentOrderRow[] }) {
   const t = useTranslations("Dashboard");
   const tCommon = useTranslations("Common");
+  const tOrders = useTranslations("Orders");
   const tStatus = useTranslations("OrderStatus");
   const format = useFormatter();
   const locale = useLocale();
@@ -69,7 +72,12 @@ export function RecentOrders({ orders }: { orders: RecentOrderRow[] }) {
         accessorFn: (row) => row.productName,
         header: ({ column }) => <ColumnHeader column={column} title={t("columns.product")} />,
         cell: ({ row }) => (
-          <span className="block max-w-[18rem] truncate">{row.original.productName}</span>
+          <span className="block max-w-[18rem] truncate">
+            {row.original.productName}
+            {row.original.moreProducts > 0 && (
+              <span className="text-muted-foreground"> · {tOrders("moreProducts", { count: row.original.moreProducts })}</span>
+            )}
+          </span>
         ),
       },
       {

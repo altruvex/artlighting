@@ -1,3 +1,4 @@
+import { orderLinesSelect, summarizeLines } from "@/lib/order-lines";
 import { EmptyState } from "@/components/empty-state";
 import { formatMoney, serializeMoney, sumMoney } from "@repo/money";
 import { PageHeader, PageShell } from "@/components/page-header";
@@ -68,9 +69,7 @@ const UserPage = async ({ params }: { params: Promise<{ userId: string }> }) => 
           orderBy: { createdAt: "desc" },
           select: {
             id: true,
-            productName: true,
-            productImages: true,
-            quantity: true,
+            orderItems: orderLinesSelect,
             totalPrice: true,
             status: true,
             isCompleted: true,
@@ -97,9 +96,7 @@ const UserPage = async ({ params }: { params: Promise<{ userId: string }> }) => 
 
   const orders: CustomerOrderRow[] = user.orders.map((order) => ({
     id: order.id,
-    productName: order.productName,
-    imageUrl: order.productImages[0] ?? null,
-    quantity: order.quantity,
+    ...summarizeLines(order.orderItems),
     total: serializeMoney(order.totalPrice),
     status: order.status,
     createdAt: order.createdAt,

@@ -6,13 +6,14 @@ import { OrderStatus, type Prisma, prisma } from "@repo/database";
 import { getTranslations } from "next-intl/server";
 import { ORDER_STATUSES } from "../order-status";
 import OrdersClient, { type OrderRow } from "./orders-client";
+import { orderLinesSelect, summarizeLines } from "@/lib/order-lines";
 
 /** Columns a URL may sort by, mapped to the Prisma field they order on. */
 const SORTABLE = {
   order: (desc: boolean) => ({ id: dir(desc) }),
   customer: (desc: boolean) => ({ shippingAddress: { fullName: dir(desc) } }),
-  product: (desc: boolean) => ({ productName: dir(desc) }),
-  quantity: (desc: boolean) => ({ quantity: dir(desc) }),
+  // The product and quantity columns summarize an order's lines; they do
+  // not sort, because an order with three products has no single value.
   shipping: (desc: boolean) => ({ shippingPrice: dir(desc) }),
   total: (desc: boolean) => ({ totalPrice: dir(desc) }),
   date: (desc: boolean) => ({ createdAt: dir(desc) }),
@@ -44,7 +45,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
           OR: [
             // The order number is what staff read off an email or a call.
             ...(/^\d+$/.test(params.q) ? [{ id: Number.parseInt(params.q, 10) }] : []),
-            { productName: { contains: params.q, mode: "insensitive" as const } },
+            // Any line's product, not only the first.
+            { orderItems: { some: { productName: { contains: params.q, mode: "insensitive" as const } } } },
             { shippingAddress: { fullName: { contains: params.q, mode: "insensitive" as const } } },
             { user: { email: { contains: params.q, mode: "insensitive" as const } } },
           ],
@@ -65,6 +67,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
       include: {
         user: { select: { id: true } },
         shippingAddress: { select: { fullName: true, phoneNumber: true } },
+        orderItems: orderLinesSelect,
       },
     }),
   ]);
@@ -74,9 +77,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
     userId: order.userId,
     customer: order.shippingAddress?.fullName ?? null,
     phone: order.shippingAddress?.phoneNumber ?? null,
-    productName: order.productName,
-    imageUrl: order.productImages[0] ?? null,
-    quantity: order.quantity,
+    ...summarizeLines(order.orderItems),
     shippingPrice: serializeMoney(order.shippingPrice),
     total: serializeMoney(order.totalPrice),
     createdAt: order.createdAt.getTime(),

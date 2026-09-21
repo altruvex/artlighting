@@ -1,7 +1,8 @@
 import { auth } from "@/lib/auth-server"
-import { OrderService } from "@/lib/order.server"
+import { orderForCustomer, toOrderView } from "@/lib/checkout.server"
 import { NextRequest, NextResponse } from "next/server"
 
+/** The caller's own order, as the order pages render it (lib/order-view). */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ orderId: string }> }
@@ -17,13 +18,13 @@ export async function GET(
   }
 
   try {
-    const locale = request.headers.get("accept-language")?.split(",")[0]?.split("-")[0] || "ar"
-    const order = await OrderService.getOrderWithDetails(orderId, userId, locale)
+    const locale = request.nextUrl.searchParams.get("locale") === "en" ? "en" : "ar"
+    const order = await orderForCustomer(orderId, userId, locale)
     // Missing and not-yours answer the same, so ids can't be probed.
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 })
     }
-    return NextResponse.json(order)
+    return NextResponse.json(toOrderView(order, locale))
   } catch (error) {
     console.error("Failed to fetch order", error)
     return NextResponse.json({ error: "Failed to fetch order" }, { status: 500 })

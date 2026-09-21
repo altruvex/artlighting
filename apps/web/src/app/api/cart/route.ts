@@ -1,8 +1,7 @@
 import { auth } from "@/lib/auth-server";
-import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { computePricing } from "@repo/pricing";
-import { money, multiplyMoney, roundMoney, serializeMoney } from "@repo/money";
-import { discountsForCart, toCartLine } from "@repo/catalog";
+import { cartDrafts, configuredUnitPrice, priceDrafts } from "@/lib/checkout.server";
+import { imageUrls } from "@/lib/product-images";
+import { money, multiplyMoney } from "@repo/money";
 
 import { prisma } from "@repo/database";
 import { NextRequest, NextResponse } from "next/server";
@@ -18,91 +17,60 @@ const CartItemQuantitySchema = z.object({
 
 const CartItemSchema = z.object({ itemId: z.string().min(1) });
 
+/**
+ * The cart, priced exactly as checkout will price it.
+ *
+ * All lines go through the engine together, with the unit each customer
+ * configured — the same drafts and the same call placeOrder uses — so the
+ * drawer's total is the order's total before shipping. It used to price
+ * the base product with no bulb or IP upgrade, and to price lines one by
+ * one while PATCH did something else again.
+ */
+async function pricedCart(userId: string) {
+  const drafts = await cartDrafts(userId);
+  if (drafts.length === 0) return [];
+  const priced = await priceDrafts(drafts, { userId });
+  const byKey = new Map(priced.lines.map((line) => [line.id, line]));
+
+  return drafts.map((draft) => {
+    const line = byKey.get(draft.key)!;
+    const unit = configuredUnitPrice(draft.product, draft.configuration);
+    const lineSubtotal = multiplyMoney(unit, draft.quantity);
+    return {
+      id: draft.key,
+      productId: draft.product.productId,
+      productName: draft.product.productName,
+      quantity: draft.quantity,
+      /** One unit as configured, before discounts. */
+      price: unit,
+      totalPrice: line.total,
+      productImages: imageUrls(draft.product),
+      // The effective rate for this line, from the engine.
+      discount: lineSubtotal.isZero() ? "0" : money(line.discount).dividedBy(lineSubtotal).toFixed(4),
+      sectionType: draft.product.sectionType,
+      spotlightType: draft.product.spotlightType,
+      brand: draft.product.brand,
+    };
+  });
+}
+
 export async function GET() {
   const { userId } = await auth();
-
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const cart = await prisma.cart.findUnique({
-      where: { userId },
-      include: {
-        items: {
-          include: {
-            product: { include: { images: productImageSelect() } },
-          },
-        },
-      },
-    });
-
-    if (!cart) {
-      return NextResponse.json([]);
-    }
-
-    // Each line priced on its own, exactly as its order will be.
-    //
-    // This used to put the whole cart through the engine at once. The engine
-    // lets one non-stackable promotion win per call, so a cart holding a
-    // chandelier (30% off) and a strip (13% off) handed the whole cart to
-    // the 30% and priced the strip at full list — while its product page,
-    // the promo bar and the order that "Order now" creates (one product,
-    // one line: lib/order.server.ts) all gave it 13%. The drawer quoted
-    // more than the customer would be charged, and it disagreed with this
-    // route's own PATCH, which already priced a single line. Checkout is
-    // per product, so per line is what the cart has to show.
-    const rules = await discountsForCart(null, prisma);
-    const now = new Date();
-    const byLine = new Map(
-      cart.items.map((item) => {
-        const priced = computePricing({
-          lines: [toCartLine(item.product, { id: item.id, quantity: item.quantity })],
-          discounts: rules,
-          customer: { userId },
-          now,
-        });
-        return [item.id, priced.lines[0]] as const;
-      }),
-    );
-
-    const cartItems = cart.items.map((item) => {
-      const line = byLine.get(item.id);
-      const lineDiscount = money(line?.discount ?? 0);
-      const lineSubtotal = multiplyMoney(item.product.price, item.quantity);
-      return {
-        id: item.id,
-        productId: item.product.productId,
-        productName: item.product.productName,
-        quantity: item.quantity,
-        price: serializeMoney(item.product.price),
-        unitPriceAfterDiscount: serializeMoney(
-          roundMoney(money(line?.total ?? lineSubtotal).dividedBy(Math.max(1, item.quantity))),
-        ),
-        totalPrice: line?.total ?? serializeMoney(lineSubtotal),
-        productImages: imageUrls(item.product),
-        // The effective rate for this line, from the engine.
-        discount: lineSubtotal.isZero() ? "0" : lineDiscount.dividedBy(lineSubtotal).toFixed(4),
-        sectionType: item.product.sectionType,
-        spotlightType: item.product.spotlightType,
-        brand: item.product.brand,
-      };
-    });
-
-    return NextResponse.json(cartItems);
+    return NextResponse.json(await pricedCart(userId));
   } catch (error) {
     console.error("Failed to fetch cart items:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
 
-// Add PATCH method for updating quantity
-export async function PATCH(request: NextRequest) {
+/** Sets a line's quantity, and answers with that line repriced alongside the rest. */
+async function updateQuantity(request: NextRequest) {
   const { userId } = await auth();
-
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -114,140 +82,29 @@ export async function PATCH(request: NextRequest) {
     }
     const { itemId, quantity } = parsed.data;
 
-    // Check if cart exists and user owns the item
-    const cart = await prisma.cart.findUnique({
-      where: { userId },
-      include: {
-        items: {
-          where: { id: itemId },
-          include: { product: { include: { images: productImageSelect() } } }
-        }
-      },
+    // Scoped to the caller's cart: another customer's item id updates nothing.
+    const { count } = await prisma.cartItem.updateMany({
+      where: { id: itemId, cart: { userId } },
+      data: { quantity },
     });
-
-    if (!cart || cart.items.length === 0) {
-      return NextResponse.json(
-        { error: "Cart item not found" },
-        { status: 404 }
-      );
+    if (count === 0) {
+      return NextResponse.json({ error: "Cart item not found" }, { status: 404 });
     }
 
-    // Update the cart item quantity
-    const updatedItem = await prisma.cartItem.update({
-      where: { id: itemId },
-      data: { quantity },
-      include: { product: { include: { images: productImageSelect() } } },
-    });
-
-    // Through the engine, like the GET above: the line's price is whatever
-    // the promotions say it is, not a rate on the product row.
-    const rules = await discountsForCart(null, prisma);
-    const priced = computePricing({
-      lines: [toCartLine(updatedItem.product, { id: updatedItem.id, quantity: updatedItem.quantity })],
-      discounts: rules,
-      customer: { userId },
-      now: new Date(),
-    });
-    const pricedLine = priced.lines[0]!;
-    const totalPrice = pricedLine.total;
-    const lineSubtotal = multiplyMoney(updatedItem.product.price, updatedItem.quantity);
-
-    return NextResponse.json({
-      id: updatedItem.id,
-      productId: updatedItem.product.productId,
-      productName: updatedItem.product.productName,
-      quantity: updatedItem.quantity,
-      price: updatedItem.product.price.toFixed(2),
-      totalPrice,
-      productImages: imageUrls(updatedItem.product),
-      discount: lineSubtotal.isZero() ? "0" : money(pricedLine.discount).dividedBy(lineSubtotal).toFixed(4),
-      sectionType: updatedItem.product.sectionType,
-      spotlightType: updatedItem.product.spotlightType,
-      brand: updatedItem.product.brand,
-    });
+    const line = (await pricedCart(userId)).find((item) => item.id === itemId);
+    return NextResponse.json(line);
   } catch (error) {
     console.error("Failed to update cart item:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
 
-// Keep existing PUT method for compatibility
-export async function PUT(request: NextRequest) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  try {
-    const parsed = CartItemQuantitySchema.safeParse(await request.json().catch(() => null));
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid quantity" }, { status: 400 });
-    }
-    const { itemId, quantity } = parsed.data;
-
-    const cart = await prisma.cart.findUnique({
-      where: { userId },
-      include: { items: { include: { product: { include: { images: productImageSelect() } } } } },
-    });
-
-    if (!cart) {
-      return NextResponse.json({ error: "Cart not found" }, { status: 404 });
-    }
-
-    const cartItem = cart.items.find((item) => item.id === itemId);
-    if (!cartItem) {
-      return NextResponse.json(
-        { error: "Cart item not found" },
-        { status: 404 },
-      );
-    }
-
-    const updatedItem = await prisma.cartItem.update({
-      where: { id: itemId },
-      data: { quantity },
-      include: { product: { include: { images: productImageSelect() } } },
-    });
-
-    // Through the engine, like the other two handlers.
-    const rules = await discountsForCart(null, prisma);
-    const priced = computePricing({
-      lines: [toCartLine(updatedItem.product, { id: updatedItem.id, quantity: updatedItem.quantity })],
-      discounts: rules,
-      customer: { userId },
-      now: new Date(),
-    });
-    const pricedLine = priced.lines[0]!;
-    const lineSubtotal = multiplyMoney(updatedItem.product.price, updatedItem.quantity);
-
-    return NextResponse.json({
-      id: updatedItem.id,
-      productId: updatedItem.product.productId,
-      productName: updatedItem.product.productName,
-      quantity: updatedItem.quantity,
-      price: serializeMoney(updatedItem.product.price),
-      totalPrice: pricedLine.total,
-      productImages: imageUrls(updatedItem.product),
-      discount: lineSubtotal.isZero() ? "0" : money(pricedLine.discount).dividedBy(lineSubtotal).toFixed(4),
-      sectionType: updatedItem.product.sectionType,
-      spotlightType: updatedItem.product.spotlightType,
-      brand: updatedItem.product.brand,
-    });
-  } catch (error) {
-    console.error("Failed to update cart item:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
-    );
-  }
-}
+export const PATCH = updateQuantity;
+// Kept for older clients that still send PUT.
+export const PUT = updateQuantity;
 
 export async function DELETE(request: NextRequest) {
   const { userId } = await auth();
-
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -257,35 +114,17 @@ export async function DELETE(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
-    const { itemId } = parsed.data;
 
-    // Verify the item belongs to the user's cart before deleting
-    const cart = await prisma.cart.findUnique({
-      where: { userId },
-      include: {
-        items: {
-          where: { id: itemId }
-        }
-      },
+    const { count } = await prisma.cartItem.deleteMany({
+      where: { id: parsed.data.itemId, cart: { userId } },
     });
-
-    if (!cart || cart.items.length === 0) {
-      return NextResponse.json(
-        { error: "Cart item not found" },
-        { status: 404 }
-      );
+    if (count === 0) {
+      return NextResponse.json({ error: "Cart item not found" }, { status: 404 });
     }
-
-    await prisma.cartItem.delete({
-      where: { id: itemId },
-    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to remove cart item:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

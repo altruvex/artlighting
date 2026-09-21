@@ -1,3 +1,4 @@
+import { orderLinesSelect, summarizeLines } from "@/lib/order-lines";
 import { PageHeader, PageShell } from "@/components/page-header";
 import { formatMoney, money, type MoneyInput, roundMoney, serializeMoney } from "@repo/money";
 import { StatCard } from "@/components/stat-card";
@@ -34,6 +35,7 @@ export default async function DashboardPage() {
       include: {
         user: { select: { id: true } },
         shippingAddress: { select: { fullName: true } },
+        orderItems: orderLinesSelect,
       },
     }),
     prisma.user.count(),
@@ -63,7 +65,9 @@ export default async function DashboardPage() {
   const rows: RecentOrderRow[] = recentOrders.map((order) => ({
     id: order.id,
     customer: order.shippingAddress?.fullName ?? null,
-    productName: order.productName,
+    // The first product and how many more — see lib/order-lines.
+    productName: summarizeLines(order.orderItems).productName,
+    moreProducts: summarizeLines(order.orderItems).moreProducts,
     total: serializeMoney(order.totalPrice),
     createdAt: order.createdAt.getTime(),
     status: order.status,

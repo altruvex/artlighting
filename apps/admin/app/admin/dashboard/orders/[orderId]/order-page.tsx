@@ -1,8 +1,7 @@
 "use client";
 
 import { PageHeader, PageShell } from "@/components/page-header";
-import { applyRate, multiplyMoney } from "@repo/money";
-import { formatMoney, formatRateAsPercent, type MoneyInput, moneySortKey } from "@/lib/money";
+import { formatMoney, type MoneyInput, moneySortKey } from "@/lib/money";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +24,21 @@ import type { ReactNode } from "react";
 import { orderStatusTone } from "../../order-status";
 import StatusDropdown from "../../status-dropdown-menu";
 
+export interface OrderLineData {
+  id: string;
+  productName: string;
+  productImage: string | null;
+  quantity: number;
+  /** Serialized money (see @repo/money): strings, never floats. */
+  unitPrice: string;
+  discountAmount: string;
+  lineTotal: string;
+  colorTemp: string | null;
+  ipRating: string | null;
+  bulb: string | null;
+  brand: string | null;
+}
+
 export interface OrderDetailData {
   id: number;
   status: OrderStatus;
@@ -32,21 +46,12 @@ export interface OrderDetailData {
   createdAt: number;
   updatedAt: number;
   expectedAt: number | null;
-  productName: string;
-  productImage: string | null;
-  quantity: number;
+  lines: OrderLineData[];
   /** Serialized money (see @repo/money): strings, never floats. */
-  unitPrice: string;
-  /** Rate, not percent: 0.13 = 13%. */
-  discountRate: string;
-  priceIncrease: string;
+  subtotal: string;
+  discountTotal: string;
   shippingPrice: string;
   total: string;
-  colorTemp: string | null;
-  ipRating: string | null;
-  lamp: string | null;
-  brand: string | null;
-  lightingType: string | null;
   customer: { id: string; email: string };
   shipping: {
     fullName: string;
@@ -75,17 +80,14 @@ export default function OrderPage({ order }: { order: OrderDetailData }) {
     return tOrders.has(key as never) ? tOrders(key as never) : value;
   };
 
-  // Decimal, so the admin's arithmetic matches the stored order exactly.
-  const subtotal = multiplyMoney(order.unitPrice, order.quantity);
-  const discountAmount = applyRate(subtotal, order.discountRate);
-
-  const specs = [
-    order.colorTemp && { label: t("colorTemperature"), value: valueLabel("colorTemp", order.colorTemp) },
-    order.ipRating && { label: t("ipRating"), value: order.ipRating },
-    order.lamp && { label: t("lampType"), value: valueLabel("lamp", order.lamp) },
-    order.lightingType && { label: t("lightingType"), value: valueLabel("lightingType", order.lightingType) },
-    order.brand && { label: t("brand"), value: order.brand },
-  ].filter((spec): spec is { label: string; value: string } => Boolean(spec));
+  // Free-text DB values: translate known ones, show anything else as stored.
+  const specsOf = (line: OrderLineData) =>
+    [
+      line.colorTemp && { label: t("colorTemperature"), value: valueLabel("colorTemp", line.colorTemp) },
+      line.ipRating && { label: t("ipRating"), value: line.ipRating },
+      line.bulb && { label: t("bulb"), value: line.bulb },
+      line.brand && { label: t("brand"), value: line.brand },
+    ].filter((spec): spec is { label: string; value: string } => Boolean(spec));
 
   return (
     <PageShell>
@@ -128,48 +130,56 @@ export default function OrderPage({ order }: { order: OrderDetailData }) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow className="hover:bg-transparent">
-                    <TableCell className="py-3 ps-4">
-                      <div className="flex items-start gap-3">
-                        {order.productImage ? (
-                          <Image
-                            src={order.productImage}
-                            alt=""
-                            width={48}
-                            height={48}
-                            className="size-12 shrink-0 rounded-md object-cover"
-                          />
-                        ) : (
-                          <span
-                            aria-hidden
-                            className="flex size-12 shrink-0 items-center justify-center rounded-md bg-muted"
-                          >
-                            <PackageIcon className="size-5 text-muted-foreground" />
-                          </span>
-                        )}
-                        <div className="min-w-0 space-y-1">
-                          <p className="font-medium">{order.productName}</p>
-                          {specs.length > 0 && (
-                            <dl className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-                              {specs.map((spec) => (
-                                <div key={spec.label} className="flex gap-1">
-                                  <dt>{spec.label}:</dt>
-                                  <dd className="text-foreground">{spec.value}</dd>
-                                </div>
-                              ))}
-                            </dl>
+                  {order.lines.map((line) => {
+                    const specs = specsOf(line);
+                    return (
+                      <TableRow key={line.id} className="hover:bg-transparent">
+                        <TableCell className="py-3 ps-4">
+                          <div className="flex items-start gap-3">
+                            {line.productImage ? (
+                              <Image
+                                src={line.productImage}
+                                alt=""
+                                width={48}
+                                height={48}
+                                className="size-12 shrink-0 rounded-md object-cover"
+                              />
+                            ) : (
+                              <span
+                                aria-hidden
+                                className="flex size-12 shrink-0 items-center justify-center rounded-md bg-muted"
+                              >
+                                <PackageIcon className="size-5 text-muted-foreground" />
+                              </span>
+                            )}
+                            <div className="min-w-0 space-y-1">
+                              <p className="font-medium">{line.productName}</p>
+                              {specs.length > 0 && (
+                                <dl className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                                  {specs.map((spec) => (
+                                    <div key={spec.label} className="flex gap-1">
+                                      <dt>{spec.label}:</dt>
+                                      <dd className="text-foreground">{spec.value}</dd>
+                                    </div>
+                                  ))}
+                                </dl>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3 text-end tabular-nums">{money(line.unitPrice)}</TableCell>
+                        <TableCell className="py-3 text-end tabular-nums">{format.number(line.quantity)}</TableCell>
+                        <TableCell className="py-3 pe-4 text-end tabular-nums">
+                          <span className="block font-medium">{money(line.lineTotal)}</span>
+                          {moneySortKey(line.discountAmount) > 0 && (
+                            <span className="block text-xs text-success">
+                              {t("lineDiscount", { amount: money(line.discountAmount) })}
+                            </span>
                           )}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-3 text-end tabular-nums">{money(order.unitPrice)}</TableCell>
-                    <TableCell className="py-3 text-end tabular-nums">
-                      {format.number(order.quantity)}
-                    </TableCell>
-                    <TableCell className="py-3 pe-4 text-end font-medium tabular-nums">
-                      {money(subtotal)}
-                    </TableCell>
-                  </TableRow>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -181,18 +191,9 @@ export default function OrderPage({ order }: { order: OrderDetailData }) {
             <CardTitle className="text-sm">{t("totals")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 px-4 text-sm">
-            <TotalRow label={t("subtotal")} value={money(subtotal)} />
-            {discountAmount.greaterThan(0) && (
-              <TotalRow
-                label={t("discountWithRate", {
-                  rate: formatRateAsPercent(order.discountRate, { locale }),
-                })}
-                value={money(discountAmount.negated())}
-                valueClassName="text-success"
-              />
-            )}
-            {moneySortKey(order.priceIncrease) > 0 && (
-              <TotalRow label={t("priceIncrease")} value={money(order.priceIncrease)} />
+            <TotalRow label={t("subtotal")} value={money(order.subtotal)} />
+            {moneySortKey(order.discountTotal) > 0 && (
+              <TotalRow label={t("discount")} value={`−${money(order.discountTotal)}`} valueClassName="text-success" />
             )}
             <TotalRow label={t("shipping")} value={money(order.shippingPrice)} />
             <Separator className="my-1" />

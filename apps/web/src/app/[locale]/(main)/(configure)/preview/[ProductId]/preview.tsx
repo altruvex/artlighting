@@ -195,7 +195,7 @@ export default function Preview({
       } catch (error) {
         console.error("Error clearing localStorage:", error);
       }
-      router.push(`/confirm/?orderId=${orderId}&userId=${userId}`);
+      router.push(`/confirm/?orderId=${orderId}`);
     },
     onError: (error) => {
       if (error.message.includes("logged in")) {

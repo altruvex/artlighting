@@ -72,7 +72,8 @@
         "led": "LED"
       }
     },
-    "statusChanged": "Order status changed to {status}"
+    "statusChanged": "Order status changed to {status}",
+    "moreProducts": "{count, plural, one {+ # more product} other {+ # more products}}"
   },
   "OrderDetail": {
     "title": "Order #{id}",
@@ -101,7 +102,10 @@
     "subtotal": "Subtotal",
     "discountWithRate": "Discount ({rate})",
     "priceIncrease": "Price increase",
-    "shipping": "Shipping"
+    "shipping": "Shipping",
+    "discount": "Discounts",
+    "bulb": "Bulb",
+    "lineDiscount": "{amount} off"
   },
   "Notifications": {
     "title": "Notifications",

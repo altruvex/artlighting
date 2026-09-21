@@ -19,7 +19,10 @@ export interface OrderRow extends Record<string, unknown> {
   customer: string | null;
   phone: string | null;
   productName: string;
+  /** Lines after the first; the row names only one product. */
+  moreProducts: number;
   imageUrl: string | null;
+  /** Units across every line. */
   quantity: number;
   /** Serialized money (see @repo/money): strings, never floats. */
   shippingPrice: string;
@@ -105,15 +108,24 @@ export default function OrdersClient({
                 <PackageIcon className="size-4 text-muted-foreground" />
               </span>
             )}
-            <span className="block max-w-[16rem] truncate">{row.original.productName}</span>
+            <span className="min-w-0">
+              <span className="block max-w-[16rem] truncate">{row.original.productName}</span>
+              {row.original.moreProducts > 0 && (
+                <span className="block text-xs text-muted-foreground">
+                  {t("moreProducts", { count: row.original.moreProducts })}
+                </span>
+              )}
+            </span>
           </div>
         ),
+        enableSorting: false,
       },
       {
         id: "quantity",
         accessorFn: (row) => row.quantity,
         header: t("columns.qty"),
         cell: ({ row }) => <span className="tabular-nums">{format.number(row.original.quantity)}</span>,
+        enableSorting: false,
       },
       {
         id: "shipping",

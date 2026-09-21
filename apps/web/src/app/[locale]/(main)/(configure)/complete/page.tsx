@@ -1,194 +1,38 @@
+import { auth } from "@/lib/auth-server"
+import { orderForCustomer, toOrderView } from "@/lib/checkout.server"
 import { getLocaleFromParams } from "@/lib/i18n/utils"
-import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { availableFrom, inventorySelect } from "@repo/catalog";
-import { serializeMoney, serializeRate } from "@repo/money"
-import { serializeRowMoney } from "@/lib/serialize-money"
-import { constructMetadata } from "@/lib/metadata"
+import { redirect } from "@/i18n/navigation"
 import { PagePropsTypes } from "@/types"
-import type {
-  Configuration,
-  OrderStatus,
-  Product,
-  ProductIP,
-  ProductSpecification,
-  ProductTranslation,
-  SupportedCurrency,
-  SupportedLanguage,
-} from "@/types/products"
-import { prisma } from "@repo/database"
-import { Metadata } from "next"
-import { getLocale } from "next-intl/server"
+import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 import { notFound } from "next/navigation"
-import Complete, { type OrderWithRelations } from "./complete"
+import Complete from "./complete"
 
-const Page = async ({ searchParams }: PagePropsTypes) => {
-  const resolvedSearchParams = searchParams ? await searchParams : undefined
-  const orderId = resolvedSearchParams?.orderId
+/**
+ * The review step. Loaded here, scoped to the signed-in customer — it used
+ * to find the order by id alone, so the number in the URL was the only
+ * thing between a stranger and someone's name, phone and address.
+ */
+export default async function Page({ params, searchParams }: PagePropsTypes) {
+  const locale = getLocaleFromParams(await params)
+  const orderId = Number((await searchParams)?.orderId)
 
-  if (!orderId || typeof orderId !== "string") {
-    return notFound()
-  }
+  const { userId } = await auth()
+  if (!userId) redirect({ href: "/sign-in", locale })
 
-  const locale = await getLocale()
+  const order = await orderForCustomer(orderId, userId!, locale)
+  if (!order) notFound()
+  if (order.isCompleted) redirect({ href: `/thank-you?orderId=${order.id}`, locale })
 
-  const order = await prisma.order.findUnique({
-    where: { id: Number.parseInt(orderId, 10) },
-    include: {
-      shippingAddress: true,
-      product: {
-        include: {
-          images: productImageSelect(),
-          variants: { where: { isDefault: true }, select: { inventory: inventorySelect() }, take: 1 },
-          specifications: {
-            where: {
-              language: locale,
-            },
-          },
-          translations: {
-            where: {
-              language: locale,
-            },
-          },
-        },
-      },
-      user: true,
-      configuration: true,
-      // The bulb the order was placed with, named in this locale. The old
-      // productChandLamp string is the product's unused default.
-      bulb: { select: { wattage: true, translations: { where: { language: locale }, select: { name: true } } } },
-    },
-  })
+  const view = toOrderView(order, locale)
+  // No address yet means the address step was skipped; it comes first.
+  if (!view.shippingAddress) redirect({ href: `/confirm?orderId=${order.id}`, locale })
 
-  if (!order) {
-    return notFound()
-  }
-
-  const localizedProductName =
-    order.product.translations[0]?.name || order.product.productName
-
-  const localizedSpecifications: ProductSpecification[] = order.product.specifications.map(spec => ({
-    ...spec,
-    maximumWattage:
-      spec.maximumWattage !== null && spec.maximumWattage !== undefined
-        ? Number(spec.maximumWattage)
-        : undefined,
-    customSpecs: spec.customSpecs as Record<string, any> | undefined,
-  }))
-
-  const localizedTranslations: ProductTranslation[] = order.product.translations.map(trans => ({
-    id: trans.id,
-    productId: trans.productId,
-    language: trans.language as SupportedLanguage,
-    name: trans.name,
-    description: trans.description ?? undefined,
-    createdAt: trans.createdAt,
-    updatedAt: trans.updatedAt,
-  }))
-
-  // Money crosses to the client as strings (see lib/serialize-money.ts).
-  const orderDiscount = serializeRate(order.configuration?.discount ?? order.discountRate ?? 0)
-
-  const localizedConfiguration: Configuration | null = order.configuration
-    ? {
-        id: order.configuration.id,
-        productId: order.configuration.productId,
-        configPrice: serializeMoney(order.configuration.configPrice),
-        priceIncrease: serializeMoney(order.configuration.priceIncrease),
-        shippingPrice: serializeMoney(order.configuration.shippingPrice),
-        discount: serializeRate(order.configuration.discount),
-        quantity: order.configuration.quantity,
-        lampPriceIncrease:
-          order.configuration.lampPriceIncrease == null
-            ? undefined
-            : serializeMoney(order.configuration.lampPriceIncrease),
-        totalPrice: serializeMoney(order.configuration.totalPrice),
-        currency: order.configuration.currency as SupportedCurrency,
-        productIp: order.configuration.productIp
-          ? (order.configuration.productIp as ProductIP)
-          : undefined,
-        createdAt: order.configuration.createdAt,
-        updatedAt: order.configuration.updatedAt,
-      }
-    : null
-
-  const localizedOrder: OrderWithRelations = {
-    ...serializeRowMoney(order),
-    status: order.status as OrderStatus,
-    currency: order.currency as SupportedCurrency,
-    customerLanguage: order.customerLanguage as SupportedLanguage,
-    priceIncrease: order.priceIncrease == null ? undefined : serializeMoney(order.priceIncrease),
-    brand: order.brand ?? undefined,
-    chandelierLightingType: order.chandelierLightingType ?? undefined,
-    configurationId: order.configurationId ?? undefined,
-    discount: orderDiscount,
-    productName: localizedProductName,
-    configuration: localizedConfiguration,
-    product: {
-      ...serializeRowMoney(order.product),
-      // The view model still carries a flat list, a quantity and a rate;
-      // all three come from elsewhere now rather than columns on the
-      // product. The rate is the one the order was placed at.
-      discount: orderDiscount,
-      productImages: imageUrls(order.product),
-      quantity: availableFrom(order.product.variants[0]?.inventory),
-      maxIP: order.product.maxIP ?? undefined,
-      priceIncrease:
-        order.product.priceIncrease == null ? undefined : serializeMoney(order.product.priceIncrease),
-      hNumber: order.product.hNumber ?? undefined,
-      chandelierLightingType: order.product.chandelierLightingType ?? undefined,
-      translations: localizedTranslations,
-      specifications: localizedSpecifications,
-      productChandelierLamp: (order.product as any).productChandelierLamp ?? null,
-    } as Product & { specifications: ProductSpecification[] },
-  }
-
-  return (
-    <Complete
-      discount={orderDiscount}
-      brand={order.brand || ""}
-      order={localizedOrder}
-    />
-  )
+  return <Complete order={view} />
 }
 
-export async function generateMetadata({ params, searchParams }: PagePropsTypes): Promise<Metadata> {
-  const resolvedSearchParams = searchParams ? await searchParams : undefined
-  const orderId = resolvedSearchParams?.orderId
-  const resolvedParams = await params
-  const { locale: localeParam } = resolvedParams
-  const locale = getLocaleFromParams(resolvedParams)
-
-  const titles: Record<string, string> = {
-    en: "Order Confirmed!",
-    ar: "تم تأكيد الطلب!",
-  }
-
-  const descriptions: Record<string, string> = {
-    en: "Please review your order before it is completed.",
-    ar: "يرجى مراجعة طلبك قبل إتمامه.",
-  }
-
-  let productImage: string = locale === "ar" ? "/logo-ar.png" : "/logo-en.png"
-
-  if (orderId && typeof orderId === "string") {
-    const order = await prisma.order.findUnique({
-      where: { id: Number.parseInt(orderId, 10) },
-      include: {
-        product: { include: { images: productImageSelect() } },
-      },
-    })
-
-    const [firstImage] = imageUrls(order?.product ?? {})
-    if (firstImage) {
-      productImage = firstImage
-    }
-  }
-
-  return constructMetadata({
-    title: titles[locale] || titles.en,
-    description: descriptions[locale] || descriptions.en,
-    image: productImage,
-  })
+export async function generateMetadata({ params }: PagePropsTypes): Promise<Metadata> {
+  const locale = getLocaleFromParams(await params)
+  const t = await getTranslations({ locale, namespace: "complete" })
+  return { title: t("title"), robots: { index: false, follow: false } }
 }
-
-export default Page

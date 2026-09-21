@@ -1,6 +1,7 @@
 import { requireAdminOrRedirect } from "@/lib/auth";
-import { serializeMoney, serializeRate } from "@repo/money";
+import { serializeMoney } from "@repo/money";
 import { prisma } from "@repo/database";
+import { getLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import OrderPage, { type OrderDetailData } from "./order-page";
 
@@ -10,18 +11,25 @@ export default async function OrderIdPage({ params }: { params: Promise<{ orderI
   const { orderId } = await params;
   const id = Number.parseInt(orderId, 10);
   if (!Number.isFinite(id)) return notFound();
+  const locale = await getLocale();
 
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
       shippingAddress: true,
-      product: true,
       user: true,
-      configuration: true,
+      orderItems: {
+        orderBy: { id: "asc" },
+        include: {
+          bulb: { select: { wattage: true, translations: { where: { language: locale }, select: { name: true } } } },
+        },
+      },
     },
   });
 
-  if (!order || !order.configuration) {
+  // An order without a configuration is still an order; it used to 404
+  // here, which hid it from the one person who has to ship it.
+  if (!order) {
     return notFound();
   }
 
@@ -31,19 +39,25 @@ export default async function OrderIdPage({ params }: { params: Promise<{ orderI
     createdAt: order.createdAt.getTime(),
     updatedAt: order.updatedAt.getTime(),
     expectedAt: order.orderTimeReceived?.getTime() ?? null,
-    productName: order.productName,
-    productImage: order.productImages[0] ?? null,
-    quantity: order.quantity,
-    unitPrice: serializeMoney(order.configPrice),
-    discountRate: serializeRate(order.discountRate),
-    priceIncrease: serializeMoney(order.priceIncrease),
+    // Every product in the order, with the figures stored when it was
+    // placed — not recomputed from a rate and a unit price.
+    lines: order.orderItems.map((item) => ({
+      id: item.id,
+      productName: item.productName,
+      productImage: item.productImages[0] ?? null,
+      quantity: item.quantity,
+      unitPrice: serializeMoney(item.configPrice),
+      discountAmount: serializeMoney(item.discountAmount),
+      lineTotal: serializeMoney(item.lineTotal),
+      colorTemp: item.productColorTemp,
+      ipRating: item.productIp,
+      bulb: item.bulb ? (item.bulb.translations[0]?.name ?? `${item.bulb.wattage} W`) : null,
+      brand: item.brand,
+    })),
+    subtotal: serializeMoney(order.subtotal),
+    discountTotal: serializeMoney(order.discountTotal),
     shippingPrice: serializeMoney(order.shippingPrice),
     total: serializeMoney(order.totalPrice),
-    colorTemp: order.productColorTemp || null,
-    ipRating: order.configuration.productIp ?? null,
-    lamp: order.chandelierLightingType ? order.productChandLamp || null : null,
-    brand: order.brand,
-    lightingType: order.chandelierLightingType,
     customer: {
       id: order.user.id,
       email: order.user.email,

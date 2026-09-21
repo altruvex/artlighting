@@ -183,20 +183,14 @@ async function main() {
         },
       });
 
+      // A header and its line, as the storefront places orders now: the
+      // product lives on the line, the totals on the header.
+      const lineSubtotal = multiplyMoney(configPrice, quantity);
       await prisma.order.create({
         data: {
           userId: customer.id,
-          productId: product.id,
-          productName: product.productName,
-          productImages: product.images.map((image) => image.url),
-          productColorTemp: product.productColor,
-          productIp: product.productIp,
-          productChandLamp: product.productChandLamp,
-          brand: product.brand,
-          chandelierLightingType: product.chandelierLightingType,
-          quantity,
-          productPrice: product.price,
-          configPrice: configPrice.toFixed(2),
+          subtotal: lineSubtotal.toFixed(2),
+          discountTotal: "0.00",
           shippingPrice,
           totalPrice: totalPrice.toFixed(2),
           status: OrderStatus[plan.status],
@@ -209,6 +203,21 @@ async function main() {
           // The order's own address link; User.shippingAddressId is a separate
           // legacy column that a nested create does not populate.
           shippingAddressId: customer.shippingAddress?.id ?? null,
+          orderItems: {
+            create: {
+              productId: product.id,
+              quantity,
+              configPrice: configPrice.toFixed(2),
+              configurationId: configuration.id,
+              productName: product.productName,
+              productImages: product.images.map((image) => image.url),
+              brand: product.brand,
+              productIp: product.productIp,
+              productColorTemp: product.productColor,
+              discountAmount: "0.00",
+              lineTotal: lineSubtotal.toFixed(2),
+            },
+          },
         },
       });
 

@@ -15,6 +15,8 @@ import { useMemo } from "react";
 export interface CustomerOrderRow extends Record<string, unknown> {
   id: number;
   productName: string;
+  /** Lines after the first. */
+  moreProducts: number;
   imageUrl: string | null;
   quantity: number;
   /** Serialized money (see @repo/money): a string, never a float. */
@@ -46,6 +48,7 @@ const STATUS_ORDER: OrderStatus[] = [
 export function UserClient({ orders }: { orders: CustomerOrderRow[] }) {
   const t = useTranslations("CustomerDetail");
   const tCommon = useTranslations("Common");
+  const tOrders = useTranslations("Orders");
   const format = useFormatter();
   const locale = useLocale();
 
@@ -86,7 +89,12 @@ export function UserClient({ orders }: { orders: CustomerOrderRow[] }) {
                 <PackageIcon className="size-4 text-muted-foreground" />
               </span>
             )}
-            <span className="line-clamp-2 min-w-0 text-sm">{row.original.productName}</span>
+            <span className="line-clamp-2 min-w-0 text-sm">
+              {row.original.productName}
+              {row.original.moreProducts > 0 && (
+                <span className="text-muted-foreground"> · {tOrders("moreProducts", { count: row.original.moreProducts })}</span>
+              )}
+            </span>
           </div>
         ),
       },

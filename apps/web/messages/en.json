@@ -1269,5 +1269,30 @@
         "skipToContent": "Skip to content",
         "showPassword": "Show password",
         "hidePassword": "Hide password"
+    },
+    "order": {
+        "products": "Products",
+        "quantity": "Quantity",
+        "each": "each",
+        "lineOf": "{quantity} × {unit}",
+        "bulb": "Bulb",
+        "protection": "Protection",
+        "discount": "off",
+        "summary": "Order summary",
+        "subtotal": "Subtotal",
+        "discounts": "Discounts",
+        "shipping": "Shipping",
+        "total": "Total",
+        "count": "{count, plural, one {{formatted} product} other {{formatted} products}}",
+        "checkout": "Checkout",
+        "checkingOut": "Preparing your order...",
+        "errors": {
+            "signed_out": "Sign in to place your order",
+            "empty": "Your cart is empty",
+            "unavailable": "A product in your cart is no longer available — remove it and try again",
+            "not_found": "We could not find that order",
+            "invalid": "Please check the details you entered",
+            "failed": "Something went wrong. Please try again"
+        }
     }
 }

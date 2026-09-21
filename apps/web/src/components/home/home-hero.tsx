@@ -31,8 +31,11 @@ export async function HomeHero({ locale, promotion }: { locale: string; promotio
         sizes="100vw"
         className="-z-10 object-cover"
       />
-      {/* Darkened toward the text side so the copy stays legible over any
-          part of the photograph, in either direction. */}
+      {/* Two veils. The gradient carries the wide screen, where the copy
+          sits on one side of the photograph; on a phone the text runs the
+          full width and a side gradient leaves half of it on bare image,
+          so there the whole frame is veiled instead. */}
+      <div aria-hidden className="absolute inset-0 -z-10 bg-background/75 sm:hidden" />
       <div
         aria-hidden
         className="absolute inset-0 -z-10 bg-linear-to-l from-background/95 via-background/70 to-background/15 ltr:bg-linear-to-r"
@@ -48,7 +51,7 @@ export async function HomeHero({ locale, promotion }: { locale: string; promotio
             </p>
           )}
           <h1 className="text-[length:var(--text-4xl)] leading-[1.05]">{t("title")}</h1>
-          <p className="max-w-md text-[length:var(--text-lg)] text-muted-foreground">{t("body")}</p>
+          <p className="max-w-md text-[length:var(--text-lg)] text-foreground/75">{t("body")}</p>
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <Link
               href="/products"

@@ -1239,5 +1239,8 @@
         "label": "Order steps",
         "current": "Current step",
         "done": "Done"
+    },
+    "a11y": {
+        "skipToContent": "Skip to content"
     }
 }

@@ -1263,8 +1263,7 @@
         "inStock": "In stock",
         "soldOut": "Sold out — ask us and we'll tell you when it's back",
         "fewLeft": "{count, plural, one{Only one left} other{Only {formatted} left}}",
-        "addToCart": "Add to cart",
-        "sections": "Product page sections"
+        "addToCart": "Add to cart"
     },
     "recent": {
         "title": "Recently viewed",
@@ -1280,5 +1279,31 @@
         "call": "Call the showroom",
         "visit": "Visit the showroom",
         "hours": "Showroom hours"
+    },
+    "reviews": {
+        "title": "Customer reviews",
+        "noReviews": "No reviews yet for this product.",
+        "beFirst": "Be the first to review it.",
+        "outOf": "out of 5",
+        "basedOn": "{count, plural, one{Based on # review} other{Based on # reviews}}",
+        "starsLabel": "{formatted} stars",
+        "writeReview": "Write a review",
+        "editReview": "Edit your review",
+        "yourRating": "Your rating",
+        "titleLabel": "Title (optional)",
+        "titlePlaceholder": "Sum up your experience",
+        "bodyLabel": "Your review (optional)",
+        "bodyPlaceholder": "How was your experience with this product?",
+        "submit": "Post review",
+        "submitting": "Posting...",
+        "update": "Update review",
+        "cancel": "Cancel",
+        "verifiedPurchase": "Verified purchase",
+        "signInToReview": "Sign in to review this product",
+        "ratingRequired": "Pick a star rating first",
+        "submitError": "Something went wrong posting your review, please try again",
+        "submitSuccess": "Thanks, your review was posted",
+        "loadMore": "Show more reviews",
+        "you": "You"
     }
 }

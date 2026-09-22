@@ -2,6 +2,7 @@
 
 import { SECTION_FRAME, SectionHeading } from "@/components/section-heading";
 import { RecordView } from "@/components/recently-viewed";
+import type { ReviewsSection } from "@/lib/reviews.server";
 import type { LocalizedProductData } from "@/lib/services/product.service";
 import { useProductDescription } from "@/lib/use-product-description";
 import type { Configuration } from "@/types/products";
@@ -11,6 +12,7 @@ import BuyBox from "./buy-box";
 import ColorGuide from "./color-guide";
 import ProductGallery from "./product-gallery";
 import ProductGlance from "./product-glance";
+import { ProductReviews } from "./product-reviews";
 import ProductSpecs from "./product-specs";
 
 /**
@@ -27,12 +29,17 @@ export default function ProductDetail({
   product,
   configuration,
   locale,
+  reviews,
+  signedIn,
 }: {
   product: LocalizedProductData;
   configuration?: Configuration;
   locale: string;
+  reviews: ReviewsSection;
+  signedIn: boolean;
 }) {
   const t = useTranslations("pdp");
+  const tReviews = useTranslations("reviews");
   const lightingTypeName =
     product.lightingtype?.translations?.[0]?.name ?? product.lightingtype?.name ?? undefined;
 
@@ -81,6 +88,8 @@ export default function ProductDetail({
             sectionType={product.sectionType}
             defaultColorTemp={(product.productColor as ProductColorTemp | null) ?? "warm"}
             stock={product.quantity}
+            ratingAverage={product.ratingAverage}
+            ratingCount={product.ratingCount}
           />
         </div>
       </div>
@@ -113,6 +122,11 @@ export default function ProductDetail({
           />
         </section>
       </div>
+
+      <section aria-labelledby="reviews-heading" id="reviews" className={`${SECTION_FRAME} pt-16 lg:pt-20`}>
+        <SectionHeading id="reviews-heading" title={tReviews("title")} />
+        <ProductReviews productId={product.productId} locale={locale} signedIn={signedIn} initial={reviews} />
+      </section>
     </article>
   );
 }

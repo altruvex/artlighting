@@ -50,6 +50,9 @@ export interface LocalizedProductData {
   spotlightType: string;
   /** Units a customer may buy; null when the product is not tracked (no limit). */
   quantity: number | null;
+  /** The average of this product's reviews, or null with none yet. */
+  ratingAverage: number | null;
+  ratingCount: number;
   isActive: boolean;
   featured: boolean;
   maxIP: number | null;
@@ -157,6 +160,8 @@ export function transformToLocalizedProduct(
     sectionType: product.sectionType,
     spotlightType: product.spotlightType,
     quantity: sellableFrom(product, product.variants?.[0]?.inventory),
+    ratingAverage: product.ratingAverage !== null && product.ratingAverage !== undefined ? Number(product.ratingAverage) : null,
+    ratingCount: product.ratingCount ?? 0,
     isActive: product.isActive ?? true,
     featured: product.featured ?? false,
     maxIP: product.maxIP ?? null,

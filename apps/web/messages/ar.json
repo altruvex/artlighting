@@ -1050,8 +1050,7 @@
         "inStock": "متوفر",
         "soldOut": "نفدت الكمية — كلّمنا ونبلغك أول ما يوصل",
         "fewLeft": "{count, plural, one{متبقّي قطعة واحدة} two{متبقّي قطعتان} few{متبقّي {formatted} قطع} many{متبقّي {formatted} قطعة} other{متبقّي {formatted} قطعة}}",
-        "addToCart": "أضف إلى السلة",
-        "sections": "أقسام صفحة المنتج"
+        "addToCart": "أضف إلى السلة"
     },
     "recent": {
         "title": "شاهدتها مؤخرًا",
@@ -1067,5 +1066,31 @@
         "call": "اتصل بالمعرض",
         "visit": "زور المعرض",
         "hours": "مواعيد المعرض"
+    },
+    "reviews": {
+        "title": "تقييمات العملاء",
+        "noReviews": "لسه مفيش تقييمات لهذا المنتج.",
+        "beFirst": "كن أول من يقيّمه.",
+        "outOf": "من ٥",
+        "basedOn": "{count, plural, zero{مفيش تقييمات} one{بناءً على تقييم واحد} two{بناءً على تقييمين} few{بناءً على {formatted} تقييمات} many{بناءً على {formatted} تقييمًا} other{بناءً على {formatted} تقييم}}",
+        "starsLabel": "{formatted} نجوم",
+        "writeReview": "اكتب تقييم",
+        "editReview": "عدّل تقييمك",
+        "yourRating": "تقييمك",
+        "titleLabel": "عنوان (اختياري)",
+        "titlePlaceholder": "لخّص تجربتك في جملة",
+        "bodyLabel": "تعليقك (اختياري)",
+        "bodyPlaceholder": "إزاي كانت تجربتك مع المنتج؟",
+        "submit": "انشر التقييم",
+        "submitting": "جارٍ النشر...",
+        "update": "حدّث التقييم",
+        "cancel": "إلغاء",
+        "verifiedPurchase": "عملية شراء موثّقة",
+        "signInToReview": "سجّل الدخول عشان تقيّم المنتج",
+        "ratingRequired": "اختار عدد النجوم الأول",
+        "submitError": "حصل خطأ أثناء نشر التقييم، حاول تاني",
+        "submitSuccess": "شكرًا لك، تم نشر تقييمك",
+        "loadMore": "شوف تقييمات أكتر",
+        "you": "أنت"
     }
 }

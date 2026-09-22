@@ -114,6 +114,8 @@ export function toCard(row: CardRow, locale: string, rate: string) {
     discount: rate,
     // null: not tracked, never sold out — see sellableFrom.
     quantity: sellableFrom(row, row.variants[0]?.inventory),
+    ratingAverage: row.ratingAverage !== null && row.ratingAverage !== undefined ? Number(row.ratingAverage) : null,
+    ratingCount: row.ratingCount,
     isActive: row.isActive,
     featured: row.featured,
     createdAt: row.createdAt.toISOString(),

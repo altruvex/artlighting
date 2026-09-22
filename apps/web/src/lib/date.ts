@@ -1,5 +1,6 @@
 import { addDays, format } from "date-fns"
 import { enUS } from "date-fns/locale"
+import { formatNumber } from "@/lib/numbers"
 
 const arabicMonths = [
     "يناير",
@@ -19,9 +20,12 @@ const arabicMonths = [
 
 export function formatDate(date: Date, locale: string): string {
     if (locale === "ar") {
-        const day = date.getDate()
+        // Arabic-Indic digits, like every other number on the Arabic
+        // pages: Intl's own ICU formatting for this locale doesn't produce
+        // them on its own (see lib/numbers.ts).
+        const day = formatNumber(date.getDate(), "ar")
         const month = arabicMonths[date.getMonth()]
-        const year = date.getFullYear()
+        const year = formatNumber(date.getFullYear(), "ar")
         return `${day} ${month}، ${year}`
     }
 

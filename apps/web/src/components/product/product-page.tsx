@@ -8,6 +8,7 @@ import { getLocaleFromParams } from "@/lib/i18n/utils";
 import { constructMetadata } from "@/lib/metadata";
 import { formatNumber } from "@/lib/numbers";
 import { ProductService } from "@/lib/services/product.service";
+import { productReviewsSection } from "@/lib/reviews.server";
 import { relatedCards } from "@/lib/shop.server";
 import type { PagePropsTypes } from "@/types";
 import { familyFromSlug, familySlug } from "@repo/catalog";
@@ -56,17 +57,18 @@ export async function ProductPage({ params, brand }: { params: PagePropsTypes["p
   if (!product) notFound();
 
   const [{ userId }, guestToken] = await Promise.all([auth(), readGuestToken()]);
-  const [configuration, related, t] = await Promise.all([
+  const [configuration, related, t, reviews] = await Promise.all([
     ProductService.getOrCreateConfiguration(product, userId, guestToken),
     // The same cards the shop and the home page render.
     relatedCards({ productId: product.productId, family: route.family, lightingTypeSlug: product.spotlightType }, locale),
     getTranslations({ locale, namespace: "home.rails" }),
+    productReviewsSection(product.productId, locale, userId),
   ]);
 
   return (
     <>
       <Breadcrumb />
-      <ProductDetail product={product} configuration={configuration} locale={locale} />
+      <ProductDetail product={product} configuration={configuration} locale={locale} reviews={reviews} signedIn={Boolean(userId)} />
       <ProductRail
         id="related"
         title={t("related")}

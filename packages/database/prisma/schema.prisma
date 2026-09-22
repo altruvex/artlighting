@@ -215,6 +215,7 @@ model User {
   sessions            Session[]
   accounts            Account[]
   discountRedemptions DiscountRedemption[]
+  reviews             Review[]
 
   @@map("users")
 }
@@ -479,6 +480,12 @@ model Product {
   productColor           ProductColorTemp @default(warm)
   productIp              ProductIP        @default(IP20) // Base IP enum derived from EN specs
   productChandLamp       ProductChandLamp @default(lamp9w)
+  /// Denormalized from this product's reviews, recomputed inside the same
+  /// transaction as every review write (see recomputeProductRating in
+  /// apps/web/src/lib/reviews.server.ts). Read here instead of aggregated
+  /// live so a shop grid of 117 products costs one query, not 117.
+  ratingAverage          Decimal?         @db.Decimal(3, 2)
+  ratingCount            Int              @default(0)
 
   cartItems         CartItem[]
   orders            Order[]
@@ -494,6 +501,7 @@ model Product {
   discounts         DiscountProduct[]
   priceHistory      PriceHistory[]
   bulbs             ProductBulb[]
+  reviews           Review[]
 
   @@index([productId])
   @@index([categoryId])
@@ -626,6 +634,38 @@ model ProductSpecification {
   @@index([productId])
   @@index([productId, language], name: "idx_product_spec_product_language")
   @@map("product_specifications")
+}
+
+// ─── Review ──────────────────────────────────────────────────
+// A customer's rating of a product, at most one per (product, customer):
+// writing a second is editing the first, the way a receipt is never
+// re-issued twice for the same order. `verifiedPurchase` is decided once,
+// when the review is written — from whether an order of theirs for this
+// product had already shipped — and kept as written rather than
+// recomputed every render, which would let a later return quietly erase
+// the badge on a review describing a fixture the customer did receive.
+model Review {
+  id               String   @id @default(cuid())
+  productId        String
+  userId           String
+  /// 1 to 5, whole stars — enforced in the action, not the database,
+  /// alongside the same validation the body text gets.
+  rating           Int
+  title            String?
+  body             String?
+  verifiedPurchase Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  // Restrict: a review is the customer's own record: deleting the account
+  // is a separate, deliberate decision, not a side effect of anything else.
+  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([productId, userId])
+  @@index([productId, createdAt(sort: Desc)], name: "idx_review_product_created")
+  @@index([userId])
+  @@map("reviews")
 }
 
 // ─── Category ────────────────────────────────────────────────

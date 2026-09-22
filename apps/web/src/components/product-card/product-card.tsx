@@ -8,11 +8,12 @@ import type { LocalizedSpecGroup } from "@/lib/specs-view";
 import { useProductDescription } from "@/lib/use-product-description";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
-import { formatNumberWithConversion, formatPercent } from "@/lib/numbers";
+import { formatNumber, formatNumberWithConversion, formatPercent } from "@/lib/numbers";
 import { applyRate, money, serializeMoney, subtractMoney } from "@repo/money";
 import { useAuth } from "@/lib/auth-hooks";
 import { useLocale, useTranslations } from "next-intl";
 import { ProductImage as Image } from "@/components/product/product-image";
+import { StarRating } from "@/components/product/star-rating";
 import { PLACEHOLDER_IMAGE } from "@/lib/product-images";
 import { Loader2Icon, ShoppingBagIcon } from "lucide-react";
 import { useMemo, useTransition } from "react";
@@ -32,6 +33,9 @@ interface Product {
   /** What can be bought now; absent where a caller does not know it. */
   /** Units a customer may buy; null when the product is not tracked (never sold out). */
   quantity?: number | null;
+  /** The average of this product's reviews, or null with none yet. */
+  ratingAverage?: number | null;
+  ratingCount?: number;
   chandelierLightingType?: string;
   hNumber?: number;
   maximumWattage?: string;
@@ -215,6 +219,15 @@ export default function ProductCard({ product }: ProductCardProps) {
           <p className="line-clamp-2 text-[length:var(--text-sm)] leading-relaxed text-muted-foreground">
             {description}
           </p>
+        )}
+
+        {Boolean(product.ratingCount) && (
+          <div className="flex items-center gap-1.5">
+            <StarRating value={product.ratingAverage ?? 0} size="xs" />
+            <span className="text-[length:var(--text-xs)] text-muted-foreground tabular-nums">
+              {formatNumber(product.ratingCount!, locale === "ar" ? "ar" : "en")}
+            </span>
+          </div>
         )}
 
         <div className="mt-auto space-y-0.5 pt-1.5">

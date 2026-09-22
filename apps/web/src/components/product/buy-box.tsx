@@ -31,6 +31,7 @@ import BulbOptions from "./bulb-options"
 import ColorTempOptions from "./color-temp-options"
 import IpOptions from "./ip-options"
 import { QuantitySelector } from "./quantity-selector"
+import { StarRating, ratingLabel } from "./star-rating"
 
 const PRODUCTS_WITH_IP20_TEXT = ["product-jy-810-10w", "product-jy-810-12w", "product-jy-810-18w", "product-jy-810-30w"]
 const PRODUCTS_WITH_MAX_IP_TEXT = ["product-jy-913-5w", "product-jy-913-8w", "product-jy-913-12w", "product-jy-913-18w"]
@@ -65,6 +66,9 @@ export interface BuyBoxProps {
   defaultColorTemp: ProductColorTemp
   /** Units a customer may buy; null when the product is not tracked (no limit). */
   stock: number | null
+  /** The average of this product's reviews, or null with none yet. */
+  ratingAverage: number | null
+  ratingCount: number
 }
 
 /**
@@ -93,6 +97,8 @@ export default function BuyBox({
   sectionType,
   defaultColorTemp,
   stock,
+  ratingAverage,
+  ratingCount,
 }: BuyBoxProps) {
   const t = useTranslations("product-main-info")
   const tPdp = useTranslations("pdp")
@@ -307,6 +313,20 @@ export default function BuyBox({
         </h1>
         {shortDescription && (
           <p className="max-w-prose text-pretty leading-relaxed text-muted-foreground">{shortDescription}</p>
+        )}
+        {/* A plain anchor, not the i18n Link: it is a same-page jump to
+            the reviews section, not a route. */}
+        {ratingCount > 0 && ratingAverage !== null && (
+          <a
+            href="#reviews"
+            className="inline-flex items-center gap-2 text-[length:var(--text-sm)] transition-colors duration-[var(--dur-hover)] hover:text-primary"
+          >
+            <StarRating value={ratingAverage} />
+            <span className="sr-only">{ratingLabel(ratingAverage, ratingCount, locale)}</span>
+            <span aria-hidden className="tabular-nums text-muted-foreground underline-offset-4 hover:underline">
+              {formatNumber(ratingCount, locale === "ar" ? "ar" : "en")}
+            </span>
+          </a>
         )}
       </header>
 

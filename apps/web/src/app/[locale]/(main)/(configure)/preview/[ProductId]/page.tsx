@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth-server"
 import { familySlug, productDiscountRates } from "@repo/catalog";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
+import { localizeSpecGroups, specGroupSelect, specsByKey } from "@/lib/spec-groups";
 import { serializeRate } from "@repo/money";
 import { serializeRowMoney, toViewConfiguration } from "@/lib/serialize-money";
 import { readGuestToken } from "@/lib/guest-token"
@@ -34,7 +35,6 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
 
   let configuration = null
   let product = null
-  let productSpecification = null
 
   try {
     if (ProductId) {
@@ -98,27 +98,13 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
           translations: {
             where: { language: locale }
           },
-          specifications: {
-            where: { language: locale }
-          }
+          specGroups: specGroupSelect(locale),
         }
       })
-      // Keyed on Product.id now, not the SKU — `product` was just fetched
-      // by SKU above, so its id is the right key here.
-      productSpecification = product
-        ? await prisma.productSpecification.findUnique({
-            where: {
-              productId_language: {
-                productId: product.id,
-                language: locale
-              }
-            }
-          })
-        : null
       console.log("Product fetch result:", {
         found: !!product,
         hasTranslations: product?.translations?.length ?? 0,
-        hasSpecifications: product?.specifications?.length ?? 0,
+        specGroups: product?.specGroups?.length ?? 0,
       })
     }
     if (!configuration && id && typeof id === "string") {
@@ -152,22 +138,9 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
             translations: {
               where: { language: locale }
             },
-            specifications: {
-              where: { language: locale }
-            }
+            specGroups: specGroupSelect(locale),
           }
         })
-
-        productSpecification = product
-          ? await prisma.productSpecification.findUnique({
-              where: {
-                productId_language: {
-                  productId: product.id,
-                  language: locale
-                }
-              }
-            })
-          : null
       }
     }
 
@@ -180,12 +153,16 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
       console.error("Product not found after all attempts")
       return notFound()
     }
-    const primarySpecification = product.specifications?.[0] || productSpecification || undefined
+    // The structured specs, by key — the legacy ProductSpecification
+    // columns are no longer written. Kept out of the spread below: their
+    // measurements are Decimals, which a Client Component cannot receive.
+    const { specGroups, ...productRow } = product
+    const specs = specsByKey(localizeSpecGroups(specGroups, locale))
 
     const localizedProduct: ProductWithSpecs = {
       // Money leaves the server as strings; a Prisma.Decimal cannot cross
       // into a Client Component (see @repo/money).
-      ...serializeRowMoney(product),
+      ...serializeRowMoney(productRow),
       // The effective rate, from the engine — there is no rate on a
       // product row any more.
       discount: (await productDiscountRates([product], prisma))[product.id] ?? "0",
@@ -193,23 +170,21 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
       productImages: imageUrls(product),
       productName: product.translations?.[0]?.name || product.productName,
       description: product.translations?.[0]?.description ?? undefined,
-      localizedSpecs: primarySpecification,
-      specification: primarySpecification,
       categoryName: product.category?.translations?.[0]?.name || product.category?.name,
       lightingTypeName: product.lightingtype?.translations?.[0]?.name || product.lightingtype?.name,
       maxIP: product.maxIP ?? undefined,
-      luminousFlux: primarySpecification?.luminousFlux ?? undefined,
-      mainMaterial: primarySpecification?.mainMaterial ?? undefined,
-      beamAngle: primarySpecification?.beamAngle ?? undefined,
-      colorTemperature: primarySpecification?.colorTemperature ?? undefined,
-      lifeTime: primarySpecification?.lifeTime ?? undefined,
-      energySaving: primarySpecification?.energySaving ?? undefined,
-      cri: primarySpecification?.cri ?? undefined,
-      brandOfLed: primarySpecification?.brandOfLed ?? undefined,
-      electrical: primarySpecification?.electrical ?? undefined,
-      input: primarySpecification?.input ?? undefined,
-      finish: primarySpecification?.finish ?? undefined,
-      lampBase: primarySpecification?.lampBase ?? undefined,
+      luminousFlux: specs.luminousFlux,
+      mainMaterial: specs.mainMaterial,
+      beamAngle: specs.beamAngle,
+      colorTemperature: specs.colorTemperature,
+      lifeTime: specs.lifeTime,
+      energySaving: specs.energySaving,
+      cri: specs.cri,
+      brandOfLed: specs.brandOfLed,
+      electrical: specs.electrical,
+      input: specs.input,
+      finish: specs.finish,
+      lampBase: specs.lampBase,
       hNumber: product.hNumber ?? undefined,
       chandelierLightingType: product.chandelierLightingType ?? undefined,
     }
@@ -218,7 +193,6 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
       configurationId: configuration.id,
       productId: localizedProduct.productId,
       productName: localizedProduct.productName,
-      hasLocalizedSpecs: !!localizedProduct.localizedSpecs,
       locale
     })
 
@@ -256,9 +230,7 @@ export const generateMetadata = async ({ params }: PagePropsTypes): Promise<Meta
         translations: {
           where: { language: locale }
         },
-        specifications: {
-          where: { language: locale }
-        },
+        specGroups: specGroupSelect(locale),
         images: productImageSelect()
       }
     })
@@ -281,7 +253,7 @@ export const generateMetadata = async ({ params }: PagePropsTypes): Promise<Meta
     }
 
     const localizedName = product.translations?.[0]?.name || product.productName
-    const specification = product.specifications?.[0]
+    const specs = specsByKey(localizeSpecGroups(product.specGroups, locale))
 
     // The enum is a value, not a label: if a family ever loses its copy below,
     // the slug is what shows, never "INDOOR".
@@ -316,8 +288,8 @@ export const generateMetadata = async ({ params }: PagePropsTypes): Promise<Meta
     } as const
 
     const descriptionTemplates = {
-      en: `Preview of ${localizedName} With a high CRI ${specification?.cri || 'N/A'}, and high beam angle of ${specification?.beamAngle || 'N/A'} this spotlight provides bright, ${typeOfSpotlight}`,
-      ar: `معاينة ${localizedName} بمؤشر إضاءة عالي ${specification?.cri || 'غير متاح'}، وزاوية شعاع عالية ${specification?.beamAngle || 'غير متاح'} يوفر هذا الكشاف إضاءة ساطعة، ${typeOfSpotlight}`
+      en: `Preview of ${localizedName} With a high CRI ${specs.cri || 'N/A'}, and high beam angle of ${specs.beamAngle || 'N/A'} this spotlight provides bright, ${typeOfSpotlight}`,
+      ar: `معاينة ${localizedName} بمؤشر إضاءة عالي ${specs.cri || 'غير متاح'}، وزاوية شعاع عالية ${specs.beamAngle || 'غير متاح'} يوفر هذا الكشاف إضاءة ساطعة، ${typeOfSpotlight}`
     } as const
     const imageUrl = imageUrls(product)[0]
 

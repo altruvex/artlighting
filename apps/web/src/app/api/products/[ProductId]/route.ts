@@ -1,5 +1,6 @@
 import { prisma } from "@repo/database"
 import { imageUrls, productImageSelect } from "@/lib/product-images";
+import { localizeSpecGroups, specGroupSelect, specsByKey } from "@/lib/spec-groups";
 import { availableFrom, inventorySelect } from "@repo/catalog";
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
@@ -51,25 +52,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         lightingtypeId: true,
         createdAt: true,
         updatedAt: true,
-        // Add specification fields if they exist directly on Product table
-        // Remove these if they don't exist in your Product model:
-        // luminousFlux: true,
-        // mainMaterial: true,
-        // beamAngle: true,
-        // colorTemperature: true,
-        // lifeTime: true,
-        // energySaving: true,
-        // cri: true,
-        // brandOfLed: true,
-        // electrical: true,
-        // input: true,
-        // finish: true,
-        // lampBase: true,
-        // maximumWattage: true,
-        // workingTemperature: true,
-        // fixtureDimmable: true,
-        // powerFactor: true,
-        // ip: true,
         translations: {
           where: { language: locale },
           select: {
@@ -77,30 +59,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             description: true
           }
         },
-        specifications: {
-          where: { language: locale },
-          select: {
-            input: true,
-            maximumWattage: true,
-            brandOfLed: true,
-            luminousFlux: true,
-            mainMaterial: true,
-            cri: true,
-            beamAngle: true,
-            workingTemperature: true,
-            fixtureDimmable: true,
-            electrical: true,
-            powerFactor: true,
-            colorTemperature: true,
-            ip: true,
-            energySaving: true,
-            lifeTime: true,
-            finish: true,
-            lampBase: true,
-            bulb: true,
-            customSpecs: true,
-          }
-        },
+        specGroups: specGroupSelect(locale),
         category: {
           select: {
             id: true,
@@ -137,28 +96,30 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: "Product not found" }, { status: 404 })
     }
 
+    // The structured specs, by key — the legacy ProductSpecification
+    // columns are no longer written.
+    const { specGroups, ...row } = product
+    const specs = specsByKey(localizeSpecGroups(specGroups, locale))
+
     // Merge localized data with proper fallbacks
     const localizedProduct = {
-      ...product,
+      ...row,
       productName: product.translations[0]?.name || product.productName,
       description: product.translations[0]?.description || null,
-      specification: product.specifications[0] || null,
-      localizedSpecs: product.specifications[0] || {},
       categoryName: product.category?.translations[0]?.name || product.category?.name,
       lightingTypeName: product.lightingtype?.translations[0]?.name || product.lightingtype?.name,
-      // Map specifications to match your component expectations
-      luminousFlux: product.specifications[0]?.luminousFlux,
-      mainMaterial: product.specifications[0]?.mainMaterial,
-      beamAngle: product.specifications[0]?.beamAngle,
-      colorTemperature: product.specifications[0]?.colorTemperature,
-      lifeTime: product.specifications[0]?.lifeTime,
-      energySaving: product.specifications[0]?.energySaving,
-      cri: product.specifications[0]?.cri,
-      brandOfLed: product.specifications[0]?.brandOfLed,
-      electrical: product.specifications[0]?.electrical,
-      input: product.specifications[0]?.input,
-      finish: product.specifications[0]?.finish,
-      lampBase: product.specifications[0]?.lampBase,
+      luminousFlux: specs.luminousFlux,
+      mainMaterial: specs.mainMaterial,
+      beamAngle: specs.beamAngle,
+      colorTemperature: specs.colorTemperature,
+      lifeTime: specs.lifeTime,
+      energySaving: specs.energySaving,
+      cri: specs.cri,
+      brandOfLed: specs.brandOfLed,
+      electrical: specs.electrical,
+      input: specs.input,
+      finish: specs.finish,
+      lampBase: specs.lampBase,
     }
 
     console.log(`API: Successfully fetched product: ${ProductId}`)

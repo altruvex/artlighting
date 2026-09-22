@@ -6,14 +6,19 @@
  * the same four groups the datasheet already prints, in the same order, so a
  * generated datasheet reads identically before and after the switch.
  *
- * **Idempotent.** Every row's primary key is derived from the product and
- * the position, so a re-run rewrites exactly the same rows. Each product's
- * groups are replaced in one transaction, which is also what makes the
- * script re-runnable after an edit to SPEC_LAYOUT — that is how a
- * relabelled or reordered spec is rolled out.
+ * **Only products with no spec groups.** The admin editor and the
+ * datasheet studio write SpecGroups directly, and nothing writes the legacy
+ * columns any more, so they are stale for any product edited since. A
+ * product that already has groups is skipped rather than rebuilt from them —
+ * rebuilding would silently undo those edits. This is a one-time move per
+ * database (production has not had it yet); it is no longer the way to roll
+ * out a SPEC_LAYOUT change.
  *
- * **Nothing is deleted.** `ProductSpecification` stays until the datasheet
- * worker and the storefront read the new tables.
+ * **Idempotent.** Every row's primary key is derived from the product and
+ * the position, and a product it has filled is skipped on the next run.
+ *
+ * **Nothing is deleted.** `ProductSpecification` stays until its drop
+ * migration, which also retires this script.
  *
  * Run: pnpm --filter @repo/catalog backfill:specs -- --dry-run
  *      pnpm --filter @repo/catalog backfill:specs -- --apply
@@ -37,8 +42,12 @@ const { SPEC_LAYOUT } = await import("../src/spec-layout");
 
 reportHeader("Backfill: ProductSpecification columns → SpecGroup / SpecItem", options, hostOf(databaseUrl()));
 
+const alreadyStructured = await prisma.product.count({
+  where: { specifications: { some: {} }, specGroups: { some: {} } },
+});
+
 const products = await prisma.product.findMany({
-  where: { specifications: { some: {} } },
+  where: { specifications: { some: {} }, specGroups: { none: {} } },
   select: { id: true, productId: true, specifications: true },
   orderBy: { productId: "asc" },
   ...(options.limit ? { take: options.limit } : {}),
@@ -209,9 +218,6 @@ for (const product of products) {
 
   if (!options.dryRun && plannedGroups.length > 0) {
     await prisma.$transaction([
-      // Cascades through the translations and items, so the product's spec
-      // tree is replaced wholesale and a removed field leaves nothing behind.
-      prisma.specGroup.deleteMany({ where: { productId: product.id } }),
       prisma.specGroup.createMany({ data: plannedGroups }),
       prisma.specGroupTranslation.createMany({ data: plannedGroupTranslations }),
       prisma.specItem.createMany({ data: plannedItems }),
@@ -225,6 +231,7 @@ for (const product of products) {
 
 console.log("");
 console.log(`  products:                 ${products.length}`);
+console.log(`  skipped, already have groups: ${alreadyStructured}`);
 console.log(`  groups ${options.dryRun ? "to write" : "written"}:${" ".repeat(options.dryRun ? 11 : 12)}${groupsWritten}`);
 console.log(`  items  ${options.dryRun ? "to write" : "written"}:${" ".repeat(options.dryRun ? 11 : 12)}${itemsWritten}`);
 console.log(`  empty groups skipped:     ${skippedEmptyGroups}`);
@@ -241,10 +248,12 @@ if (unparsed.length > 0) {
     console.log(`    ${column.padEnd(20)} ${String(count).padStart(4)}   e.g. ${sample.sku}: ${JSON.stringify(sample.english ?? sample.arabic)}`);
   }
 }
-if (!options.dryRun && !options.limit) {
+if (!options.dryRun && !options.limit && written > 0) {
   // Vocabulary nothing points at any more — left behind when a value or the
   // keying changes. Only safe to sweep on a full run: a --limit run has not
   // looked at every product, so an option may simply not have been reached.
+  // And only when this run wrote something: on a run that skipped every
+  // product, an unused option is vocabulary the editor offers, not debris.
   const orphaned = await prisma.specOption.findMany({
     where: { items: { none: {} } },
     select: { id: true, key: true },

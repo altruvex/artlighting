@@ -11,9 +11,9 @@
  *
  * So the base is derived rather than listed. Nothing here names a product:
  * change which bulb a fixture is sold with and re-run, and the spec
- * follows. Both stores are written — the structured SpecItem, through the
- * shared option so the two languages cannot drift, and the legacy
- * per-language string the older pages still read.
+ * follows. Only the structured SpecItem is written, through the shared
+ * option so the two languages cannot drift. The legacy ProductSpecification
+ * column is left alone: nothing reads it any more.
  *
  * A fixture with no lamp-base row is reported, not given one: writing a
  * spec that was never recorded is inventing product documentation.
@@ -44,7 +44,6 @@ const fixtures = await prisma.product.findMany({
     id: true,
     productId: true,
     bulbs: { where: { isDefault: true }, select: { bulb: { select: { base: true } } } },
-    specifications: { select: { id: true, language: true, lampBase: true } },
     specGroups: {
       select: {
         items: {
@@ -63,7 +62,6 @@ type Plan = {
   base: "E27" | "E14";
   from: string;
   itemId: string;
-  legacyRowIds: string[];
 };
 
 const plans: Plan[] = [];
@@ -79,20 +77,13 @@ for (const fixture of fixtures) {
     continue;
   }
 
-  const structuredOk = item.option?.key === OPTION_KEY[base];
-  const staleLegacy = fixture.specifications.filter(
-    (row) => (row.lampBase ?? "").trim().toUpperCase() !== LABEL[base],
-  );
-  if (structuredOk && staleLegacy.length === 0) continue;
+  if (item.option?.key === OPTION_KEY[base]) continue;
 
   plans.push({
     productId: fixture.productId,
     base,
-    from: `structured=${item.option?.key ?? "none"} legacy=${fixture.specifications
-      .map((row) => `${row.language}:${JSON.stringify(row.lampBase)}`)
-      .join(" ")}`,
+    from: item.option?.key ?? "none",
     itemId: item.id,
-    legacyRowIds: staleLegacy.map((row) => row.id),
   });
 }
 
@@ -140,17 +131,9 @@ if (plans.length === 0) {
     }
 
     for (const plan of plans) {
-      await prisma.$transaction(async (tx) => {
-        await tx.specItem.update({
-          where: { id: plan.itemId },
-          data: { optionId: optionIds.get(OPTION_KEY[plan.base])! },
-        });
-        if (plan.legacyRowIds.length > 0) {
-          await tx.productSpecification.updateMany({
-            where: { id: { in: plan.legacyRowIds } },
-            data: { lampBase: LABEL[plan.base] },
-          });
-        }
+      await prisma.specItem.update({
+        where: { id: plan.itemId },
+        data: { optionId: optionIds.get(OPTION_KEY[plan.base])! },
       });
     }
     console.log(`  Corrected ${plans.length} fixture${plans.length === 1 ? "" : "s"}.`);

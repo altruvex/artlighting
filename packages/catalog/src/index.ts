@@ -10,6 +10,7 @@ export * from "./products";
 export * from "./import-export";
 export * from "./specs";
 export * from "./spec-format";
+export * from "./spec-copy";
 export type { Db } from "./client";
 export * from "./spec-text";
 export * from "./spec-layout";

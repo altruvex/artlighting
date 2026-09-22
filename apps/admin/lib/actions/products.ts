@@ -162,70 +162,100 @@ export async function duplicateProduct(productId: string) {
   return run(async () => {
     await requireAdmin();
 
-    const source = await prisma.product.findUniqueOrThrow({
-      where: { id: productId },
-      include: { images: true, variants: true },
-    });
+    // One transaction: a copy that failed half-way would be a product with
+    // images but no specs, which is the bug this copy exists to prevent.
+    const copy = await prisma.$transaction(
+      async (tx) => {
+        const source = await tx.product.findUniqueOrThrow({
+          where: { id: productId },
+          include: { images: true, variants: true, translations: true, specifications: true },
+        });
 
-    const newProductId = `${source.productId}-copy-${Date.now().toString(36)}`;
+        const suffix = `-copy-${Date.now().toString(36)}`;
 
-    const copy = await prisma.product.create({
-      data: {
-        productId: newProductId,
-        productName: `${source.productName} (Copy)`,
-        maxIP: source.maxIP,
-        spotlightType: source.spotlightType,
-        price: source.price,
-        priceIncrease: source.priceIncrease,
-        sectionType: source.sectionType,
-        brand: source.brand,
-        // A copy starts with no promotion: a discount is a Discount row
-        // with its own targets now, and a copy is not one of them until
-        // someone says so.
-        chandelierLightingType: source.chandelierLightingType,
-        hNumber: source.hNumber,
-        isActive: false, // starts inactive until reviewed
-        featured: false,
-        categoryId: source.categoryId,
-        lightingtypeId: source.lightingtypeId,
-        productColor: source.productColor,
-        productIp: source.productIp,
-        productChandLamp: source.productChandLamp,
-        images: {
-          create: source.images.map((img) => ({
-            url: img.url,
-            altText: img.altText,
-            order: img.order,
-            isPrimary: img.isPrimary,
-          })),
-        },
-        variants: {
-          create: source.variants.map((v) => ({
-            sku: `${v.sku}-copy-${Date.now().toString(36)}`,
-            wattage: v.wattage,
-            colorTemp: v.colorTemp,
-            finish: v.finish,
-            size: v.size,
-            price: v.price,
-            isDefault: v.isDefault,
-          })),
-        },
+        const copy = await tx.product.create({
+          data: {
+            productId: `${source.productId}${suffix}`,
+            productName: `${source.productName} (Copy)`,
+            maxIP: source.maxIP,
+            spotlightType: source.spotlightType,
+            price: source.price,
+            priceIncrease: source.priceIncrease,
+            sectionType: source.sectionType,
+            brand: source.brand,
+            // A copy starts with no promotion: a discount is a Discount row
+            // with its own targets now, and a copy is not one of them until
+            // someone says so.
+            chandelierLightingType: source.chandelierLightingType,
+            hNumber: source.hNumber,
+            isActive: false, // starts inactive until reviewed
+            featured: false,
+            categoryId: source.categoryId,
+            lightingtypeId: source.lightingtypeId,
+            productColor: source.productColor,
+            productIp: source.productIp,
+            productChandLamp: source.productChandLamp,
+            images: {
+              create: source.images.map((img) => ({
+                url: img.url,
+                altText: img.altText,
+                order: img.order,
+                isPrimary: img.isPrimary,
+              })),
+            },
+            variants: {
+              create: source.variants.map((v) => ({
+                sku: `${v.sku}${suffix}`,
+                wattage: v.wattage,
+                colorTemp: v.colorTemp,
+                finish: v.finish,
+                size: v.size,
+                price: v.price,
+                isDefault: v.isDefault,
+              })),
+            },
+            translations: {
+              create: source.translations.map((tr) => ({
+                language: tr.language,
+                name: tr.name,
+                description: tr.description,
+              })),
+            },
+            // The legacy columns still feed the shop cards' spec line.
+            specifications: {
+              create: source.specifications.map(
+                ({ id: _id, productId: _productId, createdAt: _createdAt, updatedAt: _updatedAt, customSpecs, ...spec }) => ({
+                  ...spec,
+                  // A JSON column takes no bare null on write; undefined leaves it NULL.
+                  customSpecs: customSpecs ?? undefined,
+                })
+              ),
+            },
+          },
+        });
+
+        // Specs are what the product page, the datasheet and the editor read.
+        await catalog.copyProductSpecs(source.id, copy.id, tx);
+
+        // A copy starts with no stock: it opens an empty inventory row rather
+        // than inheriting units that were never counted onto its shelf.
+        const location = await catalog.defaultLocation(tx);
+        const copiedVariants = await tx.productVariant.findMany({
+          where: { productId: copy.id },
+          select: { id: true },
+        });
+        await tx.inventoryItem.createMany({
+          data: copiedVariants.map((variant) => ({ variantId: variant.id, locationId: location.id })),
+        });
+
+        return copy;
       },
-    });
-
-    // A copy starts with no stock: it opens an empty inventory row rather
-    // than inheriting units that were never counted onto its shelf.
-    const location = await catalog.defaultLocation(prisma);
-    const copiedVariants = await prisma.productVariant.findMany({
-      where: { productId: copy.id },
-      select: { id: true },
-    });
-    await prisma.inventoryItem.createMany({
-      data: copiedVariants.map((variant) => ({ variantId: variant.id, locationId: location.id })),
-    });
+      { timeout: 20_000 }
+    );
 
     revalidatePath("/admin/dashboard/products");
-    return copy;
+    // Ids only: the row carries Decimal money, which cannot cross to the client.
+    return { id: copy.id, productId: copy.productId };
   });
 }
 

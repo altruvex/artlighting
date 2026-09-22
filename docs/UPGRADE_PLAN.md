@@ -463,6 +463,35 @@ says that rather than leaving it to be remembered.
 - **`mc7021` has no specifications at all**, so its page is a name and a
   price. Not invented here; someone has to enter them.
 
+### Legacy `ProductSpecification` off the storefront (2026-09-22)
+Nothing on the storefront reads the table any more. `toCard`,
+`ProductService` (its scalars and `localizedSpecs`), the product page's meta
+description, `ProductDetail`, `ProductSpecs`' fallback, the preview page and
+`/api/products/[ProductId]` read `SpecGroup`s through `specsByKey` /
+`specNumbersByKey`; the unused `lib/i18n` product readers were deleted. The
+admin duplicate-product action no longer copies the source's legacy rows.
+
+Checked on the Neon dev branch, 6 products × en/ar, before and after: page
+titles and body text identical. What changed is where a legacy string was
+printed as-is, which now reads like the spec table: the meta description's
+colour temperature ("3000K / 4000K / 6500K" → "3,000 / 4,000 / 6,500 K", all
+116 products with a value) and the preview's LED highlight flux (61
+products; the Arabic JY-202-15W legacy value, "٦٢٠ لومن/متر", was a
+different figure). The two products with no spec groups (`mc7021` and a
+deleted dev seed) have no legacy rows either.
+
+`backfill:specs` now only fills products that have **no** spec groups. It
+used to rebuild every product's groups from the legacy columns, which are
+stale for anything edited in the admin since — a re-run would have undone
+those edits. On dev it now skips all 116. `fix:lamp-base` writes only the
+structured spec.
+
+**What still touches the table**, all production-rollout scripts:
+`fix:arabic-specs`, `backfill:specs` and `fix:wattage`. Production has never
+had the spec backfill, so they stay until it has run there (see the
+runbook). The drop migration **⚠** comes after that, retires those three
+scripts, and removes the `ProductSpecification` model.
+
 ## Production rollout runbook
 
 Nothing below has run against production. Production receives exactly the
@@ -488,6 +517,15 @@ the local `.env` files contain.
 | spec groups | `(productId, group position, language)` | rows to create per product |
 | `/public` images → Cloudinary | deterministic `public_id` = `artlighting/products/<productId>/<n>`, so a re-run overwrites rather than duplicating | files to upload, and which `ProductImage` rows would be written |
 | stock sync | `ProductVariant.stock` is the source of truth; `Product.quantity` follows | products whose `quantity` disagrees with their default variant |
+
+**Spec scripts, in this order:** `fix:arabic-specs` (corrects three
+Arabic legacy values at the source) → `backfill:specs` → `fix:wattage`
+(removes the 0 W the backfill parses from an Arabic "٠") → `seed:bulbs` →
+`fix:lamp-base`. Run them after the migration that creates the spec tables
+and **before the web deploy**: since 2026-09-22 the storefront has no
+legacy fallback, so until they run, product pages have no spec table,
+glance row or colour temperature. The code running before the deploy does
+not read spec groups, so running them first is safe.
 
 Legacy `/public` files and the old columns (`Product.productImages[]`,
 `Product.quantity`, `Product.discount`) stay until Ali confirms; dropping

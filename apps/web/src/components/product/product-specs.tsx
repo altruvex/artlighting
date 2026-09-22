@@ -1,27 +1,5 @@
-import type { LocalizedSpecGroup, LocalizedSpecItem } from "@/lib/specs-view";
-import type { LocalizedSpecsData } from "@/lib/services/product.service";
+import type { LocalizedSpecGroup } from "@/lib/specs-view";
 import { Fragment } from "react";
-
-/** The legacy per-language columns, for a product the spec backfill has not reached. */
-const LEGACY_ROWS: { key: keyof LocalizedSpecsData; ar: string; en: string }[] = [
-  { key: "input", ar: "المدخل", en: "Input" },
-  { key: "maximumWattage", ar: "أقصى قدرة", en: "Maximum wattage" },
-  { key: "brandOfLed", ar: "نوع الليد", en: "LED brand" },
-  { key: "luminousFlux", ar: "شدة الإضاءة", en: "Luminous flux" },
-  { key: "mainMaterial", ar: "مادة التصنيع", en: "Main material" },
-  { key: "finish", ar: "التشطيب", en: "Finish" },
-  { key: "cri", ar: "مؤشر تجسيد الألوان", en: "CRI" },
-  { key: "beamAngle", ar: "زاوية الإضاءة", en: "Beam angle" },
-  { key: "workingTemperature", ar: "درجة حرارة التشغيل", en: "Working temperature" },
-  { key: "fixtureDimmable", ar: "قابلية التعتيم", en: "Dimmable" },
-  { key: "electrical", ar: "الترانس", en: "Driver" },
-  { key: "powerFactor", ar: "معامل القدرة", en: "Power factor" },
-  { key: "colorTemperature", ar: "درجة حرارة اللون", en: "Colour temperature" },
-  { key: "ip", ar: "درجة الحماية", en: "IP rating" },
-  { key: "energySaving", ar: "توفير الطاقة", en: "Energy saving" },
-  { key: "lampBase", ar: "قاعدة اللمبة", en: "Lamp base" },
-  { key: "lifeTime", ar: "العمر الافتراضي", en: "Life time" },
-];
 
 /**
  * The spec sheet.
@@ -37,34 +15,27 @@ const LEGACY_ROWS: { key: keyof LocalizedSpecsData; ar: string; en: string }[] =
  */
 export default function ProductSpecs({
   groups,
-  legacy,
   hNumber,
   locale,
   armsLabel,
 }: {
   groups: LocalizedSpecGroup[];
-  legacy?: LocalizedSpecsData | null;
   hNumber?: number | null;
   locale: string;
   armsLabel: string;
 }) {
   const ar = locale === "ar";
+  // A product with no spec groups still states its arm count, which lives
+  // on the product rather than in the specs.
   const sheet: LocalizedSpecGroup[] =
     groups.length > 0
       ? groups
       : [
           {
             name: "",
-            items: LEGACY_ROWS.flatMap(({ key, ...label }): LocalizedSpecItem[] => {
-              const value = legacy?.[key];
-              return typeof value === "string" && value.trim()
-                ? [{ key, label: ar ? label.ar : label.en, value, parts: [{ text: value }], numeric: null }]
-                : [];
-            }).concat(
-              hNumber
-                ? [{ key: "hNumber", label: armsLabel, value: String(hNumber), parts: [{ text: hNumber.toLocaleString(ar ? "ar-EG" : "en") }], numeric: hNumber }]
-                : [],
-            ),
+            items: hNumber
+              ? [{ key: "hNumber", label: armsLabel, value: String(hNumber), parts: [{ text: hNumber.toLocaleString(ar ? "ar-EG" : "en") }], numeric: hNumber }]
+              : [],
           },
         ];
 

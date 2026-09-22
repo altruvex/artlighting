@@ -110,9 +110,9 @@ export async function productPageMetadata({
   }
 
   const familyName = (await getTranslations({ locale, namespace: "family" }))(route.family);
-  const specs = product.localizedSpecs;
   // From the structured specs through the service, not the legacy
-  // per-language string. Absent when nothing is stored.
+  // per-language strings. Absent when nothing is stored.
+  const { colorTemperature, cri } = product;
   const wattage = product.maximumWattage;
   const watts = wattage ? (ar ? `${formatNumber(wattage, "ar")} وات ` : `${formatNumber(wattage, "en")}W `) : "";
   const lightingTypeName = product.lightingtype?.translations?.[0]?.name ?? product.lightingtype?.name ?? "";
@@ -122,8 +122,8 @@ export async function productPageMetadata({
 
   const title = `${product.productName} - ${watts}${familyName} ${lightingTypeName} | ${suffix}`;
   const description = ar
-    ? `اكتشف ${product.productName}، ${BRAND[brand].noun.ar} ${watts}${familyName} ${lightingTypeName} مناسب لـ${categoryName}.${outdoor ? ` تصنيف IP${product.maxIP} للاستخدام الخارجي.` : ""}${specs?.colorTemperature ? ` ${specs.colorTemperature}.` : ""}`
-    : `The ${product.productName}, a ${watts}${familyName.toLowerCase()} ${lightingTypeName.toLowerCase()} ${BRAND[brand].noun.en} for ${categoryName.toLowerCase()}.${outdoor ? ` IP${product.maxIP} rated for outdoor use.` : ""}${specs?.colorTemperature ? ` ${specs.colorTemperature}.` : ""}${specs?.cri ? ` CRI ${specs.cri}.` : ""}`;
+    ? `اكتشف ${product.productName}، ${BRAND[brand].noun.ar} ${watts}${familyName} ${lightingTypeName} مناسب لـ${categoryName}.${outdoor ? ` تصنيف IP${product.maxIP} للاستخدام الخارجي.` : ""}${colorTemperature ? ` ${colorTemperature}.` : ""}`
+    : `The ${product.productName}, a ${watts}${familyName.toLowerCase()} ${lightingTypeName.toLowerCase()} ${BRAND[brand].noun.en} for ${categoryName.toLowerCase()}.${outdoor ? ` IP${product.maxIP} rated for outdoor use.` : ""}${colorTemperature ? ` ${colorTemperature}.` : ""}${cri ? ` CRI ${cri}.` : ""}`;
 
   return constructMetadata({
     title,

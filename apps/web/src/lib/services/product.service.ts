@@ -1,9 +1,8 @@
 import { prisma } from "@repo/database";
-import { parseLocalizedInt } from "@/lib/numbers";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { sellableFrom, familiesMatching, inventorySelect, productBulbSelect, productDiscountRates, type ProductFamily } from "@repo/catalog";
 import { bulbChoices, type BulbChoice } from "@repo/catalog/bulb-pricing";
-import { localizeSpecGroups, specGroupSelect, specNumbersByKey, type LocalizedSpecGroup } from "@/lib/spec-groups";
+import { localizeSpecGroups, specGroupSelect, specNumbersByKey, specsByKey, type LocalizedSpecGroup } from "@/lib/spec-groups";
 import { serializeMoney, serializeRate } from "@repo/money";
 import { toViewConfiguration } from "@/lib/serialize-money";
 import type { Prisma } from "@repo/database";
@@ -65,8 +64,6 @@ export interface LocalizedProductData {
   lightingtypeId: string | null;
   createdAt: Date;
   updatedAt: Date;
-  specifications: LocalizedSpecsData | null;
-  localizedSpecs: LocalizedSpecsData;
   bulbChoices: BulbChoice[];
   maximumWattage?: number;
   mainMaterial?: string;
@@ -91,33 +88,6 @@ export interface LocalizedProductData {
   translations?: any[];
 }
 
-export interface LocalizedSpecsData {
-  id?: string;
-  productId?: string;
-  language?: string;
-  input?: string | null;
-  maximumWattage?: string | null;
-  brandOfLed?: string | null;
-  luminousFlux?: string | null;
-  mainMaterial?: string | null;
-  cri?: string | null;
-  beamAngle?: string | null;
-  workingTemperature?: string | null;
-  fixtureDimmable?: string | null;
-  electrical?: string | null;
-  powerFactor?: string | null;
-  colorTemperature?: string | null;
-  ip?: string | null;
-  energySaving?: string | null;
-  lifeTime?: string | null;
-  finish?: string | null;
-  lampBase?: string | null;
-  bulb?: string | null;
-  customSpecs?: any;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
 export function transformToLocalizedProduct(
   product: any,
   language: string,
@@ -131,8 +101,9 @@ export function transformToLocalizedProduct(
   discountRates: Record<string, string> = {}
 ): LocalizedProductData {
   const translation = product.translations?.[0];
-  const specs: LocalizedSpecsData = product.specifications?.[0] ?? {};
   const localizedGroups = localizeSpecGroups(product.specGroups ?? [], language);
+  const specs = specsByKey(localizedGroups);
+  const specNumbers = specNumbersByKey(localizedGroups);
 
   const localizedName = translation?.name || product.productName;
 
@@ -174,32 +145,28 @@ export function transformToLocalizedProduct(
     lightingtypeId: product.lightingtypeId ?? null,
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,
-    specifications: specs,
-    localizedSpecs: specs,
-    // The structured store is the source: the legacy ProductSpecification
-    // rows drifted per language — two products carry an Arabic "٠" where the
-    // English row has the real figure. The legacy string is only a fallback
-    // for the products the spec backfill has not reached.
-    maximumWattage:
-      specNumbersByKey(localizedGroups).maximumWattage ??
-      parseLocalizedInt(specs.maximumWattage),
-    mainMaterial: specs.mainMaterial ?? undefined,
-    beamAngle: specs.beamAngle ?? undefined,
-    lampBase: specs.lampBase ?? undefined,
-    colorTemperature: specs.colorTemperature ?? undefined,
-    lifeTime: specs.lifeTime ?? undefined,
-    finish: specs.finish ?? undefined,
-    input: specs.input ?? undefined,
-    brandOfLed: specs.brandOfLed ?? undefined,
-    luminousFlux: specs.luminousFlux ?? undefined,
-    cri: specs.cri ?? undefined,
-    workingTemperature: specs.workingTemperature ?? undefined,
-    fixtureDimmable: specs.fixtureDimmable ?? undefined,
-    electrical: specs.electrical ?? undefined,
-    powerFactor: specs.powerFactor ?? undefined,
-    energySaving: specs.energySaving ?? undefined,
-    ip: parseLocalizedInt(specs.ip) ?? product.maxIP ?? undefined,
-    bulb: specs.bulb ?? undefined,
+    // The structured store is the only source. The legacy
+    // ProductSpecification columns are no longer written by either app, and
+    // had drifted per language before that — two products carry an Arabic
+    // "٠" where the English row has the real figure.
+    maximumWattage: specNumbers.maximumWattage,
+    mainMaterial: specs.mainMaterial,
+    beamAngle: specs.beamAngle,
+    lampBase: specs.lampBase,
+    colorTemperature: specs.colorTemperature,
+    lifeTime: specs.lifeTime,
+    finish: specs.finish,
+    input: specs.input,
+    brandOfLed: specs.brandOfLed,
+    luminousFlux: specs.luminousFlux,
+    cri: specs.cri,
+    workingTemperature: specs.workingTemperature,
+    fixtureDimmable: specs.fixtureDimmable,
+    electrical: specs.electrical,
+    powerFactor: specs.powerFactor,
+    energySaving: specs.energySaving,
+    ip: specNumbers.ip ?? product.maxIP ?? undefined,
+    bulb: specs.bulb,
     category: product.category,
     lightingtype: product.lightingtype,
     translations: product.translations,
@@ -209,7 +176,6 @@ export function transformToLocalizedProduct(
 function buildProductInclude(language: string, withRelations = false) {
   return {
     translations: { where: { language }, take: 1 },
-    specifications: { where: { language }, take: 1 },
     // The ProductImage table, not Product.productImages[] — see lib/product-images.
     images: productImageSelect(),
     // The structured specs; see lib/spec-groups.

@@ -4,6 +4,7 @@ import { SECTION_FRAME, SectionHeading } from "@/components/section-heading";
 import { RecordView } from "@/components/recently-viewed";
 import type { ReviewsSection } from "@/lib/reviews.server";
 import type { LocalizedProductData } from "@/lib/services/product.service";
+import { specsByKey } from "@/lib/specs-view";
 import { useProductDescription } from "@/lib/use-product-description";
 import type { Configuration } from "@/types/products";
 import type { ProductColorTemp, ProductIP } from "@repo/database";
@@ -53,10 +54,7 @@ export default function ProductDetail({
   const shortDescription = useProductDescription(describable, "short");
   const fullDescription = useProductDescription(describable, "full");
 
-  const colorTemperature =
-    product.specGroups.flatMap((group) => group.items).find((item) => item.key === "colorTemperature")?.value ??
-    product.localizedSpecs?.colorTemperature ??
-    undefined;
+  const colorTemperature = specsByKey(product.specGroups).colorTemperature;
 
   return (
     // Room at the bottom on a phone for the buy bar that rides along there.
@@ -115,7 +113,6 @@ export default function ProductDetail({
           <SectionHeading id="specs-heading" title={t("specs")} />
           <ProductSpecs
             groups={product.specGroups}
-            legacy={product.localizedSpecs}
             hNumber={product.hNumber}
             locale={locale}
             armsLabel={t("arms")}

@@ -4,6 +4,8 @@ import { prisma, ProductIP } from "@repo/database";
 import { addMoney, serializeMoney } from "@repo/money";
 import { serializeRowMoney } from "@/lib/serialize-money";
 import { calculateIpPriceIncrease } from "@/lib/pricing-rules";
+import { editableConfigurationId } from "@/lib/configuration-access.server";
+import { publicConfiguration } from "@/lib/guest-token";
 
 export const updateProductIP = async ({
   configId,
@@ -13,12 +15,13 @@ export const updateProductIP = async ({
   newProductIp: ProductIP;
 }) => {
   try {
-    const configuration = await prisma.configuration.findUnique({
-      where: { id: configId },
-    });
+    // Only the visitor's own configuration; anyone else's reads as missing.
+    const ownId = await editableConfigurationId(configId);
+    const configuration = ownId
+      ? await prisma.configuration.findUnique({ where: { id: ownId } })
+      : null;
 
     if (!configuration) {
-      console.error(`Configuration not found for ID: ${configId}`);
       return { success: false, error: "Configuration not found" };
     }
 
@@ -42,7 +45,7 @@ export const updateProductIP = async ({
         totalPrice: serializeMoney(updatedTotalPrice),
       },
     });
-    return { success: true, updatedConfig: serializeRowMoney(updatedConfig) };
+    return { success: true, updatedConfig: serializeRowMoney(publicConfiguration(updatedConfig)) };
   } catch (error) {
     console.error("Error updating product IP:", error);
     return { success: false, error: "Failed to update configuration" };

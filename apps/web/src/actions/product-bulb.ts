@@ -4,6 +4,8 @@ import { prisma } from "@repo/database";
 import { bulbPriceIncrease } from "@repo/catalog/bulb-pricing";
 import { serializeRowMoney } from "@/lib/serialize-money";
 import { priceLine } from "@/lib/pricing";
+import { editableConfigurationId } from "@/lib/configuration-access.server";
+import { publicConfiguration } from "@/lib/guest-token";
 
 /**
  * Records which bulb a configuration is being bought with.
@@ -25,8 +27,10 @@ export const chooseBulb = async ({
   bulbId: string;
 }) => {
   try {
-    const configuration = await prisma.configuration.findUnique({
-      where: { id: configId },
+    // Only the visitor's own configuration; anyone else's reads as missing.
+    const ownId = await editableConfigurationId(configId);
+    const configuration = ownId ? await prisma.configuration.findUnique({
+      where: { id: ownId },
       select: {
         id: true,
         productId: true,
@@ -35,7 +39,7 @@ export const chooseBulb = async ({
         shippingPrice: true,
         discount: true,
       },
-    });
+    }) : null;
     if (!configuration) return { success: false as const, error: "Configuration not found" };
 
     const product = await prisma.product.findUnique({
@@ -84,7 +88,7 @@ export const chooseBulb = async ({
       },
     });
 
-    return { success: true as const, updatedConfig: serializeRowMoney(updatedConfig) };
+    return { success: true as const, updatedConfig: serializeRowMoney(publicConfiguration(updatedConfig)) };
   } catch (error) {
     console.error("Error choosing bulb:", error);
     return { success: false as const, error: "Failed to update configuration" };

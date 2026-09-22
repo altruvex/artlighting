@@ -1,13 +1,13 @@
 "use client";
 
 import { chooseBulb } from "@/actions/product-bulb";
-import { Button } from "@/components/ui/button";
 import { formatNumber, formatNumberWithConversion } from "@/lib/numbers";
 import { cn } from "@/lib/utils";
 import type { BulbChoice } from "@repo/catalog/bulb-pricing";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import { ChipSpinner, OptionGroup, optionChip } from "./option-group";
 
 /**
  * Which bulb the fixture is bought with.
@@ -74,60 +74,47 @@ export default function ProductBulbButtons({
 
   if (choices.length === 0) return null;
 
+  const current = choices.find((choice) => choice.id === active);
+
   return (
-    <div className="space-y-2">
-      <h3 className="mb-2 text-lg font-semibold">{t("chooseBulb")}</h3>
-      {/* A single choice, so it is a radio group: without this a screen
-          reader reads six buttons and never says which one is chosen. */}
-      {/* One per row on a phone: the label is a name, a wattage and a
-          price, and two of those side by side at 375px push the amount off
-          the screen. */}
-      <div
-        role="radiogroup"
-        aria-label={t("chooseBulb")}
-        className="grid grid-cols-1 gap-2 sm:grid-cols-2"
-      >
-        {choices.map((choice) => {
-          const isActive = choice.id === active;
-          const included = Number(choice.increase) === 0;
-          return (
-            <Button
-              key={choice.id}
-              type="button"
-              role="radio"
-              aria-checked={isActive}
-              onClick={() => handleChange(choice)}
-              disabled={saving !== null}
-              variant={isActive ? "default" : "outline"}
-              className={cn(
-                "flex h-auto items-center justify-center rounded-full py-2 transition-all duration-200",
-                isActive ? "bg-primary text-primary-foreground shadow-lg" : "bg-background hover:bg-secondary",
-                saving !== null && "cursor-not-allowed opacity-60",
-              )}
-            >
-              <span className="flex min-w-0 flex-row items-end justify-center gap-2 text-center">
-                <span className="truncate font-medium">
-                  {choice.name} {t("watts", { n: formatNumber(choice.wattage, locale === "ar" ? "ar" : "en") })}
-                </span>
-                <span className="block max-w-xs whitespace-nowrap font-medium opacity-70">
-                  {included
-                    ? t("included")
-                    : /* The page's own formatter: Intl with numberingSystem
-                         "arab", so the amount reads ١٢٠ beside a price that
-                         already does, not 120. */
-                      `${Number(choice.increase) < 0 ? "−" : "+"}${formatNumberWithConversion(
-                        Math.abs(Number(choice.increase)).toFixed(2),
-                        locale,
-                      )}`}
-                </span>
-              </span>
-              {saving === choice.id && (
-                <span className="ms-2 size-3 animate-spin rounded-full border-b-2 border-current" />
-              )}
-            </Button>
-          );
-        })}
-      </div>
-    </div>
+    // One per row on a phone: the label is a name, a wattage and a price,
+    // and two of those side by side at 375px push the amount off the screen.
+    <OptionGroup
+      label={t("chooseBulb")}
+      selected={current ? `${current.name} ${t("watts", { n: formatNumber(current.wattage, locale === "ar" ? "ar" : "en") })}` : undefined}
+      className="grid-cols-1 sm:grid-cols-2"
+    >
+      {choices.map((choice) => {
+        const isActive = choice.id === active;
+        const included = Number(choice.increase) === 0;
+        return (
+          <button
+            key={choice.id}
+            type="button"
+            role="radio"
+            aria-checked={isActive}
+            onClick={() => handleChange(choice)}
+            disabled={saving !== null}
+            className={cn(optionChip(isActive), "justify-between")}
+          >
+            <span className="truncate">
+              {choice.name} {t("watts", { n: formatNumber(choice.wattage, locale === "ar" ? "ar" : "en") })}
+            </span>
+            <span className="flex shrink-0 items-center gap-2 text-muted-foreground">
+              {saving === choice.id && <ChipSpinner />}
+              {included
+                ? t("included")
+                : /* The page's own formatter: Intl with numberingSystem
+                     "arab", so the amount reads ١٢٠ beside a price that
+                     already does, not 120. */
+                  `${Number(choice.increase) < 0 ? "−" : "+"}${formatNumberWithConversion(
+                    Math.abs(Number(choice.increase)).toFixed(2),
+                    locale,
+                  )}`}
+            </span>
+          </button>
+        );
+      })}
+    </OptionGroup>
   );
 }

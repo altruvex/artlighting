@@ -12,8 +12,8 @@ import { useLocale, useTranslations } from "next-intl"
 import Image from "next/image"
 import { useEffect, useRef, useState } from "react"
 import { useDebounce } from "use-debounce"
-import DiscountPrice from "../discount-price"
-import NormalPrice from "../normal-price"
+import DiscountPrice from "@/components/price/discount-price"
+import NormalPrice from "@/components/price/normal-price"
 
 interface Product {
     productId: string

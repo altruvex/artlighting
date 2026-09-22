@@ -353,6 +353,8 @@ export interface Configuration {
   totalPrice: string
   currency: SupportedCurrency
   productIp?: ProductIP
+  /** The customer's colour temperature; null until they choose one. */
+  colorTemp?: "warm" | "cool" | "white" | null
   createdAt: Date
   updatedAt: Date
 }

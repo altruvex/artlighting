@@ -5,8 +5,8 @@ import { Container } from "@/components/container";
 import type { ProductFamily } from "@repo/catalog/families";
 import type { MoneyInput } from "@repo/money";
 import LoginModal from "@/components/login-model";
-import NormalPrice from "@/components/normal-price";
-import ProductImages from "@/components/product-images";
+import NormalPrice from "@/components/price/normal-price";
+import ProductGallery from "@/components/product/product-gallery";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRouter } from "@/i18n/navigation";
@@ -281,7 +281,7 @@ export default function Preview({
           <div className="flex flex-col lg:flex-row lg:gap-x-12 gap-x-0">
             <div className="lg:w-[40%] md:w-[50%] mb-0">
               {finalProduct.productImages && finalProduct.productImages.length > 0 ? (
-                <ProductImages productImages={finalProduct.productImages} />
+                <ProductGallery images={finalProduct.productImages} name={finalProduct.productName} />
               ) : (
                 <div className="w-full h-[450px] flex items-center justify-center bg-muted rounded-lg">
                   <p>{t('noImagesAvailable')}</p>

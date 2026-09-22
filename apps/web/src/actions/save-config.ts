@@ -3,6 +3,8 @@
 import { prisma } from "@repo/database"
 import { priceLine } from "@/lib/pricing"
 import { PricingService } from "@/lib/pricing.server"
+import { editableConfigurationId } from "@/lib/configuration-access.server"
+import { publicConfiguration } from "@/lib/guest-token"
 
 export interface SaveConfigArgs {
   configId: string
@@ -15,15 +17,17 @@ export async function saveConfig({
   quantity,
 }: SaveConfigArgs) {
   try {
-    const existingConfig = await prisma.configuration.findUnique({
-      where: { id: configId },
+    // Only the visitor's own configuration; anyone else's reads as missing.
+    const ownId = await editableConfigurationId(configId)
+    const existingConfig = ownId ? await prisma.configuration.findUnique({
+      where: { id: ownId },
       select: {
         id: true,
         productId: true,
         productIp: true,
         shippingPrice: true,
       },
-    })
+    }) : null
 
     if (!existingConfig) {
       throw new Error(`Configuration with ID ${configId} not found`)
@@ -89,7 +93,7 @@ export async function saveConfig({
 
     return {
       success: true,
-      configuration: updatedConfiguration,
+      configuration: publicConfiguration(updatedConfiguration),
       message: "Configuration saved successfully",
     }
   } catch (error) {

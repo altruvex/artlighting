@@ -1,21 +1,14 @@
 "use client";
 
 import { updateProductIP } from "@/actions/product-ip";
-import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { formatNumber } from "@/lib/numbers";
-import { cn } from "@/lib/utils";
 import { Decimal, money, type MoneyInput, serializeMoney } from "@repo/money";
 import type { ProductIP } from "@repo/database";
 import { Droplets } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { ChipSpinner, OptionGroup, optionChip } from "./option-group";
 
 const PRODUCT_IP_LABEL_MAP = {
   IP20: {
@@ -148,54 +141,39 @@ export default function ProductIPButtons({
     return numeric >= baseNumericIP && numeric <= effectiveMaxIP;
   });
 
+  // The rating's meaning under the chips, not in a tooltip: a tooltip
+  // never opens on a phone, which is where most of these are chosen.
   return (
     <div className="space-y-2">
-      <h3 className="text-lg font-semibold mb-2">{t("title")}</h3>
-      <div className="grid sm:grid-cols-3 grid-cols-1 gap-2">
-        {availableEntries.map(([ip, { label, description, increaseOnPricePercent }]) => {
+      <OptionGroup label={t("title")} selected={t(`ratings.${selectedIp}.label`)} className="grid-cols-2 sm:grid-cols-3">
+        {availableEntries.map(([ip]) => {
           const displayedIncrease = calculatePriceIncrease(ip);
-
+          const isActive = selectedIp === ip;
           return (
-            <TooltipProvider key={ip}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={() => handleIpChange(ip)}
-                    disabled={isUpdating}
-                    variant={selectedIp === ip ? "default" : "outline"}
-                    className={cn(
-                      "flex items-center justify-center w-full rounded-full transition-all duration-200",
-                      selectedIp === ip
-                        ? "bg-primary text-primary-foreground shadow-lg"
-                        : "bg-background hover:bg-secondary",
-                      isUpdating && "opacity-60 cursor-not-allowed"
-                    )}
-                  >
-                    <Droplets className="w-4 h-4 mr-1" />
-                    <span className={cn("rtl:mr-1 ltr:ml-1")}>
-                      {t(`ratings.${ip}.label`)}
-                    </span>
-                    {money(displayedIncrease).greaterThan(0) && (
-                      <span className="ml-2 text-sm opacity-70">
-                        +{formatNumber(money(displayedIncrease).toNumber(), isRTL ? "ar" : "en")}
-                      </span>
-                    )}
-                    {isUpdating && selectedIp === ip && (
-                      <div className="ml-2 animate-spin rounded-full h-3 w-3 border-b-2 border-current" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent className="block font-medium max-w-xs">
-                  <p>{t(`ratings.${ip}.description`)}</p>
-                  <p className="text-xs mt-1 opacity-75">
-                    {t("onlyAvailableRating")}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <button
+              key={ip}
+              type="button"
+              role="radio"
+              aria-checked={isActive}
+              onClick={() => handleIpChange(ip)}
+              disabled={isUpdating}
+              className={optionChip(isActive)}
+            >
+              <Droplets className="size-4 shrink-0 text-primary" aria-hidden />
+              <span dir="ltr">{t(`ratings.${ip}.label`)}</span>
+              {money(displayedIncrease).greaterThan(0) && (
+                <span className="text-muted-foreground">
+                  +{formatNumber(money(displayedIncrease).toNumber(), isRTL ? "ar" : "en")}
+                </span>
+              )}
+              {isUpdating && isActive && <ChipSpinner />}
+            </button>
           );
         })}
-      </div>
+      </OptionGroup>
+      <p className="text-[length:var(--text-xs)] leading-relaxed text-muted-foreground">
+        {t(`ratings.${selectedIp}.description`)}
+      </p>
     </div>
   );
 }

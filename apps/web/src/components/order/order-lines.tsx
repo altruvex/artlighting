@@ -1,6 +1,6 @@
 "use client"
 
-import NormalPrice from "@/components/normal-price"
+import NormalPrice from "@/components/price/normal-price"
 import { Link } from "@/i18n/navigation"
 import { formatNumber } from "@/lib/numbers"
 import type { OrderLineView, OrderView } from "@/lib/order-view"

@@ -79,6 +79,7 @@ export function toViewConfiguration(row: {
   totalPrice: unknown;
   currency: string;
   productIp: string;
+  colorTemp?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }): Configuration {
@@ -96,6 +97,7 @@ export function toViewConfiguration(row: {
     totalPrice: serialized.totalPrice as string,
     currency: row.currency as SupportedCurrency,
     productIp: row.productIp as ProductIP,
+    colorTemp: (row.colorTemp as Configuration["colorTemp"]) ?? null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

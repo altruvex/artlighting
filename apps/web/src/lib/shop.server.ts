@@ -304,3 +304,16 @@ export async function relatedCards(
 
   return [...cards].sort((a, b) => rank(a) - rank(b)).slice(0, limit);
 }
+
+/**
+ * Cards for a list of product codes, in the order given — for the
+ * recently-viewed rail, whose order is the shopper's own. A code that is
+ * no longer an active product is simply left out.
+ */
+export async function cardsByProductIds(productIds: string[], locale: string): Promise<ShopCard[]> {
+  if (productIds.length === 0) return [];
+  const rows = await loadCardRows(locale, { productId: { in: productIds } });
+  const rates = await productDiscountRates(rows, prisma);
+  const byCode = new Map(rows.map((row) => [row.productId, toCard(row, locale, rates[row.id] ?? serializeRate(0))]));
+  return productIds.flatMap((code) => byCode.get(code) ?? []);
+}

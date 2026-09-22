@@ -252,7 +252,8 @@ export async function placeOrder(
               productImages: imageUrls(draft.product),
               brand: draft.product.brand,
               productIp: draft.configuration?.productIp ?? draft.product.productIp ?? null,
-              productColorTemp: draft.product.productColor ?? null,
+              // The customer's choice; the product's default when they made none.
+              productColorTemp: draft.configuration?.colorTemp ?? draft.product.productColor ?? null,
               bulbId: draft.configuration?.bulbId ?? null,
               discountAmount: line.discount,
               lineTotal: line.total,

@@ -2,7 +2,9 @@
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { formatNumber } from "@/lib/numbers"
 import { Minus, Plus } from "lucide-react"
+import { useLocale } from "next-intl"
 
 interface QuantitySelectProps {
     quantity: number
@@ -48,6 +50,8 @@ export function QuantitySelector({
 
     const currentSize = sizeClasses[size]
 
+    const locale = useLocale()
+
     return (
         <div className={cn("flex items-center", currentSize.container, rtlSupport && "rtl:rotate-180", className)}>
             <Button
@@ -56,18 +60,20 @@ export function QuantitySelector({
                 onClick={onDecrease}
                 className={currentSize.button}
                 disabled={disabled || quantity <= minQuantity}
-                aria-label="Decrease quantity"
+                aria-label={locale === "ar" ? "قلّل الكمية" : "Decrease quantity"}
             >
                 <Minus className={currentSize.icon} />
             </Button>
-            <span className={cn("text-center", currentSize.text, rtlSupport && "rtl:-rotate-180")}>{quantity}</span>
+            <span className={cn("text-center", currentSize.text, rtlSupport && "rtl:-rotate-180")} aria-live="polite">
+                {formatNumber(quantity, locale === "ar" ? "ar" : "en")}
+            </span>
             <Button
                 size="icon"
                 variant="ghost"
                 onClick={onIncrease}
                 className={currentSize.button}
                 disabled={disabled}
-                aria-label="Increase quantity"
+                aria-label={locale === "ar" ? "زوّد الكمية" : "Increase quantity"}
             >
                 <Plus className={currentSize.icon} />
             </Button>

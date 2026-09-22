@@ -12,7 +12,7 @@ import { formatNumberWithConversion, formatPercent } from "@/lib/numbers";
 import { applyRate, money, serializeMoney, subtractMoney } from "@repo/money";
 import { useAuth } from "@/lib/auth-hooks";
 import { useLocale, useTranslations } from "next-intl";
-import { ProductImage as Image } from "@/components/product-image";
+import { ProductImage as Image } from "@/components/product/product-image";
 import { PLACEHOLDER_IMAGE } from "@/lib/product-images";
 import { Loader2Icon, ShoppingBagIcon } from "lucide-react";
 import { useMemo, useTransition } from "react";

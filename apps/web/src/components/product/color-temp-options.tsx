@@ -1,77 +1,72 @@
 "use client";
 
-import { changeProductColorTemp } from "@/actions/product-color-temp";
-import { Button } from "@/components/ui/button";
+import { chooseColorTemp } from "@/actions/product-color-temp";
 import { PRODUCT_TEMP_LABEL_MAP } from "@/config/config";
-import { useRouter } from "@/i18n/navigation";
-import { cn } from "@/lib/utils";
-import { SupportedLanguage } from "@/types/products";
+import type { SupportedLanguage } from "@/types/products";
 import type { ProductColorTemp } from "@repo/database";
-import { useMutation } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
+import { useLocale } from "next-intl";
 import { useState } from "react";
+import { OptionGroup, optionChip } from "./option-group";
 
-
-
-const SECTION_TITLE_MAP: Record<SupportedLanguage, string> = {
-  en: "Color Temperature",
+const SECTION_TITLE: Record<SupportedLanguage, string> = {
+  en: "Colour temperature",
   ar: "درجة حرارة اللون",
 };
 
-interface ProductColorTempButtonsProps {
-  productId: string;
-  productColorTemp: ProductColorTemp;
-  onColorTempChange: (newColorTemp: ProductColorTemp) => void;
-}
+/** What each choice looks like lit — a hint beside the word, not a claim. */
+const SWATCH: Record<ProductColorTemp, string> = {
+  warm: "bg-[#F6C77A]",
+  white: "bg-[#F4EFE3]",
+  cool: "bg-[#D6E6F7]",
+};
 
-export default function ProductColorTempButtons({
-  productId,
+/** Warm, neutral, cool — the order they sit on the Kelvin scale. */
+const ORDER: ProductColorTemp[] = ["warm", "white", "cool"];
+
+/**
+ * The colour temperature the customer wants.
+ *
+ * Saved on their own configuration. It used to be written onto the product
+ * itself, by an action anyone could call, and then the whole page was
+ * re-rendered on the server to show a choice the browser already knew.
+ */
+export default function ColorTempOptions({
+  configId,
   productColorTemp,
   onColorTempChange,
-}: ProductColorTempButtonsProps) {
-  const router = useRouter();
-  const params = useParams() as { locale?: string };
-  const locale = (params.locale as SupportedLanguage) || "en";
+}: {
+  configId?: string;
+  productColorTemp: ProductColorTemp;
+  onColorTempChange: (next: ProductColorTemp) => void;
+}) {
+  const locale = (useLocale() === "ar" ? "ar" : "en") as SupportedLanguage;
+  const labels = PRODUCT_TEMP_LABEL_MAP[locale];
+  const [active, setActive] = useState<ProductColorTemp>(productColorTemp);
 
-  const [activeTemp, setActiveTemp] =
-    useState<ProductColorTemp>(productColorTemp);
-
-  const { mutate } = useMutation({
-    mutationKey: ["change-product-color-temp"],
-    mutationFn: changeProductColorTemp,
-    onSuccess: () => router.refresh(),
-  });
-
-  const handleColorTempChange = (colorTemp: ProductColorTemp) => {
-    setActiveTemp(colorTemp);
-    onColorTempChange(colorTemp);
-    mutate({ productId, newColorTemp: colorTemp });
+  const choose = (next: ProductColorTemp) => {
+    if (next === active) return;
+    setActive(next);
+    onColorTempChange(next);
+    // Best-effort: the choice is also carried by the order itself, so a
+    // failed save costs nothing the customer would see.
+    if (configId) void chooseColorTemp({ configId, colorTemp: next }).catch(() => {});
   };
 
-  const isRTL = locale === "ar";
-
   return (
-    <div className="space-y-2" dir={isRTL ? "rtl" : "ltr"}>
-      <h3 className="text-lg font-semibold mb-2">
-        {SECTION_TITLE_MAP[locale]}
-      </h3>
-      <div className="grid grid-cols-3 gap-2">
-        {Object.entries(PRODUCT_TEMP_LABEL_MAP[locale]).map(([temp, label]) => (
-          <Button
-            key={temp}
-            onClick={() => handleColorTempChange(temp as ProductColorTemp)}
-            variant={activeTemp === temp ? "default" : "outline"}
-            className={cn(
-              "flex items-center justify-center p-0 m-0 rounded-full transition-all duration-200",
-              activeTemp === temp
-                ? "bg-primary text-primary-foreground shadow-lg"
-                : "bg-background hover:bg-secondary",
-            )}
-          >
-            {label}
-          </Button>
-        ))}
-      </div>
-    </div>
+    <OptionGroup label={SECTION_TITLE[locale]} selected={labels[active]} className="grid-cols-3">
+      {ORDER.map((temp) => (
+        <button
+          key={temp}
+          type="button"
+          role="radio"
+          aria-checked={active === temp}
+          onClick={() => choose(temp)}
+          className={optionChip(active === temp)}
+        >
+          <span aria-hidden className={`size-3 shrink-0 rounded-full ring-1 ring-foreground/15 ${SWATCH[temp]}`} />
+          {labels[temp]}
+        </button>
+      ))}
+    </OptionGroup>
   );
 }

@@ -619,64 +619,21 @@
             }
         }
     },
-    "productFeatures": {
-        "title": "Features :",
-        "energy": {
-            "title": "Energy Efficiency Champion :",
-            "desc": "Reduce your electricity bill and your carbon footprint by up to {saving} compared to traditional lighting with this spotlight's exceptional energy efficiency."
-        },
-        "lifetime": {
-            "title": "Built to Last :",
-            "desc": "Enjoy years of maintenance-free illumination with the spotlight's extended lifespan, lasting {lifetime} times longer than standard halogen lamps."
-        },
-        "weatherproof": {
-            "title": "Weatherproof Warrior :",
-            "desc": "Embrace outdoor applications, knowing your spotlight is shielded from the elements thanks to its IP {ip} water and dust resistance rating."
-        },
-        "indoor": {
-            "title": "Indoor Haven :",
-            "desc": "Illuminate your home or office safely with a design crafted for Indoor lighting with IP {ip}. Keep it shielded from outdoor elements to preserve its optimal brightness."
-        },
-        "brightness": {
-            "title": "Illuminating Powerhouse :",
-            "desc": "Tailor your lighting to any space with the spotlight's impressive brightness of up to {lumens} lumens, perfect for both general and task lighting."
-        },
-        "beam": {
-            "title": "Wide-Reaching Illumination :",
-            "desc": "Achieve uniform and even lighting across larger areas with the spotlight's expansive beam angle of {angle} degrees."
-        },
-        "temperature": {
-            "title": "Climate Conqueror :",
-            "desc": "Install your spotlight with confidence in diverse environments, as it thrives in temperatures ranging from {range}."
-        },
-        "cri": {
-            "title": "True Color Specialist :",
-            "desc": "Experience exceptional color accuracy with the spotlight's high CRI, ideal for applications demanding precise color rendering."
-        },
-        "installation": {
-            "title": "Effortless Installation :",
-            "desc": "Simplify your setup with the spotlight's user-friendly installation process, requiring no special tools or expertise."
-        },
-        "durability": {
-            "title": "Built to Endure :",
-            "desc": "Invest in lasting performance with the spotlight's robust design, able to withstand shocks and vibrations without compromising function."
-        }
-    },
     "colorTemperature": {
         "warm": {
-            "title": "Warm lighting:",
+            "title": "Warm lighting",
             "notRecommended": "Not recommended for office use",
             "notRecommendedDesc": "The soft, warm glow of the LED ceiling lights may be too relaxing and inviting for office environments.",
             "desc": "Warm lighting is ideally suited for bedrooms, living rooms, and kitchens. Its gentle, inviting radiance cultivates a cozy ambiance, promoting relaxation and comfort. It helps you relax and improves your sleep."
         },
         "cool": {
-            "title": "Cool lighting:",
+            "title": "Cool lighting",
             "boost": "Boosts alertness and productivity in work and study spaces.",
             "decor": "Enlivens modern or light décor.",
             "energy": "Creates a vibrant and energetic atmosphere."
         },
         "white": {
-            "title": "White lighting:",
+            "title": "White lighting",
             "recommended": "Recommended for",
             "recommendedDesc": "study spaces and offices as it aids in maintaining focus during work.",
             "desc": "Cultivates a sophisticated and modern ambiance ideal for creating a neutral and contemporary setting. Perfect for enhancing spaces with its white color temperature."
@@ -1295,5 +1252,33 @@
             "failed": "Something went wrong. Please try again",
             "out_of_stock": "There isn't enough {product} — {available} left right now"
         }
+    },
+    "pdp": {
+        "glance": "At a glance",
+        "about": "About this product",
+        "specs": "Technical specifications",
+        "arms": "Arms",
+        "colorGuide": "Which colour temperature?",
+        "colorGuideSub": "It depends on the room it lights.",
+        "inStock": "In stock",
+        "soldOut": "Sold out — ask us and we'll tell you when it's back",
+        "fewLeft": "{count, plural, one{Only one left} other{Only {formatted} left}}",
+        "addToCart": "Add to cart",
+        "sections": "Product page sections"
+    },
+    "recent": {
+        "title": "Recently viewed",
+        "subtitle": "From your last visit",
+        "clear": "Clear history",
+        "cleared": "Viewing history cleared"
+    },
+    "closingCta": {
+        "eyebrow": "The showroom",
+        "title": "Not sure which light fits?",
+        "body": "Send us a photo of the room or its measurements on WhatsApp and the showroom will suggest the right fittings and how many — no obligation.",
+        "whatsapp": "Message us on WhatsApp",
+        "call": "Call the showroom",
+        "visit": "Visit the showroom",
+        "hours": "Showroom hours"
     }
 }

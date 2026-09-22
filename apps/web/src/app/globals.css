@@ -520,3 +520,22 @@ nav[aria-label="breadcrumb"] li:last-child::after {
     transition-duration: 1ms !important;
   }
 }
+
+/* The one moment the product page animates: the price settling when an
+   option or the quantity changes it. Keyed on the figure in the buy box, so
+   it never plays on load or on anything else. */
+@keyframes price-tick {
+  from {
+    opacity: 0.35;
+    transform: translateY(3px);
+  }
+}
+.price-tick {
+  display: inline-block;
+  animation: price-tick var(--dur-pop) var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .price-tick {
+    animation: none;
+  }
+}

@@ -1,4 +1,5 @@
 import ProductCard from "@/components/product-card/product-card";
+import { SectionHeading } from "@/components/section-heading";
 import { ShopFilters } from "@/components/shop/shop-filters";
 import { ShopPagination } from "@/components/shop/shop-pagination";
 import { ShopSort } from "@/components/shop/shop-sort";
@@ -64,15 +65,14 @@ export default async function ShopPage({ params, searchParams }: Props) {
 
   return (
     <div className="mx-auto w-full max-w-screen-2xl px-4 pb-24 pt-8 sm:px-6 lg:px-10">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div className="min-w-0 space-y-1">
-          <h1 className="text-[length:var(--text-3xl)]">{t("title")}</h1>
-          <p className="text-[length:var(--text-sm)] text-muted-foreground" aria-live="polite">
-            {t("count", { count: result.total, formatted: formatNumber(result.total, locale === "ar" ? "ar" : "en") })}
-          </p>
-        </div>
-        <ShopSort value={query.sort} params={raw} />
-      </header>
+      <SectionHeading
+        as="h1"
+        title={t("title")}
+        subtitle={t("count", { count: result.total, formatted: formatNumber(result.total, locale === "ar" ? "ar" : "en") })}
+        subtitleLive
+        action={<ShopSort value={query.sort} params={raw} />}
+        className="mb-0 border-b border-border pb-6 lg:mb-0"
+      />
 
       {chips.length > 0 && (
         <ul className="flex flex-wrap items-center gap-2 pt-5" aria-label={t("activeFilters")}>

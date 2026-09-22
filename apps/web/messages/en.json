@@ -12,8 +12,8 @@
         "contact-us": "Contact Us"
     },
     "loading": {
-        "title": "Loading your order...",
-        "description": "This won’t take long"
+        "title": "Loading...",
+        "description": "This won't take long"
     },
     "search": {
         "placeholder": "Search in products...",

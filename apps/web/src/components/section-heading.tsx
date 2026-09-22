@@ -14,9 +14,11 @@ import type { ReactNode } from "react";
  */
 export function SectionHeading({
   id,
+  as = "h2",
   eyebrow,
   title,
   subtitle,
+  subtitleLive,
   href,
   hrefLabel,
   action,
@@ -24,28 +26,40 @@ export function SectionHeading({
 }: {
   /** Pass it and point the section's aria-labelledby at it. */
   id?: string;
+  /** "h1" for the one heading a whole page is titled by — the shop page's own title. Every other section stays "h2". */
+  as?: "h1" | "h2";
   eyebrow?: string;
   title: string;
   subtitle?: string;
+  /** The subtitle updates on its own (a result count as filters change) and should be announced. */
+  subtitleLive?: boolean;
   href?: string;
   hrefLabel?: string;
-  /** Instead of a link — a button, say. */
+  /** Instead of a link — a button, say, or a sort control. */
   action?: ReactNode;
   className?: string;
 }) {
+  const Heading = as;
   return (
-    <header className={cn("mb-6 flex items-end justify-between gap-4 lg:mb-8", className)}>
+    <header className={cn("mb-6 flex flex-wrap items-end justify-between gap-4 lg:mb-8", className)}>
       <div className="min-w-0 space-y-1.5">
         {eyebrow && (
           <p className="text-[length:var(--text-xs)] font-semibold uppercase tracking-[0.14em] text-primary">{eyebrow}</p>
         )}
-        <h2
+        <Heading
           id={id}
-          className="font-[family-name:var(--font-display-face)] text-[length:var(--text-2xl)] font-semibold leading-tight tracking-tight text-balance"
+          className={cn(
+            "font-[family-name:var(--font-display-face)] font-semibold leading-tight tracking-tight text-balance",
+            as === "h1" ? "text-[length:var(--text-3xl)]" : "text-[length:var(--text-2xl)]",
+          )}
         >
           {title}
-        </h2>
-        {subtitle && <p className="max-w-prose text-pretty text-muted-foreground">{subtitle}</p>}
+        </Heading>
+        {subtitle && (
+          <p className="max-w-prose text-pretty text-muted-foreground" aria-live={subtitleLive ? "polite" : undefined}>
+            {subtitle}
+          </p>
+        )}
       </div>
       {href && hrefLabel ? <SectionLink href={href}>{hrefLabel}</SectionLink> : action}
     </header>

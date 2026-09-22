@@ -75,7 +75,6 @@ export function parseShopQuery(params: Record<string, string | string[] | undefi
 export function cardInclude(locale: string) {
   return {
     translations: { where: { language: locale }, take: 1 },
-    specifications: { where: { language: locale }, take: 1 },
     images: productImageSelect(),
     variants: { where: { isDefault: true }, select: { inventory: inventorySelect() }, take: 1 },
     specGroups: specGroupSelect(locale),
@@ -97,7 +96,6 @@ async function loadCardRows(locale: string, where: Record<string, unknown> = {})
 /** One product as every card renders it. */
 export function toCard(row: CardRow, locale: string, rate: string) {
   const translation = row.translations?.[0];
-  const spec = row.specifications?.[0];
   // What the shopper actually pays — the figure a price sort must use, or a
   // 30%-off chandelier sorts as though it cost its list price.
   const effective = subtractMoney(row.price, applyRate(row.price, rate));
@@ -125,10 +123,6 @@ export function toCard(row: CardRow, locale: string, rate: string) {
     bulbChoices: bulbChoices(row.bulbs, row.hNumber, locale),
     lightingTypeName: row.lightingtype?.translations?.[0]?.name ?? row.lightingtype?.name ?? undefined,
     lightingTypeSlug: row.spotlightType,
-    maximumWattage: spec?.maximumWattage ?? undefined,
-    mainMaterial: spec?.mainMaterial ?? undefined,
-    beamAngle: spec?.beamAngle ?? undefined,
-    lampBase: spec?.lampBase ?? undefined,
     translations: { name: translation?.name || undefined, description: translation?.description || undefined },
   };
 }

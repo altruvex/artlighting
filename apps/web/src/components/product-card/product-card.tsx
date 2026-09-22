@@ -38,10 +38,6 @@ interface Product {
   ratingCount?: number;
   chandelierLightingType?: string;
   hNumber?: number;
-  maximumWattage?: string;
-  lampBase?: string;
-  mainMaterial?: string;
-  beamAngle?: string;
   translations?: {
     name?: string;
     description?: string;
@@ -52,12 +48,6 @@ interface Product {
   lightingTypeName?: string;
   /** What the fixture is sold with, so the bulb clause states the real one. */
   bulbChoices?: BulbChoice[];
-  specifications?: Array<{
-    maximumWattage?: string;
-    mainMaterial?: string;
-    beamAngle?: string;
-    lampBase?: string;
-  }>;
 }
 
 interface ProductCardProps {

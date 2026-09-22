@@ -1,3 +1,4 @@
+import { SHOWROOM_PHONE, SHOWROOM_SOCIAL, SHOWROOM_WHATSAPP } from "@/lib/showroom"
 import { Container } from "@/components/container";
 import { Link } from "@/i18n/navigation";
 import { familySlug } from "@repo/catalog/families";
@@ -39,9 +40,9 @@ export default function Footer() {
   ];
 
   const social = [
-    { icon: Instagram, label: "Instagram", href: "https://www.instagram.com/artlightingofficial" },
-    { icon: Facebook, label: "Facebook", href: "https://www.facebook.com/ArtLightingOfficial/" },
-    { icon: Youtube, label: "YouTube", href: "https://www.youtube.com/channel/UC__8-8U4dAIgK1JYWvqv5cQ" },
+    { icon: Instagram, label: "Instagram", href: SHOWROOM_SOCIAL.instagram },
+    { icon: Facebook, label: "Facebook", href: SHOWROOM_SOCIAL.facebook },
+    { icon: Youtube, label: "YouTube", href: SHOWROOM_SOCIAL.youtube },
   ];
 
   return (
@@ -83,7 +84,7 @@ export default function Footer() {
             <ul className="space-y-3 text-[length:var(--text-sm)]">
               <li>
                 <a
-                  href="tel:+201154466259"
+                  href={`tel:${SHOWROOM_PHONE}`}
                   className="inline-flex items-center gap-2 transition-colors duration-[var(--dur-hover)] hover:text-primary"
                 >
                   <Phone className="size-4 text-primary" aria-hidden />
@@ -92,7 +93,7 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="https://wa.me/201154466259"
+                  href={SHOWROOM_WHATSAPP}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 transition-colors duration-[var(--dur-hover)] hover:text-primary"

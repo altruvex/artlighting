@@ -168,7 +168,7 @@ export async function duplicateProduct(productId: string) {
       async (tx) => {
         const source = await tx.product.findUniqueOrThrow({
           where: { id: productId },
-          include: { images: true, variants: true, translations: true, specifications: true },
+          include: { images: true, variants: true, translations: true },
         });
 
         const suffix = `-copy-${Date.now().toString(36)}`;
@@ -220,16 +220,6 @@ export async function duplicateProduct(productId: string) {
                 name: tr.name,
                 description: tr.description,
               })),
-            },
-            // The legacy columns still feed the shop cards' spec line.
-            specifications: {
-              create: source.specifications.map(
-                ({ id: _id, productId: _productId, createdAt: _createdAt, updatedAt: _updatedAt, customSpecs, ...spec }) => ({
-                  ...spec,
-                  // A JSON column takes no bare null on write; undefined leaves it NULL.
-                  customSpecs: customSpecs ?? undefined,
-                })
-              ),
             },
           },
         });

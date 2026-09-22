@@ -2,9 +2,9 @@
  * Moves the fixed `ProductSpecification` columns into the structured
  * `SpecGroup` / `SpecItem` tables, in both languages.
  *
- * The grouping and the labels come from SPEC_LAYOUT below — the same four
- * groups the datasheet already prints, in the same order, so a generated
- * datasheet reads identically before and after the switch.
+ * The grouping and the labels come from SPEC_LAYOUT in src/spec-layout.ts —
+ * the same four groups the datasheet already prints, in the same order, so a
+ * generated datasheet reads identically before and after the switch.
  *
  * **Idempotent.** Every row's primary key is derived from the product and
  * the position, so a re-run rewrites exactly the same rows. Each product's
@@ -28,69 +28,12 @@ assertNotProduction();
 const { prisma } = await import("@repo/database");
 const { CHOICE_COLUMNS, optionKeyFor, parseSpecValue } = await import("../src/specs");
 
-/** A spec column, with the label it gets in each language and its unit. */
-interface SpecField {
-  column: string;
-  en: string;
-  ar: string;
-  unit?: string;
-}
-
-interface SpecGroupLayout {
-  en: string;
-  ar: string;
-  fields: SpecField[];
-}
-
 /**
- * The order here is the order the datasheet prints. Labels are per
- * language; `unit` is language-neutral, so "15" + "W" reads correctly in
- * both, instead of the unit being baked into an Arabic string.
+ * The layout lives in src/spec-layout.ts — the admin product editor lays its
+ * form out from the same list, so an edited spec lands where the backfill
+ * put it. The order there is the order the datasheet prints.
  */
-const SPEC_LAYOUT: SpecGroupLayout[] = [
-  {
-    en: "Electrical",
-    ar: "الكهرباء",
-    fields: [
-      { column: "input", en: "Input", ar: "الجهد" },
-      { column: "maximumWattage", en: "Maximum wattage", ar: "أقصى قدرة", unit: "W" },
-      { column: "electrical", en: "Driver", ar: "المحول" },
-      { column: "powerFactor", en: "Power factor", ar: "معامل القدرة" },
-      { column: "fixtureDimmable", en: "Dimmable", ar: "قابل للتعتيم" },
-      { column: "energySaving", en: "Energy saving", ar: "توفير الطاقة" },
-    ],
-  },
-  {
-    en: "Optical",
-    ar: "الإضاءة",
-    fields: [
-      { column: "luminousFlux", en: "Luminous flux", ar: "شدة الإضاءة", unit: "lm" },
-      { column: "colorTemperature", en: "Color temperature", ar: "درجة حرارة اللون", unit: "K" },
-      { column: "beamAngle", en: "Beam angle", ar: "زاوية الإضاءة" },
-      { column: "cri", en: "CRI", ar: "معامل تجسيد اللون" },
-      { column: "brandOfLed", en: "LED brand", ar: "نوع الليد" },
-    ],
-  },
-  {
-    en: "Physical",
-    ar: "المواصفات المادية",
-    fields: [
-      { column: "mainMaterial", en: "Main material", ar: "الخامة" },
-      { column: "ip", en: "IP rating", ar: "درجة الحماية" },
-      { column: "workingTemperature", en: "Working temperature", ar: "درجة حرارة التشغيل" },
-      { column: "lifeTime", en: "Lifetime", ar: "العمر الافتراضي" },
-    ],
-  },
-  {
-    en: "Chandelier",
-    ar: "النجف",
-    fields: [
-      { column: "finish", en: "Finish", ar: "التشطيب" },
-      { column: "lampBase", en: "Lamp base", ar: "قاعدة اللمبة" },
-      { column: "bulb", en: "Bulb included", ar: "اللمبة مرفقة" },
-    ],
-  },
-];
+const { SPEC_LAYOUT } = await import("../src/spec-layout");
 
 reportHeader("Backfill: ProductSpecification columns → SpecGroup / SpecItem", options, hostOf(databaseUrl()));
 
@@ -169,8 +112,8 @@ for (const product of products) {
     // A group with no value in any language is not written at all: an empty
     // "Chandelier" section on a spotlight's datasheet is worse than none.
     const present = layout.fields.filter((field) => {
-      const en = english?.[field.column];
-      const ar = arabic?.[field.column];
+      const en = english?.[field.key];
+      const ar = arabic?.[field.key];
       return (typeof en === "string" && en.trim() !== "") || (typeof ar === "string" && ar.trim() !== "");
     });
     if (present.length === 0) {
@@ -182,7 +125,7 @@ for (const product of products) {
     itemsWritten += present.length;
 
     if (options.dryRun) {
-      console.log(`  ${product.productId.padEnd(22)} ${layout.en} (${present.length} items): ${present.map((f) => f.column).join(", ")}`);
+      console.log(`  ${product.productId.padEnd(22)} ${layout.en} (${present.length} items): ${present.map((f) => f.key).join(", ")}`);
     }
 
     // Deterministic ids: the same product and position always produce the
@@ -203,16 +146,16 @@ for (const product of products) {
 
     for (const [itemPosition, field] of present.entries()) {
       const itemId = `si_${groupId}_${itemPosition}`;
-      const rawEn = typeof english?.[field.column] === "string" ? (english[field.column] as string).trim() || null : null;
-      const rawAr = typeof arabic?.[field.column] === "string" ? (arabic[field.column] as string).trim() || null : null;
+      const rawEn = typeof english?.[field.key] === "string" ? (english[field.key] as string).trim() || null : null;
+      const rawAr = typeof arabic?.[field.key] === "string" ? (arabic[field.key] as string).trim() || null : null;
 
       // The value stops being a sentence and becomes a number, a range or a
       // vocabulary entry. Anything the parser cannot read confidently stays
       // TEXT and is reported — a wrong number on a datasheet is worse than
       // an unconverted string.
-      const parsed = parseSpecValue(field.column, rawEn, rawAr);
+      const parsed = parseSpecValue(field.key, rawEn, rawAr);
       if (parsed.kind === "TEXT") {
-        unparsed.push({ sku: product.productId, column: field.column, english: rawEn, arabic: rawAr });
+        unparsed.push({ sku: product.productId, column: field.key, english: rawEn, arabic: rawAr });
       } else {
         structured += 1;
       }
@@ -227,7 +170,7 @@ for (const product of products) {
         groupId,
         // The language-neutral name, so a reader can ask for "ip" rather
         // than for whatever the label happens to be in its locale.
-        key: field.column,
+        key: field.key,
         position: itemPosition,
         // The parser knows the unit; the layout's unit is the fallback for
         // anything that stayed TEXT.

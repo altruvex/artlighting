@@ -7,7 +7,10 @@
     ".": "./src/index.ts",
     "./families": "./src/families.ts",
     "./bulb-pricing": "./src/bulb-pricing.ts",
-    "./describe": "./src/describe.ts"
+    "./describe": "./src/describe.ts",
+    "./spec-text": "./src/spec-text.ts",
+    "./spec-format": "./src/spec-format.ts",
+    "./spec-layout": "./src/spec-layout.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit",

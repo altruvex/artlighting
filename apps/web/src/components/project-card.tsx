@@ -2,83 +2,60 @@ import { Link } from "@/i18n/navigation"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 
-interface Project {
-    ProjectId: string
-    ProjectName: string
-    ProjectDate: string
-    ProjectImages: string[]
-    ProjectDescription: string
-    ProjectInfor?: string
-    ProjectInfor2?: string
-    usedProducts?: string
+export interface ProjectSummary {
+  ProjectId: string
+  ProjectName: string
+  ProjectDate: string
+  ProjectImages: string[]
+  ProjectDescription: string
 }
 
-interface BentoGridItemProps {
-    project: Project
-    className?: string
-    locale?: string
-}
-
-export function BentoGridItem({ project, className, locale = "en" }: BentoGridItemProps) {
-    const isRTL = locale === "ar"
-
-    return (
-        <Link
-            href={`/all-projects/${project.ProjectId}`}
-            className={cn(
-                "group relative overflow-hidden rounded-2xl bg-card border border-border hover:border-border transition-all duration-500 ease-out",
-                "hover:shadow-2xl hover:shadow-black/10",
-                                "min-h-[280px] h-full",
-                className,
-            )}
-            dir={isRTL ? "rtl" : "ltr"} 
-        >
-            <div className="relative h-full w-full flex flex-col">
-                <div className="relative flex-1 min-h-64 overflow-hidden">
-                    <Image
-                        src={project.ProjectImages[0] || "/placeholder.svg"}
-                        alt={project.ProjectName}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        className="object-cover object-center transition-all duration-700 ease-out group-hover:scale-105"
-                        priority={false}
-                    />
-                    <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />
-                    <div className="absolute inset-0 bg-linear-to-t from-primary/15 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500" />
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
-                    <div className="space-y-2">
-                        <h3
-                            className={cn(
-                                "font-bold text-lg md:text-xl leading-tight line-clamp-2 group-hover:text-primary transition-colors duration-300",
-                                isRTL && "text-right font-medium",
-                            )}
-                        >
-                            {project.ProjectName}
-                        </h3>
-                        <p
-                            className={cn(
-                                "text-sm md:text-base text-foreground line-clamp-2 leading-relaxed group-hover:text-foreground transition-colors duration-300",
-                                isRTL && "text-right",
-                            )}
-                        >
-                            {project.ProjectDescription}
-                        </p>
-                        <div
-                            className={cn(
-                                "flex items-center gap-2 mt-3",
-                                isRTL && "flex-row-reverse", 
-                            )}
-                        >
-                            <div className="w-1 h-4 bg-primary rounded-full opacity-80 group-hover:opacity-100 transition-opacity duration-300" />
-                            <p className="figureDate text-xs md:text-sm text-muted-foreground font-medium group-hover:text-foreground transition-colors duration-300">
-                                {project.ProjectDate}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <div className="absolute top-4 right-4 w-2 h-2 bg-card/20 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 delay-100" />
-            </div>
-        </Link>
-    )
+/**
+ * One installed project: the photograph, its name, when.
+ *
+ * Drawn the way the category tiles are — a veil of the page's own
+ * background rising from the bottom, the name in the display face — so the
+ * two read as one site. It had white text on a black veil with the
+ * description in the theme's foreground colour, which on the light theme
+ * put dark ink on a dark photograph.
+ */
+export function ProjectCard({
+  project,
+  className,
+  sizes = "(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw",
+  showDescription = false,
+}: {
+  project: ProjectSummary
+  className?: string
+  sizes?: string
+  showDescription?: boolean
+}) {
+  return (
+    <Link
+      href={`/all-projects/${project.ProjectId}`}
+      className={cn(
+        "group relative isolate flex min-h-64 overflow-hidden rounded-2xl border border-border",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        className,
+      )}
+    >
+      <Image
+        src={project.ProjectImages[0] || "/placeholder.svg"}
+        alt=""
+        fill
+        sizes={sizes}
+        className="-z-10 object-cover transition-transform duration-700 ease-[var(--ease-out)] group-hover:scale-[1.04]"
+      />
+      <div aria-hidden className="absolute inset-0 -z-10 bg-linear-to-t from-background/95 via-background/40 to-transparent" />
+      <div className="mt-auto w-full space-y-1 p-5">
+        <h3 className="line-clamp-2 font-[family-name:var(--font-display-face)] text-[length:var(--text-lg)] font-semibold leading-snug">
+          {project.ProjectName}
+        </h3>
+        {showDescription && (
+          <p className="line-clamp-2 text-[length:var(--text-sm)] text-muted-foreground">{project.ProjectDescription}</p>
+        )}
+        <p className="text-[length:var(--text-xs)] font-medium text-muted-foreground">{project.ProjectDate}</p>
+      </div>
+    </Link>
+  )
 }

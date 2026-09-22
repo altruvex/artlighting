@@ -144,7 +144,7 @@ model StockMovement {
 
 // ─── Configuration ──────────────────────────────────────────
 model Configuration {
-  id                String    @id @default(cuid())
+  id                String            @id @default(cuid())
   productId         String
   /// Owner, once a signed-in customer touches it. Null while the visitor is
   /// anonymous; a guest row can only be claimed by the browser that created
@@ -155,21 +155,25 @@ model Configuration {
   /// counter and a per-process constant, so they are not a secret — this is
   /// what actually binds an anonymous configuration to its visitor.
   guestToken        String?
-  configPrice       Decimal   @db.Decimal(12, 2)
-  priceIncrease     Decimal   @default(0) @db.Decimal(12, 2)
-  shippingPrice     Decimal   @default(0) @db.Decimal(12, 2)
-  discount          Decimal   @default(0) @db.Decimal(5, 4)
-  quantity          Int       @default(1)
+  configPrice       Decimal           @db.Decimal(12, 2)
+  priceIncrease     Decimal           @default(0) @db.Decimal(12, 2)
+  shippingPrice     Decimal           @default(0) @db.Decimal(12, 2)
+  discount          Decimal           @default(0) @db.Decimal(5, 4)
+  quantity          Int               @default(1)
   /// What the chosen bulbs add: the bulb's price times the number of arms.
-  lampPriceIncrease Decimal?  @default(0) @db.Decimal(12, 2)
+  lampPriceIncrease Decimal?          @default(0) @db.Decimal(12, 2)
   /// Which bulb that was. The amount alone could not say, so a price change
   /// left every past configuration unreadable.
   bulbId            String?
-  totalPrice        Decimal   @db.Decimal(12, 2)
-  currency          String    @default("EGP")
-  productIp         ProductIP @default(IP20)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  totalPrice        Decimal           @db.Decimal(12, 2)
+  currency          String            @default("EGP")
+  productIp         ProductIP         @default(IP20)
+  /// The colour temperature this customer chose. Null until they choose one,
+  /// when the product's own default stands. It used to be written onto the
+  /// product row, so one visitor's click changed it for everybody.
+  colorTemp         ProductColorTemp?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   orders     Order[]     @relation("ConfigurationToOrder")
   orderItems OrderItem[]

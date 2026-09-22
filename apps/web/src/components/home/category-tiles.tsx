@@ -1,4 +1,5 @@
 import { Link } from "@/i18n/navigation";
+import { SECTION_FRAME, SectionHeading } from "@/components/section-heading";
 import { formatNumber } from "@/lib/numbers";
 import { familySlug, type ProductFamily } from "@repo/catalog/families";
 import Image from "next/image";
@@ -38,13 +39,8 @@ export async function CategoryTiles({
   const n = (value: number) => formatNumber(value, locale === "ar" ? "ar" : "en");
 
   return (
-    <section className="mx-auto max-w-screen-2xl px-4 py-16 sm:px-6 lg:px-10 lg:py-24">
-      <header className="mb-8 flex items-end justify-between gap-4">
-        <h2 className="text-[length:var(--text-2xl)]">{t("title")}</h2>
-        <Link href="/products" className="text-[length:var(--text-sm)] font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-          {t("all")}
-        </Link>
-      </header>
+    <section aria-labelledby="categories-heading" className={`${SECTION_FRAME} py-16 lg:py-24`}>
+      <SectionHeading id="categories-heading" title={t("title")} href="/products" hrefLabel={t("all")} />
 
       {/* Two columns, not three: with the first tile spanning both rows, a
           three-column grid left two empty cells under the other tiles. */}

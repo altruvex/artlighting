@@ -42,15 +42,11 @@ export default function Header({ projectsForHeader }: HeaderProps) {
     <header className="sticky top-0 z-50 w-full bg-white/20 dark:bg-black/20 backdrop-blur-md">
       <Container className="container">
         <div className="flex items-center justify-between h-16 gap-4">
-          <Link href="/" className="flex items-center gap-2 shrink-0" prefetch={false} aria-label="Art Lighting - Home">
-            <Image
-              width={80}
-              height={80}
-              src={locale === 'ar' ? "/logo-ar.png" : "/logo-en.png"}
-              className="sm:w-16 sm:h-16 w-14 h-14"
-              alt="Art Lighting Logo"
-              priority
-            />
+          {/* TEMP: placeholder wordmark for the test branch — restore the logo image before merging */}
+          <Link href="/" className="flex items-center gap-2 shrink-0" prefetch={false} aria-label="Linktich - Home">
+            <span className="text-xl sm:text-2xl font-semibold tracking-tight" dir="ltr">
+              linktich
+            </span>
           </Link>
 
           <NavigationMenu className="hidden lg:flex">

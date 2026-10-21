@@ -29,13 +29,13 @@ const SignInPage = () => {
         <div className="relative hidden flex-1 lg:block">
           <Image
             src="/new-collection/new-collection-2.jpg"
-            alt="Art Lighting Showcase"
+            alt="Linktich Showcase"
             fill
             className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-10 text-white">
-            <h2 className="mb-2 text-3xl font-bold">Sign in to Art Lighting</h2>
+            <h2 className="mb-2 text-3xl font-bold">Sign in to Linktich</h2>
             <p className="text-sm text-white/80">Welcome back! Please sign in to continue</p>
           </div>
         </div>

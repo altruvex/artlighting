@@ -41,7 +41,7 @@ export function ThemedSignUp() {
           Join us
         </p>
         <h1 className="mt-2 text-2xl font-semibold text-foreground">Create your account</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Join Art Lighting</p>
+        <p className="mt-1 text-sm text-muted-foreground">Join Linktich</p>
       </div>
 
       {error && (

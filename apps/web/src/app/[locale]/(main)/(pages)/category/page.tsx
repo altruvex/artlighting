@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: PagePropsTypes): Promise<Meta
     ar: "اكتشف أبرز العلامات التجارية للإضاءة:(بالكوم، ميستر ليد، وجيترا)"
   };
   const descriptions = {
-    en: "Elevate your space with Art Lighting. Our curated collection of lighting solutions caters to every style and need. Whether you're looking to create a cozy ambiance or illuminate a large area, we have the perfect lighting fixture for you. Shop now and discover the difference quality lighting can make.",
+    en: "Elevate your space with Linktich. Our curated collection of lighting solutions caters to every style and need. Whether you're looking to create a cozy ambiance or illuminate a large area, we have the perfect lighting fixture for you. Shop now and discover the difference quality lighting can make.",
     ar: "ارتقِ بمساحتك مع مجموعتنا المنتقاة بعناية من حلول الإضاءة. منتجاتنا مصممة لتلبية كل الأذواق والاحتياجات. سواء كنت تسعى لخلق أجواء دافئة ومريحة أو إضاءة مساحة واسعة، لدينا قطعة الإضاءة المثالية لك. تسوق الآن واكتشف الفارق الذي تحدثه الإضاءة عالية الجودة."
   };
   return constructMetadata({

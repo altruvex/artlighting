@@ -23,7 +23,7 @@ export default function AboutUsPage() {
 export async function generateMetadata({ params }: PagePropsTypes): Promise<Metadata> {
   const locale = getLocaleFromParams(await params);
   const titles = {
-    en: "About Us - Art lighting | Your Lighting Store",
+    en: "About Us - Linktich | Your Lighting Store",
     ar: "اكتشف أبرز العلامات التجارية للإضاءة:(بالكوم، ميستر ليد، وجيترا)"
   };
   const descriptions = {

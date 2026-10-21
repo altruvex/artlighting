@@ -19,28 +19,28 @@ export function constructMetadata({
     locale?: SupportedLanguage;
 } = {}): Metadata {
     const defaultTitles: Record<SupportedLanguage, string> = {
-        en: "Art Lighting Company - Professional lighting: Shop Spotlights, Light Poles, and LED Lights",
-        ar: "شركة ارت لايتنج - حلول إضاءة احترافية: كشافات، أعمدة إنارة، ولمبات ليد",
+        en: "Linktich Company - Professional lighting: Shop Spotlights, Light Poles, and LED Lights",
+        ar: "شركة Linktich - حلول إضاءة احترافية: كشافات، أعمدة إنارة، ولمبات ليد",
     };
 
     const defaultDescriptions: Record<SupportedLanguage, string> = {
         en:
-            "Art Lighting Company: Elevate your spaces with exquisite Indoor and outdoor lighting solutions. Explore our curated selection of spotlights, light poles, LED fixtures, chandeliers, linear lighting, and bollards, meticulously crafted for enduring brilliance and energy efficiency. Experience the Art Lighting difference – exceptional illumination at exceptional value.",
+            "Linktich Company: Elevate your spaces with exquisite Indoor and outdoor lighting solutions. Explore our curated selection of spotlights, light poles, LED fixtures, chandeliers, linear lighting, and bollards, meticulously crafted for enduring brilliance and energy efficiency. Experience the Linktich difference – exceptional illumination at exceptional value.",
         ar:
-            "شركة أرت لايتنج: ارتقِ بمساحاتك مع حلول الإضاءة الداخلية والخارجية الراقية. استكشف تشكيلتنا المختارة من الكشافات، أعمدة الإنارة، تجهيزات ليد، الثريات، الإضاءات الخطية، والبولارد — مصممة بعناية للحصول على سطوع دائم وكفاءة في استهلاك الطاقة. اكتشف فرق أرت لايتنج — إضاءة استثنائية بقيمة استثنائية.",
+            "شركة Linktich: ارتقِ بمساحاتك مع حلول الإضاءة الداخلية والخارجية الراقية. استكشف تشكيلتنا المختارة من الكشافات، أعمدة الإنارة، تجهيزات ليد، الثريات، الإضاءات الخطية، والبولارد — مصممة بعناية للحصول على سطوع دائم وكفاءة في استهلاك الطاقة. اكتشف فرق Linktich — إضاءة استثنائية بقيمة استثنائية.",
     };
 
     const ogLocale = locale === "ar" ? "ar_EG" : "en_US";
     const baseUrl = "https://eg-artlighting.vercel.app";
     const siteUrl = `${baseUrl}/${locale}/`;
-    const siteName = "Art Lighting Company";
+    const siteName = "Linktich Company";
 
     const resolvedTitle = title ?? defaultTitles[locale];
     const resolvedDescription = description ?? defaultDescriptions[locale];
 
     const resolvedImage = image.startsWith("http") ? image : `${baseUrl}${image}`;
 
-    const imageAlt = locale === "ar" ? "شعار شركة آرت لايتنغ" : "Art Lighting Company Logo";
+    const imageAlt = locale === "ar" ? "شعار شركة Linktich" : "Linktich Company Logo";
 
     return {
         title: resolvedTitle,

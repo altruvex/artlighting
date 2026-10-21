@@ -1,6 +1,6 @@
 {
     "company": {
-        "name": "Art Lighting"
+        "name": "Linktich"
     },
     "not-found": {
         "title": "404 - Page Not Found",
@@ -39,7 +39,7 @@
     },
     "about": {
         "title": "About Our Company",
-        "description": "At Art Lighting Inc. we are a team of passionate innovators dedicated to pushing the boundaries of what's possible. Since our founding in 2010, we've been on a mission to create cutting-edge products and services that transform the way people live and work.",
+        "description": "At Linktich Inc. we are a team of passionate innovators dedicated to pushing the boundaries of what's possible. Since our founding in 2010, we've been on a mission to create cutting-edge products and services that transform the way people live and work.",
         "mission-title": "Our Mission",
         "mission-text": "To revolutionize the tech industry and empower people with innovative solutions.",
         "values-title": "Our Values",
@@ -49,13 +49,13 @@
         "commitment-title": "Our Commitment",
         "commitment-text": "To deliver exceptional products and services that exceed our customers' expectations.",
         "timeline": [
-            "2010 - Founding of Art Lighting Inc.",
+            "2010 - Founding of Linktich Inc.",
             "2010 - Launch of First Product",
             "2012 - Expansion into New Markets",
             "2013 - Breakthrough Innovation",
             "2014 - Local Expansion and Acquisition",
             "2015 - Sustainability Initiatives",
-            "2016 – Art Lighting’s Contribution to National Projects",
+            "2016 – Linktich’s Contribution to National Projects",
             "2020 - Pandemic Response and Resilience",
             "2023 - Our Factory completed"
         ]
@@ -303,7 +303,7 @@
         }
     },
     "footer": {
-        "brandName": "Art Lighting",
+        "brandName": "Linktich",
         "brandDescription": "Your premier destination for exquisite lighting solutions.",
         "indoorLighting": "Indoor Lighting",
         "outdoorLighting": "Outdoor Lighting",
@@ -686,13 +686,13 @@
     "auth": {
         "backToHome": "Back to Home",
         "loading": "Loading...",
-        "imageAlt": "Art Lighting Showcase",
+        "imageAlt": "Linktich Showcase",
         "signIn": {
-            "title": "Sign in to Art Lighting",
+            "title": "Sign in to Linktich",
             "description": "Welcome back! Please sign in to continue"
         },
         "signUp": {
-            "title": "Join Art Lighting",
+            "title": "Join Linktich",
             "description": "Create your account and start illuminating your space"
         }
     },
@@ -873,7 +873,7 @@
         "productOnTheWay": "Your product is on the way!",
         "orderReceived": "We've received your order and are now processing it.",
         "greatChoice": "You made a great choice!",
-        "qualityDescription": "At Art Lighting, we believe that lighting products should not only be visually appealing but also built to last for years to come. That's why we offer an industry-leading 3-year warranty on all our products.",
+        "qualityDescription": "At Linktich, we believe that lighting products should not only be visually appealing but also built to last for years to come. That's why we offer an industry-leading 3-year warranty on all our products.",
         "orderSummary": "Order Summary",
         "orderNumber": "Order Number:",
         "shippingAddress": "Shipping Address:",
@@ -936,7 +936,7 @@
         "company": {
             "title": "About Our Company",
             "q1": "What is your company's mission and values?",
-            "a1": "At Art Lighting, our mission is to provide high-quality, energy-efficient lighting solutions that enhance the beauty and functionality of any space. Our core values include honesty, integrity, and respect for the environment.",
+            "a1": "At Linktich, our mission is to provide high-quality, energy-efficient lighting solutions that enhance the beauty and functionality of any space. Our core values include honesty, integrity, and respect for the environment.",
             "q2": "Do you have any certifications or awards?",
             "a2": "Yes, we're proud to be an Energy Star certified partner, and many of our products have earned the Energy Star label for their efficiency. We've also been recognized for our commitment to sustainability and design excellence.",
             "q3": "How can I get in touch with your team?",

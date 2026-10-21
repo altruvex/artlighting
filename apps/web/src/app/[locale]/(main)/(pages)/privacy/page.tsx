@@ -14,13 +14,13 @@ export async function generateMetadata({ params }: PagePropsTypes): Promise<Meta
   const currentLocale = getLocaleFromParams(await params);
 
   const titles: Record<string, string> = {
-    en: "Privacy Policy | Art Lighting",
-    ar: "سياسة الخصوصية | أرت لايتنج",
+    en: "Privacy Policy | Linktich",
+    ar: "سياسة الخصوصية | Linktich",
   };
 
   const descriptions: Record<string, string> = {
-    en: "Learn about how Art Lighting collects, uses, and protects your personal information.",
-    ar: "تعرف على كيفية قيام أرت لايتنج بجمع واستخدام وحماية معلوماتك الشخصية.",
+    en: "Learn about how Linktich collects, uses, and protects your personal information.",
+    ar: "تعرف على كيفية قيام Linktich بجمع واستخدام وحماية معلوماتك الشخصية.",
   };
 
   return constructMetadata({

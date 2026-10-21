@@ -11,8 +11,8 @@ export default function Blog() {
 export async function generateMetadata({ params }: PagePropsTypes): Promise<Metadata> {
   const locale = getLocaleFromParams(await params);
   const titles = {
-    en: "Blog | Art lighting",
-    ar: "مدونة | ارت لايتنج"
+    en: "Blog | Linktich",
+    ar: "مدونة | Linktich"
   };
   const descriptions = {
     en: "Know About Our Latest News In New Arrivals Products, Events in  egypt and in china",

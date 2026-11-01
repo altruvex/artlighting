@@ -23,7 +23,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ jobId: 
 
   let workerRes: Response;
   try {
-    workerRes = await fetch(`${workerUrl}/jobs/${jobId}/download`, {
+    workerRes = await fetch(`${workerUrl}/jobs/${encodeURIComponent(jobId)}/download`, {
       headers: { "X-Datasheet-Worker-Secret": workerSecret },
     });
   } catch (err) {
@@ -40,7 +40,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ jobId: 
   return new Response(zipBuffer, {
     headers: {
       "Content-Type": "application/zip",
-      "Content-Disposition": `attachment; filename="datasheets-${jobId}.zip"`,
+      "Content-Disposition": `attachment; filename="datasheets-${jobId.replace(/[^\w.-]/g, "_")}.zip"`,
     },
   });
 }

@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "@repo/database";
 import { getAuthSecret } from "./auth-secret";
@@ -22,7 +23,9 @@ export const auth = betterAuth({
   user: {
     modelName: "admin",
     additionalFields: {
-      role: { type: "string", required: false, defaultValue: "SALES" },
+      // input:false — never settable through /sign-up or /update-user; only
+      // createStaffAccount / updateAdminRole write it, server side.
+      role: { type: "string", required: false, defaultValue: "SALES", input: false },
     },
   },
   session: {
@@ -35,5 +38,15 @@ export const auth = betterAuth({
   },
   verification: {
     modelName: "adminVerification",
+  },
+  hooks: {
+    // There is no public sign-up: accounts are created by a manager through
+    // createStaffAccount, which calls auth.api.signUpEmail directly (no HTTP
+    // request). Any sign-up arriving over HTTP is refused.
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === "/sign-up/email" && ctx.request) {
+        throw new APIError("FORBIDDEN", { message: "Sign-up is disabled" });
+      }
+    }),
   },
 });

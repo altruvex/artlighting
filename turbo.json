@@ -35,7 +35,8 @@
         "STOREFRONT_BASE_URL",
         "RESEND_API_KEY",
         "EMAIL_FROM",
-        "ORDER_NOTIFY_EMAIL"
+        "ORDER_NOTIFY_EMAIL",
+        "VERCEL"
       ]
     },
     "lint": {

@@ -8,6 +8,9 @@ import { createAuthClient } from "better-auth/react";
 // auth requests to the production domain, which the CSP also didn't allow.
 export const authClient = createAuthClient({
   basePath: "/api/auth",
+  // The session is cookie-cached for 5 minutes anyway; refetching it every
+  // time the tab regains focus was a function call per focus, per visitor.
+  sessionOptions: { refetchOnWindowFocus: false },
 });
 
 export const { useSession, signIn, signUp, signOut } = authClient;

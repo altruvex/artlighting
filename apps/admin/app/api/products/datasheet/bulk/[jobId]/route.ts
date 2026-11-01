@@ -23,7 +23,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ jobId: 
 
   let workerRes: Response;
   try {
-    workerRes = await fetch(`${workerUrl}/jobs/${jobId}`, {
+    workerRes = await fetch(`${workerUrl}/jobs/${encodeURIComponent(jobId)}`, {
       headers: { "X-Datasheet-Worker-Secret": workerSecret },
       cache: "no-store",
     });

@@ -26,7 +26,15 @@ export function ThemedSignIn() {
     const { error } = await authClient.signIn.email({ email, password });
     setIsLoading(false);
     if (error) {
-      setError(error.status === 429 ? t("errors.tooManyAttempts") : t("errors.invalidCredentials"));
+      // Only a 401 means the email or password is wrong. Anything else
+      // (403 INVALID_ORIGIN, 5xx, network) is a server/config problem and
+      // must not be reported as a wrong password.
+      if (error.status === 429) setError(t("errors.tooManyAttempts"));
+      else if (error.status === 401) setError(t("errors.invalidCredentials"));
+      else {
+        console.error("[sign-in]", error.status, error.code, error.message);
+        setError(t("errors.unexpected"));
+      }
       return;
     }
     router.push(safeNext(searchParams.get("next")));
@@ -126,6 +134,6 @@ export function ThemedSignIn() {
  * sign-in page into an open redirect.
  */
 function safeNext(next: string | null): string {
-  if (next && next.startsWith("/") && !next.startsWith("//")) return next;
+  if (next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\")) return next;
   return "/dashboard";
 }

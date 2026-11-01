@@ -33,7 +33,7 @@ export async function POST(
 
     try {
         const { configId } = await params
-        const body = await request.json()
+        const body = await request.json().catch(() => null)
 
         // Validate input data
         const validatedData = SaveConfigSchema.parse(body)
@@ -190,7 +190,8 @@ export async function POST(
         return NextResponse.json(
             {
                 success: false,
-                error: error instanceof Error ? error.message : "Unknown error occurred"
+                // Not error.message: a Prisma error would hand its internals to the browser.
+                error: "Failed to save configuration"
             },
             { status: 500 }
         )

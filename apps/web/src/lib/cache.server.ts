@@ -22,11 +22,11 @@ export function isRevalidatableTag(tag: string): boolean {
 }
 
 /** How long catalogue data is served before it is refreshed in the background. */
-const CATALOGUE_REVALIDATE = 300;
+const CATALOGUE_REVALIDATE = 3600;
 
 /**
  * cacheLife for anything whose figures depend on the discounts live right
- * now. Normally the "catalogue" profile (5 minutes, refreshed on admin
+ * now. Normally the "catalogue" profile (1 hour, refreshed on admin
  * writes). When a discount starts or ends sooner than that, the entry
  * expires at that moment instead: a card must not keep advertising a
  * promotion the checkout has already stopped applying.

@@ -22,9 +22,9 @@ export async function POST(req: Request) {
     throw err;
   }
 
-  const body = (await req.json()) as Partial<BulkStartRequest>;
+  const body = (await req.json().catch(() => null)) as Partial<BulkStartRequest> | null;
 
-  if (body.scope !== "all" && body.scope !== "category") {
+  if (!body || (body.scope !== "all" && body.scope !== "category")) {
     return NextResponse.json({ error: t("errors.invalidScope") }, { status: 400 });
   }
   if (body.scope === "category" && !body.categoryId) {

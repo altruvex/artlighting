@@ -69,7 +69,8 @@
     "backHome": "Back to home",
     "errors": {
       "invalidCredentials": "Invalid email or password",
-      "tooManyAttempts": "Too many attempts. Please wait a moment and try again."
+      "tooManyAttempts": "Too many attempts. Please wait a moment and try again.",
+      "unexpected": "Sign-in failed because of a server problem, not your password. Please try again or contact the administrator."
     }
   },
   "Common": {
@@ -122,5 +123,12 @@
     "next": "Next",
     "rowsPerPage": "Rows per page",
     "rowsPerPageValue": "{size} / page"
+  },
+  "ErrorPage": {
+    "title": "Something went wrong",
+    "description": "This screen could not load. Try again, and if it keeps happening send the reference to the developer.",
+    "retry": "Try again",
+    "dashboard": "Go to the dashboard",
+    "reference": "Reference"
   }
 }

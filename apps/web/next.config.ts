@@ -48,9 +48,11 @@ const nextConfig: NextConfig = {
     cacheHandlers: { default: fileURLToPath(new URL("./cache-handler.cjs", import.meta.url)) },
   }),
   cacheLife: {
-    // Products, prices, stock and promotions: fresh within 5 minutes even
-    // if an invalidation is missed, served stale for at most an hour.
-    catalogue: { stale: 60, revalidate: 300, expire: 3600 },
+    // Products, prices, stock and promotions. Every admin write, order and
+    // discount boundary invalidates this directly; the hour is only the
+    // safety net for a missed invalidation (and each refresh is a billed
+    // function run plus an ISR write, so a short net costs real money).
+    catalogue: { stale: 60, revalidate: 3600, expire: 86400 },
   },
   experimental: {
     // Every product page is prerendered at build (~480 pages). At the
@@ -65,6 +67,13 @@ const nextConfig: NextConfig = {
     // What the landing imagery asks for; unlisted qualities are
     // coerced to 75 and warned about on every render.
     qualities: [60, 70, 75],
+    // Default widths minus 3840: heroes are sized to 1536px, so 2048 covers
+    // a 2x screen and the 4K variant only cost transformations and transfer.
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+    // Optimised images are re-transformed when this expires (default 4h).
+    // Cloudinary URLs are versioned, so a month is safe; a /public file
+    // replaced under the same name needs a new name to show at once.
+    minimumCacheTTL: 2678400,
     remotePatterns: [
       {
         protocol: "https",

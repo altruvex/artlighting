@@ -243,11 +243,13 @@ export async function submitReview(
   productId: string,
   input: ReviewInput,
 ): Promise<{ ok: true } | { ok: false; error: SubmitReviewError }> {
+  if (typeof productId !== "string" || !input || typeof input !== "object") return { ok: false, error: "invalid" };
   const rating = Math.trunc(input.rating);
   if (!Number.isInteger(rating) || rating < MIN_RATING || rating > MAX_RATING) return { ok: false, error: "invalid" };
 
-  const title = input.title?.trim().slice(0, MAX_REVIEW_TITLE) || null;
-  const body = input.body?.trim().slice(0, MAX_REVIEW_BODY) || null;
+  // Input arrives through a server action: a non-string here used to throw.
+  const title = (typeof input.title === "string" ? input.title.trim().slice(0, MAX_REVIEW_TITLE) : "") || null;
+  const body = (typeof input.body === "string" ? input.body.trim().slice(0, MAX_REVIEW_BODY) : "") || null;
 
   return prisma.$transaction(async (tx) => {
     const product = await tx.product.findUnique({ where: { productId }, select: { id: true, isActive: true } });

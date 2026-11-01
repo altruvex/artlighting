@@ -21,6 +21,7 @@ export const CLIENT_NAMESPACES = [
   "colorTemperature",
   "complete",
   "confirm",
+  "error",
   "family",
   "footer",
   "header",

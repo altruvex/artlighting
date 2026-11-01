@@ -20,6 +20,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // customers don't share and overwrite one configuration row.
     const { userId } = await auth()
     const guestToken = await readGuestToken()
+    // No owner to scope to: `guestToken: null` would match the legacy rows
+    // nobody owns, and a row created here could never be edited. Same rule
+    // as ensureConfiguration (actions/configuration.ts).
+    if (!userId && !guestToken) {
+      return NextResponse.json({ error: "Configuration not found" }, { status: 404 })
+    }
 
     const configuration = await prisma.configuration.findFirst({
       where: userId

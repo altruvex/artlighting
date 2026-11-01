@@ -9,6 +9,13 @@
         "contact-us": "Contact the showroom",
         "search": "Search"
     },
+    "error": {
+        "title": "Something went wrong on our side.",
+        "description": "The page could not load just now. Try again — if it keeps happening, contact the showroom and quote the reference below.",
+        "retry": "Try again",
+        "home": "Back to the home page",
+        "reference": "Reference"
+    },
     "loading": {
         "title": "Loading…",
         "description": "This won't take long"

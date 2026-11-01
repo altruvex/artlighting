@@ -9,13 +9,6 @@ import { isKnownPath, legacyTarget } from "./lib/known-routes";
 const intlMiddleware = createIntlMiddleware(routing);
 
 export default function middleware(req: NextRequest) {
-  // API routes live outside the [locale] segment — they serve JSON, not
-  // localized pages. Without this the intl middleware redirects /api/cart to
-  // /en/api/cart, which costs a round trip on every call.
-  if (req.nextUrl.pathname.startsWith("/api/")) {
-    return withGuestToken(req, NextResponse.next());
-  }
-
   const response = intlMiddleware(req);
 
   // The retired category funnel. The pages under it redirect too, but a
@@ -138,11 +131,26 @@ function withGuestToken(req: NextRequest, response: NextResponse): NextResponse 
   return response;
 }
 
+/**
+ * Every run of this proxy is a billed function invocation, so it only runs
+ * where it does something: document requests for pages.
+ *
+ * - /api is left out: it lives outside [locale], and the guest cookie its
+ *   routes read was already set by the page that calls them.
+ * - Router prefetches and server-action POSTs are left out: they come from
+ *   a page this proxy already handled (locale prefix, redirects and guest
+ *   cookie are in place), and a page full of product cards prefetches dozens
+ *   of links.
+ */
 export const config = {
   matcher: [
-    // Pages except static files
-    "/((?!_next|_vercel|.*\\..*).*)",
-    // API routes
-    "/(api|trpc)(.*)",
+    {
+      source: "/((?!api|trpc|_next|_vercel|.*\\..*).*)",
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+        { type: "header", key: "next-action" },
+      ],
+    },
   ],
 };

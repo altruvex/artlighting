@@ -19,7 +19,9 @@ export default async function DiscountsPage() {
         products: { select: { product: { select: { id: true, productName: true } } } },
         categories: { select: { category: { select: { id: true, name: true } } } },
         families: { select: { family: true } },
-        _count: { select: { redemptions: true } },
+        // Confirmed orders only: an unconfirmed order holds its discounts
+        // without having used them.
+        _count: { select: { redemptions: { where: { order: { isCompleted: true } } } } },
       },
     }),
     prisma.product.findMany({
@@ -33,7 +35,11 @@ export default async function DiscountsPage() {
     }),
     // What the promotions have actually cost, which is the number that
     // decides whether one was worth running.
-    prisma.discountRedemption.aggregate({ _sum: { amount: true }, _count: { _all: true } }),
+    prisma.discountRedemption.aggregate({
+      where: { order: { isCompleted: true } },
+      _sum: { amount: true },
+      _count: { _all: true },
+    }),
   ]);
 
   const rows: DiscountRow[] = discounts.map((discount) => ({

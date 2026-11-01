@@ -321,7 +321,7 @@ export async function productDiscountRates(
   return rates;
 }
 
-/** How many times this customer has already used each discount. */
+/** How many times this customer has already used each discount, on confirmed orders. */
 export async function redemptionsByCustomer(
   identity: { userId?: string | null; email?: string | null },
   db: Db = prisma,
@@ -329,7 +329,12 @@ export async function redemptionsByCustomer(
   if (!identity.userId && !identity.email) return {};
   const grouped = await db.discountRedemption.groupBy({
     by: ["discountId"],
-    where: identity.userId ? { userId: identity.userId } : { customerEmail: identity.email! },
+    // Confirmed orders only: an order the customer walked away from holds
+    // its discounts without having used them.
+    where: {
+      order: { isCompleted: true },
+      ...(identity.userId ? { userId: identity.userId } : { customerEmail: identity.email! }),
+    },
     _count: { _all: true },
   });
   return Object.fromEntries(grouped.map((row) => [row.discountId, row._count._all]));
@@ -343,17 +348,18 @@ export class DiscountUnavailableError extends Error {
 }
 
 /**
- * Records that an order used a discount, and claims one of its uses.
+ * Records which discounts an order was priced with, when it is placed.
  *
- * The row is locked before the count is read, so two checkouts racing for
- * the last use of a coupon cannot both get it — a check-then-increment
- * without the lock is precisely the classic oversell.
+ * A hold, not a use: it claims nothing and counts towards no limit until
+ * the customer confirms (claimOrderDiscounts). Claiming at placement let
+ * an order abandoned at the address step burn a use of a limited coupon,
+ * and with a per-customer limit of one it locked the customer out of the
+ * coupon they never got.
  *
- * Must be called inside the transaction that creates the order: a
- * redemption recorded for an order that then fails to save is a use nobody
- * can account for.
+ * Inside the transaction that creates the order, so a hold never outlives
+ * an order that failed to save.
  */
-export async function redeemDiscount(
+export async function holdDiscount(
   tx: Db,
   input: {
     discountId: string;
@@ -363,34 +369,6 @@ export async function redeemDiscount(
     amount: string;
   },
 ) {
-  const [locked] = await tx.$queryRaw<
-    { id: string; usageLimit: number | null; usageCount: number; perCustomerLimit: number | null; isActive: boolean }[]
-  >`SELECT "id", "usageLimit", "usageCount", "perCustomerLimit", "isActive"
-      FROM "discounts" WHERE "id" = ${input.discountId} FOR UPDATE`;
-
-  if (!locked) throw new DiscountUnavailableError(input.discountId, "it no longer exists");
-  if (!locked.isActive) throw new DiscountUnavailableError(input.discountId, "it was deactivated");
-  if (locked.usageLimit != null && locked.usageCount >= locked.usageLimit) {
-    throw new DiscountUnavailableError(input.discountId, "its usage limit was reached");
-  }
-
-  if (locked.perCustomerLimit != null) {
-    const used = await tx.discountRedemption.count({
-      where: {
-        discountId: input.discountId,
-        ...(input.userId ? { userId: input.userId } : { customerEmail: input.customerEmail }),
-      },
-    });
-    if (used >= locked.perCustomerLimit) {
-      throw new DiscountUnavailableError(input.discountId, "this customer has already used it");
-    }
-  }
-
-  await tx.discount.update({
-    where: { id: input.discountId },
-    data: { usageCount: { increment: 1 } },
-  });
-
   return tx.discountRedemption.create({
     data: {
       discountId: input.discountId,
@@ -400,4 +378,67 @@ export async function redeemDiscount(
       amount: money(input.amount).toFixed(2),
     },
   });
+}
+
+/** Why a held discount cannot be claimed now, or null when it can. */
+export function claimRefusal(
+  discount: { usageLimit: number | null; usageCount: number; perCustomerLimit: number | null; isActive: boolean } | undefined,
+  usedByCustomer: number,
+): string | null {
+  if (!discount) return "it no longer exists";
+  if (!discount.isActive) return "it was deactivated";
+  if (discount.usageLimit != null && discount.usageCount >= discount.usageLimit) return "its usage limit was reached";
+  if (discount.perCustomerLimit != null && usedByCustomer >= discount.perCustomerLimit) {
+    return "this customer has already used it";
+  }
+  return null;
+}
+
+/**
+ * The customer confirms: every discount the order holds claims one of its
+ * uses now, or the confirmation fails with DiscountUnavailableError.
+ *
+ * Each discount row is locked before its count is read, so two
+ * confirmations racing for the last use of a coupon cannot both get it —
+ * a check-then-increment without the lock is precisely the classic
+ * oversell. Rows are locked in id order so two orders holding the same
+ * discounts cannot deadlock. Only confirmed orders count towards a
+ * per-customer limit.
+ *
+ * Inside the transaction that marks the order complete: a failure here
+ * rolls the confirmation back.
+ */
+export async function claimOrderDiscounts(tx: Db, orderId: number) {
+  const held = await tx.discountRedemption.findMany({
+    where: { orderId },
+    select: { discountId: true, userId: true, customerEmail: true },
+    orderBy: { discountId: "asc" },
+  });
+
+  for (const hold of held) {
+    const [locked] = await tx.$queryRaw<
+      { usageLimit: number | null; usageCount: number; perCustomerLimit: number | null; isActive: boolean }[]
+    >`SELECT "usageLimit", "usageCount", "perCustomerLimit", "isActive"
+        FROM "discounts" WHERE "id" = ${hold.discountId} FOR UPDATE`;
+
+    const usedByCustomer =
+      locked?.perCustomerLimit != null
+        ? await tx.discountRedemption.count({
+            where: {
+              discountId: hold.discountId,
+              orderId: { not: orderId },
+              order: { isCompleted: true },
+              ...(hold.userId ? { userId: hold.userId } : { customerEmail: hold.customerEmail }),
+            },
+          })
+        : 0;
+
+    const refusal = claimRefusal(locked, usedByCustomer);
+    if (refusal) throw new DiscountUnavailableError(hold.discountId, refusal);
+
+    await tx.discount.update({
+      where: { id: hold.discountId },
+      data: { usageCount: { increment: 1 } },
+    });
+  }
 }

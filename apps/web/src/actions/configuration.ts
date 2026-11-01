@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth-server";
+import { limitAction } from "@/middleware/ratelimit";
 import { readGuestToken } from "@/lib/guest-token";
 import { productPersonalState, type ProductPersonalState } from "@/lib/product-personal.server";
 import { ProductService } from "@/lib/services/product.service";
@@ -19,6 +20,8 @@ export async function ensureConfiguration(productCode: string, locale: string): 
   // Anonymous rows are owned through the guest cookie; without it nobody
   // could edit the row afterwards, so there is nothing worth creating.
   if (!userId && !guestToken) return null;
+  // Each call can write a row; guests are keyed by IP, so the generous API limit.
+  if (!(await limitAction("api", userId))) return null;
 
   const product = await ProductService.getLocalizedProductDetail(productCode, locale === "ar" ? "ar" : "en", {
     isActive: true,

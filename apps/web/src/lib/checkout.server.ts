@@ -2,10 +2,12 @@ import "server-only";
 
 import {
   sellableFrom,
+  claimOrderDiscounts,
   discountsForCart,
+  DiscountUnavailableError,
+  holdDiscount,
   InsufficientStockError,
   inventorySelect,
-  redeemDiscount,
   redemptionsByCustomer,
   syncOrderStock,
   toCartLine,
@@ -141,7 +143,7 @@ export type CheckoutSource =
 
 export class CheckoutError extends Error {
   constructor(
-    public readonly code: "empty" | "not_found" | "not_yours" | "unavailable" | "out_of_stock",
+    public readonly code: "empty" | "not_found" | "not_yours" | "unavailable" | "out_of_stock" | "discount_unavailable",
     /** For out_of_stock: which product, and how many are left to sell. */
     public readonly detail?: { product: string; available: number },
   ) {
@@ -177,10 +179,10 @@ async function draftsFor(userId: string, source: CheckoutSource): Promise<LineDr
 /**
  * Places one order for everything the source holds, and returns its id.
  *
- * The header, every line and every discount redemption are written in one
- * transaction: a redemption against an order that failed to save is a use
- * nobody can account for, and redeemDiscount locks the discount row before
- * it counts, so two checkouts cannot both take the last use.
+ * The header, every line and the discounts it was priced with are written
+ * in one transaction. The discounts are only held here; they are claimed
+ * (and counted against their limits) when the customer confirms, so an
+ * order abandoned before confirming uses up nothing.
  */
 export async function placeOrder(
   userId: string,
@@ -264,7 +266,7 @@ export async function placeOrder(
     });
 
     for (const applied of priced.applied) {
-      await redeemDiscount(tx, {
+      await holdDiscount(tx, {
         discountId: applied.discountId,
         orderId: created.id,
         userId,
@@ -308,8 +310,9 @@ export async function saveShippingAddress(orderId: number, userId: string, input
 }
 
 /**
- * The customer confirms. Marks the order complete, reserves its stock, and
- * takes what it bought out of their cart — one transaction, so a confirmed
+ * The customer confirms. Marks the order complete, claims the discounts it
+ * was priced with, reserves its stock, and takes what it bought out of
+ * their cart — one transaction, so a confirmed
  * order always holds its units, and a product that ran out between the
  * cart and the button fails the confirmation instead of being sold twice.
  *
@@ -329,7 +332,15 @@ export async function completeOrder(orderId: number, userId: string): Promise<"c
         if (!order) return false;
         if (order.isCompleted) return "already" as const;
 
-        await tx.order.update({ where: { id: orderId }, data: { isCompleted: true } });
+        // Conditional, not a plain update: two confirmations racing both read
+        // isCompleted=false above; the row lock makes the second one's flip
+        // match nothing, so only one of them reports "completed" (and mails).
+        const { count } = await tx.order.updateMany({
+          where: { id: orderId, isCompleted: false },
+          data: { isCompleted: true },
+        });
+        if (count === 0) return "already" as const;
+        await claimOrderDiscounts(tx, orderId);
         await syncOrderStock(orderId, order.status, `customer:${userId}`, tx);
 
         const items = await tx.orderItem.findMany({ where: { orderId }, select: { productId: true } });
@@ -353,6 +364,10 @@ export async function completeOrder(orderId: number, userId: string): Promise<"c
       });
       throw new CheckoutError("out_of_stock", { product: line?.productName ?? error.sku, available: error.available });
     }
+    // A coupon ran out (or was switched off) between placing and confirming:
+    // the total on this order is no longer one the shop honours. The
+    // customer checks out again and is priced without it.
+    if (error instanceof DiscountUnavailableError) throw new CheckoutError("discount_unavailable");
     throw error;
   }
 }

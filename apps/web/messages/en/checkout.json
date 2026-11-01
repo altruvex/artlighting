@@ -295,7 +295,9 @@
             "not_found": "We could not find that order",
             "invalid": "Please check the details you entered",
             "failed": "Something went wrong. Please try again",
-            "out_of_stock": "There isn't enough {product} — {available} left right now"
+            "out_of_stock": "There isn't enough {product} — {available} left right now",
+            "discount_unavailable": "A discount on this order is no longer available — go back to your cart to see the updated price",
+            "rate_limited": "Too many attempts. Wait a minute and try again"
         }
     }
 }

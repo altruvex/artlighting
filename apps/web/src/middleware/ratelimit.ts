@@ -1,5 +1,6 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { upstashRest } from "../../upstash-rest.cjs";
 
@@ -56,6 +57,14 @@ export const rateLimiters = {
     prefix: "ratelimit:read",
   }),
 
+  // Reviews (5 per 10 minutes): nobody writes more by hand
+  review: new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(5, "10 m"),
+    analytics: true,
+    prefix: "ratelimit:review",
+  }),
+
   // Search endpoints (50 requests per minute)
   search: new Ratelimit({
     redis,
@@ -73,7 +82,7 @@ export async function applyRateLimit(
   request: NextRequest,
   limiterType: keyof typeof rateLimiters = "api"
 ): Promise<NextResponse | null> {
-  const ip = getClientIp(request);
+  const ip = getClientIp(request.headers);
   const limiter = rateLimiters[limiterType];
 
   try {
@@ -127,14 +136,46 @@ export function withRateLimit(
 }
 
 /**
- * Get client IP address from request
+ * Rate limit for a server action: true when the call may go ahead.
+ *
+ * A server action is a public POST endpoint that neither the proxy nor the
+ * /api limiters ever see. Keyed by the signed-in user when there is one —
+ * many customers on Egyptian mobile networks share one carrier IP, and an
+ * IP key would make them use up each other's allowance — else by IP.
+ * Fails open like applyRateLimit: Redis being down must not stop orders.
+ */
+export async function limitAction(
+  limiterType: keyof typeof rateLimiters,
+  userId?: string | null,
+): Promise<boolean> {
+  if (!rest) return true;
+  const key = userId ? `user:${userId}` : `ip:${getClientIp(await headers())}`;
+  try {
+    const { success } = await rateLimiters[limiterType].limit(key);
+    return success;
+  } catch (error) {
+    console.error("Rate limiting error:", error);
+    return true;
+  }
+}
+
+/**
+ * Get client IP address from request headers
  * Handles various proxy headers
  */
-function getClientIp(request: NextRequest): string {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  const realIp = request.headers.get("x-real-ip");
-  const cfConnectingIp = request.headers.get("cf-connecting-ip");
-  
+function getClientIp(headers: Headers): string {
+  const forwardedFor = headers.get("x-forwarded-for");
+  const realIp = headers.get("x-real-ip");
+  const cfConnectingIp = headers.get("cf-connecting-ip");
+
+  // On Vercel the edge overwrites these with the real client IP; a
+  // client-sent cf-connecting-ip would otherwise let anyone pick a fresh
+  // rate-limit bucket per request.
+  if (process.env.VERCEL) {
+    const vercelIp = headers.get("x-vercel-forwarded-for") ?? realIp ?? forwardedFor;
+    if (vercelIp) return vercelIp.split(",")[0].trim();
+  }
+
   if (cfConnectingIp) {
     return cfConnectingIp;
   }
@@ -147,7 +188,7 @@ function getClientIp(request: NextRequest): string {
     return realIp;
   }
   
-  return (request as any).ip || "127.0.0.1";
+  return "127.0.0.1";
 }
 
 /**

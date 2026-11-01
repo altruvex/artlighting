@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth-server";
+import { limitAction } from "@/middleware/ratelimit";
 import { CheckoutError, completeOrder, placeOrder, saveShippingAddress } from "@/lib/checkout.server";
 import { sendOrderConfirmationEmails } from "@/lib/email/order-emails";
 import { CATALOGUE_TAG } from "@/lib/cache.server";
@@ -21,7 +22,7 @@ type Result<T> =
   | { ok: true; value: T }
   | {
       ok: false;
-      error: "signed_out" | "empty" | "unavailable" | "not_found" | "invalid" | "failed" | "out_of_stock";
+      error: "signed_out" | "empty" | "unavailable" | "not_found" | "invalid" | "failed" | "out_of_stock" | "discount_unavailable" | "rate_limited";
       /** For out_of_stock: which product ran short, and how many are left. */
       detail?: { product: string; available: number };
     };
@@ -38,10 +39,9 @@ function failure(error: unknown): Result<never> {
 export async function checkoutCart(locale: string): Promise<Result<{ orderId: number }>> {
   const { userId } = await auth();
   if (!userId) return { ok: false, error: "signed_out" };
+  if (!(await limitAction("order", userId))) return { ok: false, error: "rate_limited" };
   try {
     const orderId = await placeOrder(userId, { kind: "cart" }, { customerLanguage: locale === "en" ? "en" : "ar" });
-    // A redemption can use up a promotion the promo bar is still showing.
-    revalidateTag(CATALOGUE_TAG, "max");
     return { ok: true, value: { orderId } };
   } catch (error) {
     return failure(error);
@@ -62,6 +62,7 @@ const AddressSchema = z.object({
 export async function submitShippingAddress(orderId: number, input: unknown): Promise<Result<{ orderId: number }>> {
   const { userId } = await auth();
   if (!userId) return { ok: false, error: "signed_out" };
+  if (!(await limitAction("write", userId))) return { ok: false, error: "rate_limited" };
 
   const parsed = AddressSchema.safeParse(input);
   if (!parsed.success || !Number.isInteger(orderId)) return { ok: false, error: "invalid" };
@@ -79,10 +80,12 @@ export async function confirmOrder(orderId: number): Promise<Result<{ orderId: n
   const { userId } = await auth();
   if (!userId) return { ok: false, error: "signed_out" };
   if (!Number.isInteger(orderId)) return { ok: false, error: "invalid" };
+  if (!(await limitAction("write", userId))) return { ok: false, error: "rate_limited" };
   try {
     const result = await completeOrder(orderId, userId);
     if (!result) return { ok: false, error: "not_found" };
-    // Stock moved: the cards' "few left" and "sold out" are built from it.
+    // Stock moved, and a coupon may have used its last use: the cards'
+    // "few left", "sold out" and the promo bar are built from both.
     revalidateTag(CATALOGUE_TAG, "max");
     // The receipt to the customer and the copy to the shop go out after
     // the response: the customer sees the thank-you page without waiting

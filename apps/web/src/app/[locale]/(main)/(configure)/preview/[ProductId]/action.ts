@@ -2,9 +2,8 @@
 
 import { auth } from "@/lib/auth-server"
 import { CheckoutError, placeOrder } from "@/lib/checkout.server"
-import { CATALOGUE_TAG } from "@/lib/cache.server"
+import { limitAction } from "@/middleware/ratelimit"
 import { getLocale } from "next-intl/server"
-import { revalidateTag } from "next/cache"
 
 /**
  * "Order now" on one product: an order with a single line, placed through
@@ -27,6 +26,9 @@ export async function createOrder({
     // The client matches on "logged in" to open the sign-in dialog.
     throw new Error("You need to be logged in")
   }
+  if (!(await limitAction("order", userId))) return { ok: false as const, error: "rate_limited" as const }
+  // Untrusted: NaN or a fraction would reach the order line as is.
+  if (!Number.isInteger(quantity) || quantity < 1) return { ok: false as const, error: "invalid" as const }
 
   try {
     const orderId = await placeOrder(
@@ -34,8 +36,6 @@ export async function createOrder({
       { kind: "configuration", configurationId: configId, quantity },
       { coupon: coupon ?? null, customerLanguage: (await getLocale()) === "en" ? "en" : "ar" },
     )
-    // A coupon redemption can use up a promotion the promo bar still shows.
-    revalidateTag(CATALOGUE_TAG, "max")
     return { ok: true as const, userId, orderId }
   } catch (error) {
     // Returned, not thrown: a production build replaces a thrown message

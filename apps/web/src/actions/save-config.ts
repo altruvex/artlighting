@@ -1,6 +1,7 @@
 "use server"
 
 import { prisma } from "@repo/database"
+import { limitAction } from "@/middleware/ratelimit"
 import { priceLine } from "@/lib/pricing"
 import { PricingService } from "@/lib/pricing.server"
 import { editableConfigurationId } from "@/lib/configuration-access.server"
@@ -15,8 +16,17 @@ export interface SaveConfigArgs {
 
 export async function saveConfig({
   configId,
-  quantity,
+  quantity: requested,
 }: SaveConfigArgs) {
+  // Untrusted input: the same bounds checkout applies (lib/checkout.server).
+  if (!Number.isInteger(requested) || requested < 1) {
+    return { success: false, error: "Invalid quantity", configuration: null }
+  }
+  // Guests can call this too, so it is keyed by IP: the generous API limit.
+  if (!(await limitAction("api"))) {
+    return { success: false, error: "Too many requests", configuration: null }
+  }
+  const quantity = Math.min(100, requested)
   try {
     // Only the visitor's own configuration; anyone else's reads as missing.
     const ownId = await editableConfigurationId(configId)
@@ -102,7 +112,8 @@ export async function saveConfig({
     console.error("Error saving configuration:", error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
+      // Not error.message: a Prisma error would hand its internals to the browser.
+      error: "Failed to save configuration",
       configuration: null,
     }
   }

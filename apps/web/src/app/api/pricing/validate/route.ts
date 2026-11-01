@@ -57,11 +57,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Only the price: the rate the order was quoted at is the snapshot on
-    // the configuration, not something read off the product row.
+    // Only an existence check: the prices come from the snapshot on the
+    // configuration, not from the product row. Configuration.productId holds
+    // the product code (Product.productId), not the Product row id.
     const product = await prisma.product.findUnique({
-      where: { id: configuration.productId },
-      select: { price: true },
+      where: { productId: configuration.productId },
+      select: { id: true },
     });
 
     if (!product) {

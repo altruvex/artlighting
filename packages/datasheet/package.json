@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./preview": "./preview.ts"
+  },
   "scripts": {
     "check-types": "tsc --noEmit",
     "lint": "eslint ."

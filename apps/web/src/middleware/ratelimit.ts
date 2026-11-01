@@ -1,14 +1,16 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { NextRequest, NextResponse } from "next/server";
+import { upstashRest } from "../../upstash-rest.cjs";
 
 /**
  * Rate Limiting Configuration
  * Protects API endpoints from abuse and DDoS attacks
  */
 
-// Initialize Redis connection (uses UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN from env)
-const redis = Redis.fromEnv();
+// REDIS_URL or the UPSTASH_REDIS_REST_* pair (see upstash-rest.cjs).
+const rest = upstashRest();
+const redis = new Redis({ url: rest?.url ?? "", token: rest?.token ?? "" });
 
 /**
  * Different rate limits for different endpoint types

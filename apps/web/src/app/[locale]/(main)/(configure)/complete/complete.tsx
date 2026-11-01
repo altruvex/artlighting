@@ -1,15 +1,15 @@
 "use client"
 
 import { confirmOrder } from "@/actions/checkout"
-import { Container } from "@/components/container"
+import { CHECKOUT_GRID, CheckoutHeader } from "@/components/order/checkout-header"
 import { OrderLines, OrderTotals } from "@/components/order/order-lines"
 import { orderErrorText } from "@/components/order/order-error"
-import { Button } from "@/components/ui/button"
+import { Button } from "@repo/ui/components/button"
 import { useRouter } from "@/i18n/navigation"
 import { notifyCartChanged } from "@/lib/cart-events"
 import { calculateEstimatedDeliveryDate } from "@/lib/date"
 import type { OrderView } from "@/lib/order-view"
-import { CheckCircle, Loader2, MapPin, Truck } from "lucide-react"
+import { CheckCircle, Loader2 } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import { useMemo, useTransition } from "react"
 import { toast } from "sonner"
@@ -51,31 +51,19 @@ export default function Complete({ order }: { order: OrderView }) {
     })
 
   return (
-    <div className="py-8 md:py-12">
-      <Container>
-        <header className="mb-8 space-y-2">
-          <h1 className="font-[family-name:var(--font-display-face)] text-[length:var(--text-3xl)] font-semibold">
-            {t("title")}
-          </h1>
-          <p className="max-w-2xl text-muted-foreground">{t("description")}</p>
-        </header>
-
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
-          <div className="space-y-8">
+    <>
+      <CheckoutHeader eyebrow={t("eyebrow")} title={t("title")} lede={<p>{t("description")}</p>} />
+        <div className={CHECKOUT_GRID}>
+          <div className="space-y-12">
             <OrderLines lines={order.lines} />
 
-            <section
-              aria-labelledby="delivery-heading"
-              className="grid gap-6 rounded-2xl border border-border bg-card/50 p-5 sm:grid-cols-2 sm:p-6"
-            >
-              <h2 id="delivery-heading" className="sr-only">
+            <section aria-labelledby="delivery-heading">
+              <h2 id="delivery-heading" className="eyebrow pb-3">
                 {t("shippingInformation")}
               </h2>
+              <div className="grid gap-6 border-y border-border py-6 sm:grid-cols-2">
               <div className="space-y-2">
-                <p className="flex items-center gap-2 font-semibold">
-                  <MapPin className="size-4 text-primary" aria-hidden />
-                  {t("shippingAddress")}
-                </p>
+                <p className="font-semibold">{t("shippingAddress")}</p>
                 <address className="text-[length:var(--text-sm)] not-italic leading-relaxed text-muted-foreground">
                   {address.fullName}
                   <br />
@@ -83,22 +71,21 @@ export default function Complete({ order }: { order: OrderView }) {
                   <br />
                   {address.address}
                   <br />
-                  {[address.city, address.state, address.country].filter(Boolean).join("، ")}
+                  {[address.city, address.state, address.country].filter(Boolean).join(locale === "ar" ? "، " : ", ")}
                 </address>
               </div>
               <div className="space-y-2">
-                <p className="flex items-center gap-2 font-semibold">
-                  <Truck className="size-4 text-primary" aria-hidden />
-                  {t("deliveryDetails")}
-                </p>
+                <p className="font-semibold">{t("deliveryDetails")}</p>
                 <p className="text-[length:var(--text-sm)] text-muted-foreground">
                   {inCairo ? t("cairoDelivery") : t("willContactForShippingPrice")}
                 </p>
                 {inCairo && (
                   <p className="text-[length:var(--text-sm)] text-muted-foreground">
-                    {t("estimatedDeliveryDate")} {estimatedDelivery}
+                    {t("estimatedDeliveryDate")} <span className="tabular-nums text-foreground">{estimatedDelivery}</span>
                   </p>
                 )}
+                <p className="text-[length:var(--text-sm)] text-muted-foreground">{t("payment")}</p>
+              </div>
               </div>
             </section>
           </div>
@@ -119,7 +106,6 @@ export default function Complete({ order }: { order: OrderView }) {
             </Button>
           </OrderTotals>
         </div>
-      </Container>
-    </div>
+    </>
   )
 }

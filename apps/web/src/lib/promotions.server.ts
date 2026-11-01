@@ -3,6 +3,8 @@ import "server-only";
 import { prisma } from "@repo/database";
 import { productFamilies, type ProductFamily } from "@repo/catalog/families";
 import { serializeMoney, serializeRate } from "@repo/money";
+import { cacheTag } from "next/cache";
+import { CATALOGUE_TAG, catalogueCacheLife } from "@/lib/cache.server";
 
 /**
  * What the storefront advertises, read from the Discount rows that are live.
@@ -38,7 +40,17 @@ export interface Promotion {
   code: string | null;
 }
 
-export async function activePromotions(now = new Date()): Promise<Promotion[]> {
+/**
+ * Cached: the promo bar sits in the layout of every page, and this was two
+ * queries — one of them the whole product table — on each of them. It
+ * expires the moment a promotion starts or ends (catalogueCacheLife), and
+ * the admin drops it on any discount or product write.
+ */
+export async function activePromotions(): Promise<Promotion[]> {
+  "use cache";
+  cacheTag(CATALOGUE_TAG);
+  const now = new Date();
+  await catalogueCacheLife(now);
   const rows = await prisma.discount.findMany({
     where: {
       isActive: true,

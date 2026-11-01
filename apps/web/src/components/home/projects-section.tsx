@@ -2,6 +2,9 @@ import { ProjectCard } from "@/components/project-card";
 import { SECTION_FRAME, SectionHeading } from "@/components/section-heading";
 import { FEATURED_PROJECTS, projectsFor } from "@/lib/projects";
 import { cn } from "@/lib/utils";
+import { SECTOR_COPY } from "@/content/company-copy";
+import { pick } from "@/content/l10n";
+import { SECTORS } from "@/lib/company";
 import { getTranslations } from "next-intl/server";
 
 /**
@@ -20,14 +23,21 @@ export async function ProjectsSection({ locale }: { locale: string }) {
   if (projects.length === 0) return null;
 
   return (
-    <section aria-labelledby="projects-heading" className={`${SECTION_FRAME} py-12 lg:py-16`}>
+    <section aria-labelledby="projects-heading" className={`${SECTION_FRAME} py-20 lg:py-28`}>
       <SectionHeading
         id="projects-heading"
+        eyebrow={t("eyebrow")}
         title={t("title")}
         subtitle={t("description")}
         href="/all-projects"
         hrefLabel={t("exploreAllProjects")}
       />
+      <p className="mb-8 flex flex-wrap gap-x-5 gap-y-2 border-y border-border py-4 text-[length:var(--text-sm)] text-muted-foreground">
+        <span className="font-medium text-foreground">{t("sectors")}</span>
+        {SECTORS.map((sector) => (
+          <span key={sector.id}>{pick(SECTOR_COPY[sector.id], locale)}</span>
+        ))}
+      </p>
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:grid-rows-2">
         {projects.map((project, index) => (
           <li key={project.ProjectId} className={cn(index === 0 && "sm:col-span-2 lg:row-span-2")}>

@@ -20,6 +20,9 @@ const core = z.object({
 const features = z.object({
   BETTER_AUTH_URL: url.optional(),
   NEXT_PUBLIC_APP_URL: url.optional(),
+  // Same value as apps/web's: lets catalogue writes here refresh the
+  // storefront's cache at once (lib/storefront.ts).
+  STOREFRONT_REVALIDATE_SECRET: z.string().min(32, "must be at least 32 characters").optional(),
   CLOUD_NAME: z.string().min(1),
   CLOUD_API_KEY: z.string().min(1),
   CLOUD_API_SECRET: z.string().min(1),

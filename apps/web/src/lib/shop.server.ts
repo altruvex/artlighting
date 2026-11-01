@@ -13,6 +13,8 @@ import { bulbChoices } from "@repo/catalog/bulb-pricing";
 import { applyRate, money, serializeMoney, serializeRate, subtractMoney } from "@repo/money";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { localizeSpecGroups, specGroupSelect } from "@/lib/spec-groups";
+import { CATALOGUE_TAG, catalogueCacheLife } from "@/lib/cache.server";
+import { cacheTag } from "next/cache";
 
 /**
  * The shop: every active product, filtered, faceted and sorted.
@@ -26,6 +28,10 @@ import { localizeSpecGroups, specGroupSelect } from "@/lib/spec-groups";
  * that is the simple and fast choice; past a few thousand the facets should
  * move into SQL. The card shape is built here once, so this page, the home
  * page and anything after them render the same product the same way.
+ *
+ * That one query is cached (see catalogueCards): every listing below reads
+ * the same in-memory array instead of loading the whole catalogue, with
+ * every relation, once per request.
  */
 
 export type ShopSort = "featured" | "price-asc" | "price-desc" | "discount" | "newest";
@@ -85,12 +91,33 @@ export function cardInclude(locale: string) {
 
 type CardRow = Awaited<ReturnType<typeof loadCardRows>>[number];
 
-async function loadCardRows(locale: string, where: Record<string, unknown> = {}) {
+async function loadCardRows(locale: string) {
   return prisma.product.findMany({
-    where: { isActive: true, ...where },
+    where: { isActive: true },
     include: cardInclude(locale),
     orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
   });
+}
+
+/**
+ * Every active product as a card, in the admin's order (featured, then
+ * newest) — cached per locale.
+ *
+ * Before this, the home page, the shop (on every filter, sort and page
+ * change), each application page, each product page's related rail and
+ * the recently-viewed rail each loaded the whole catalogue with all its
+ * relations, plus the live discounts, on every request. Under 50
+ * concurrent visitors that was ~2 pages a second at ~20 s each. Now it
+ * is one query per locale per cache lifetime; the admin and the checkout
+ * drop it early through the CATALOGUE tag.
+ */
+export async function catalogueCards(locale: string): Promise<ShopCard[]> {
+  "use cache";
+  cacheTag(CATALOGUE_TAG);
+  await catalogueCacheLife();
+  const rows = await loadCardRows(locale);
+  const rates = await productDiscountRates(rows, prisma);
+  return rows.map((row) => toCard(row, locale, rates[row.id] ?? serializeRate(0)));
 }
 
 /** One product as every card renders it. */
@@ -149,10 +176,15 @@ export interface ShopResult {
   facets: { family: Facet[]; brand: Facet[]; type: Facet[]; sale: number };
 }
 
+/**
+ * One page of the shop for a query, cached per (query, locale): filtering,
+ * faceting and sorting ~120 cards is cheap once, but not on every request
+ * of every visitor paging through the same shelf.
+ */
 export async function searchShop(query: ShopQuery, locale: string): Promise<ShopResult> {
-  const rows = await loadCardRows(locale);
-  const rates = await productDiscountRates(rows, prisma);
-  const all = rows.map((row) => toCard(row, locale, rates[row.id] ?? serializeRate(0)));
+  "use cache";
+  cacheTag(CATALOGUE_TAG);
+  const all = await catalogueCards(locale);
 
   const needle = query.q.toLocaleLowerCase(locale);
   const priceOf = (card: ShopCard) => Number(card.effectivePrice);
@@ -252,9 +284,7 @@ export interface HomeData {
  * rows — so the page changes when the catalogue does.
  */
 export async function homeData(locale: string, perRail = 10): Promise<HomeData> {
-  const rows = await loadCardRows(locale);
-  const rates = await productDiscountRates(rows, prisma);
-  const all = rows.map((row) => toCard(row, locale, rates[row.id] ?? serializeRate(0)));
+  const all = await catalogueCards(locale);
 
   const saving = (card: ShopCard) => Number(card.price) - Number(card.effectivePrice);
   const inStock = (card: ShopCard) => card.quantity !== 0;
@@ -291,9 +321,9 @@ export async function relatedCards(
   locale: string,
   limit = 10,
 ): Promise<ShopCard[]> {
-  const rows = await loadCardRows(locale, { sectionType: family, productId: { not: productId } });
-  const rates = await productDiscountRates(rows, prisma);
-  const cards = rows.map((row) => toCard(row, locale, rates[row.id] ?? serializeRate(0)));
+  const cards = (await catalogueCards(locale)).filter(
+    (card) => card.sectionType === family && card.productId !== productId,
+  );
 
   const rank = (card: ShopCard) =>
     (lightingTypeSlug && card.lightingTypeSlug === lightingTypeSlug ? 0 : 1) + (card.quantity !== 0 ? 0 : 2);
@@ -308,8 +338,48 @@ export async function relatedCards(
  */
 export async function cardsByProductIds(productIds: string[], locale: string): Promise<ShopCard[]> {
   if (productIds.length === 0) return [];
-  const rows = await loadCardRows(locale, { productId: { in: productIds } });
-  const rates = await productDiscountRates(rows, prisma);
-  const byCode = new Map(rows.map((row) => [row.productId, toCard(row, locale, rates[row.id] ?? serializeRate(0))]));
+  const byCode = new Map((await catalogueCards(locale)).map((card) => [card.productId, card]));
   return productIds.flatMap((code) => byCode.get(code) ?? []);
+}
+
+/**
+ * The products that serve an application: every card in one of its
+ * families or lighting types, featured and in stock first. Interleaved by
+ * type, so a space served by five types does not show ten of the one with
+ * the most rows. Also returns how many active products each type holds,
+ * so an application never links to a type with nothing in it.
+ */
+export async function applicationCards(
+  { families = [], types }: { families?: ProductFamily[]; types: string[] },
+  locale: string,
+  limit = 12,
+): Promise<{ cards: ShopCard[]; typeCounts: Record<string, number>; familyCounts: Partial<Record<ProductFamily, number>> }> {
+  const all = await catalogueCards(locale);
+
+  const typeCounts: Record<string, number> = {};
+  const familyCounts: Partial<Record<ProductFamily, number>> = {};
+  for (const card of all) {
+    typeCounts[card.lightingTypeSlug] = (typeCounts[card.lightingTypeSlug] ?? 0) + 1;
+    const family = card.sectionType as ProductFamily;
+    familyCounts[family] = (familyCounts[family] ?? 0) + 1;
+  }
+
+  const rank = (card: ShopCard) => Number(!card.featured) + (card.quantity !== 0 ? 0 : 2);
+  const groups = [
+    ...types.map((type) => all.filter((card) => card.lightingTypeSlug === type)),
+    ...families.map((family) => all.filter((card) => card.sectionType === family)),
+  ].map((group) => [...group].sort((a, b) => rank(a) - rank(b)));
+
+  const cards: ShopCard[] = [];
+  const seen = new Set<string>();
+  for (let round = 0; cards.length < limit && groups.some((group) => group.length > round); round++) {
+    for (const group of groups) {
+      const card = group[round];
+      if (card && !seen.has(card.id) && cards.length < limit) {
+        seen.add(card.id);
+        cards.push(card);
+      }
+    }
+  }
+  return { cards, typeCounts, familyCounts };
 }

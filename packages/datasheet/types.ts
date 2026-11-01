@@ -4,15 +4,22 @@
  * mapping its own data model into this flat, already-labeled shape.
  */
 
+/**
+ * `width`/`height` are the image's own pixel size. A data URI carries it in
+ * its bytes; a path cannot, so a caller that knows it (the live preview)
+ * passes it, and the image keeps its proportions instead of filling its box.
+ */
 export type ImageRef =
-  | { kind: "path"; path: string }
+  | { kind: "path"; path: string; width?: number; height?: number }
   /** Caller already resolved the image to a base64 data URI. */
-  | { kind: "data"; dataUri: string };
+  | { kind: "data"; dataUri: string; width?: number; height?: number };
 
 export interface LabelValueRow {
+  /** Which spec this is ("maximumWattage", "luminousFlux"), when it came from one. */
+  key?: string;
   label: string;
   value: string;
-  /** Renders the value in the gold accent instead of ink — e.g. a standout figure like "30,000 hrs". */
+  /** Renders the value bold in the gold accent instead of ink — e.g. a standout figure like "30,000 hrs". */
   highlight?: boolean;
 }
 
@@ -23,11 +30,14 @@ export interface LabelValueRow {
  * vary by product type: a spotlight (BO-011-50W) carries SPECIFICATIONS /
  * LAMP DATA / CONTROL UNIT, while a bollard on a pole (BO-100W) carries
  * SPECIFICATIONS / BASE SPECIFICATION / POLE / ARM / LUMINAIRE / CONTROL UNIT.
- * Hard-coding the three spotlight sections would make the second sheet
- * impossible to reproduce.
  */
 export interface DatasheetSection {
-  /** e.g. "Specifications", "Lamp Data", "Base Specification" — letter-spaced and uppercased at render time. */
+  /**
+   * "key" marks the headline table printed beside the photo (Luminaire
+   * data); every other section is one of the grouped Technical data tables.
+   */
+  id?: string;
+  /** e.g. "Electrical", "Mechanical". */
   title: string;
   rows: LabelValueRow[];
 }
@@ -35,66 +45,50 @@ export interface DatasheetSection {
 export interface DatasheetProductData {
   /** e.g. "BO-011-50W" */
   productCode: string;
+  /** Printed in the header's Product / Brand / Category block, e.g. "Balcom". */
+  brandName?: string;
   /** Subtitle line under the product code, e.g. "Bollard — Outdoor Series" */
   categoryLabel: string;
   /** Rendered under the DESCRIPTION heading. Empty string omits the whole section. */
   descriptionText: string;
   mainImage?: ImageRef;
   /**
-   * Technical drawings shown under DIMENSIONS, in order.
-   *
-   * A list rather than a single image because the reference sheets carry a
-   * varying number: BO-011-50W has one, BO-014-100W has three (a tall pole
-   * elevation beside two stacked detail views). The renderer picks an
-   * arrangement from the count, so adding a drawing to a product needs no
-   * code or template change.
+   * Technical drawings shown under DIMENSIONS, in order. One fills the whole
+   * area (BO-011-50W); more are arranged by count (BO-014-100W has three).
    */
   dimensionDiagrams?: ImageRef[];
   /** Right-column sections, rendered top to bottom. Sections with no rows are skipped entirely. */
   sections: DatasheetSection[];
   brandLogos?: ImageRef[];
+  /**
+   * The installed/lifestyle shot under BRAND & PARTNERS — the square photo in
+   * the reference's lower-right. Omitted, the block shows only the logos.
+   */
+  applicationImage?: ImageRef;
 }
 
 export interface DatasheetTokens {
   page: { widthIn: number; heightIn: number };
   colors: {
     ink: string;
-    labelGray: string;
-    bodyGray: string;
-    eyebrowGray: string;
-    accentGold: string;
-    hairlineFill: string;
-    dottedLeader: string;
-    white: string;
+    label: string;
+    body: string;
+    eyebrow: string;
+    gold: string;
+    bar: string;
+    rule: string;
   };
-  fonts: {
-    family: string;
-  };
+  font: string;
   sizes: {
     eyebrow: number;
     code: number;
+    category: number;
     sectionTitle: number;
-    label: number;
-    value: number;
-    footerSmall: number;
-    footerTiny: number;
-  };
-  layout: {
-    marginX: number;
-    headerBarHeight: number;
-    footerBarHeight: number;
-    leftColX: number;
-    leftColWidth: number;
-    rightColX: number;
-    rightColWidth: number;
-    /** Width of the label sub-column within a section row; the value starts right after. */
-    labelColWidth: number;
-    rowHeight: number;
-    sectionTitleToLineGap: number;
-    lineToContentGap: number;
-    sectionGap: number;
-    photo: { x: number; y: number; w: number; h: number };
-    /** Vertical breathing room between stacked blocks in the flowing left column. */
-    blockGap: number;
+    row: number;
+    body: number;
+    footerMark: number;
+    footerContact: number;
+    footerSite: number;
+    footerTagline: number;
   };
 }

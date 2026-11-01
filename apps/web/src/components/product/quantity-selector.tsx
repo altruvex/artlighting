@@ -1,6 +1,6 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@repo/ui/components/button"
 import { cn } from "@/lib/utils"
 import { formatNumber } from "@/lib/numbers"
 import { Minus, Plus } from "lucide-react"
@@ -64,7 +64,7 @@ export function QuantitySelector({
             >
                 <Minus className={currentSize.icon} />
             </Button>
-            <span className={cn("text-center", currentSize.text, rtlSupport && "rtl:-rotate-180")} aria-live="polite">
+            <span className={cn("text-center tabular-nums", currentSize.text, rtlSupport && "rtl:-rotate-180")} aria-live="polite">
                 {formatNumber(quantity, locale === "ar" ? "ar" : "en")}
             </span>
             <Button

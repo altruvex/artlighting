@@ -89,15 +89,13 @@ export function movementsFor(
   position: VariantPosition,
 ): { kind: Extract<StockMovementKind, "RESERVE" | "RELEASE" | "SALE" | "RETURN">; quantity: number }[] {
   const steps: ReturnType<typeof movementsFor> = [];
-  let { reserved, sold } = position;
+  const { sold } = position;
+  let { reserved } = position;
 
   if (stage === "reserved") {
     // Back from shipped — an admin correcting a status. The units return to
     // the building before they are promised again.
-    if (sold > 0) {
-      steps.push({ kind: "RETURN", quantity: sold });
-      sold = 0;
-    }
+    if (sold > 0) steps.push({ kind: "RETURN", quantity: sold });
     if (reserved < quantity) steps.push({ kind: "RESERVE", quantity: quantity - reserved });
     if (reserved > quantity) steps.push({ kind: "RELEASE", quantity: reserved - quantity });
     return steps;

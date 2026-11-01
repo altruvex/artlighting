@@ -1,57 +1,72 @@
 "use client";
 
+import { formatIndex } from "@/lib/numbers";
 import { cn } from "@/lib/utils";
-import { Check } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 const STEPS = ["preview", "confirm", "complete"] as const;
 
 /**
- * Where the shopper is in the order, in three steps.
+ * Where the customer is in the order.
  *
- * Two things were wrong with it. Its labels and descriptions were English
- * strings in the component — the one path where a customer is typing an
- * address and agreeing to a price, in an interface that is otherwise
- * Arabic. And it fetched `/api/products/` on mount with an empty id, with
- * the state it set as the effect's own dependency; the request 404'd on
- * every checkout page and the value it wanted was already in the URL.
+ * Set the way the company pages number things: three columns under one
+ * rule, each an index numeral and a name, the current step's rule drawn in
+ * gold and the steps behind it in ink. It was three large circles with a
+ * glow on the current one — the one place in checkout that looked like a
+ * different site.
  */
 const Steps = () => {
   const pathname = usePathname();
+  const locale = useLocale();
   const t = useTranslations("steps");
+  const current = Math.max(0, STEPS.findIndex((step) => pathname.includes(`/${step}`)));
 
-  const current = Math.max(
-    0,
-    STEPS.findIndex((step) => pathname.includes(`/${step}`)),
-  );
+  // This nav lives in the shared layout and stays on screen between steps, so
+  // Next's scroll-to-segment sees the layout's top as visible and leaves the
+  // previous step's offset in place. Reset it here, but not on first mount or
+  // on back/forward, which the browser restores itself.
+  const lastPath = useRef(pathname);
+  const fromHistory = useRef(false);
+  useEffect(() => {
+    const mark = () => {
+      fromHistory.current = true;
+    };
+    window.addEventListener("popstate", mark);
+    return () => window.removeEventListener("popstate", mark);
+  }, []);
+  useEffect(() => {
+    if (lastPath.current === pathname) return;
+    lastPath.current = pathname;
+    if (fromHistory.current) {
+      fromHistory.current = false;
+      return;
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [pathname]);
 
   return (
-    <nav aria-label={t("label")} className="mb-8 rounded-2xl border border-border bg-card/50 px-4 py-8 sm:px-6">
-      <ol className="grid gap-6 md:grid-cols-3">
+    <nav aria-label={t("label")} className="mx-auto w-full max-w-screen-2xl px-4 pt-8 sm:px-6 lg:px-10">
+      <ol className="grid grid-cols-3 gap-3 sm:gap-6">
         {STEPS.map((step, index) => {
           const isCurrent = index === current;
           const isDone = index < current;
           return (
-            <li key={step} className="flex flex-col items-center text-center">
-              <span
-                aria-hidden
-                className={cn(
-                  "grid size-12 place-items-center rounded-full border text-[length:var(--text-base)] font-semibold tabular-nums transition-colors duration-[var(--dur-hover)]",
-                  isCurrent && "border-primary bg-primary text-primary-foreground shadow-[var(--shadow-glow)]",
-                  isDone && "border-primary/40 bg-primary/12 text-primary",
-                  !isCurrent && !isDone && "border-border bg-muted text-muted-foreground",
-                )}
-              >
-                {isDone ? <Check className="size-5" /> : index + 1}
-              </span>
-              <span className="mt-3 flex items-center gap-2 font-semibold">
+            <li
+              key={step}
+              aria-current={isCurrent ? "step" : undefined}
+              className={cn(
+                "border-t-2 pt-3 transition-colors duration-[var(--dur-hover)]",
+                isCurrent ? "border-primary" : isDone ? "border-foreground/60" : "border-border",
+              )}
+            >
+              <span className={cn("index-numeral", isCurrent && "!text-primary")}>{formatIndex(index + 1, locale)}</span>
+              <span className={cn("mt-1 block text-[length:var(--text-sm)] font-semibold", !isCurrent && !isDone && "text-muted-foreground")}>
                 {t(`${step}.name`)}
-                <span className="sr-only">{isCurrent ? t("current") : isDone ? t("done") : ""}</span>
+                <span className="sr-only"> — {isCurrent ? t("current") : isDone ? t("done") : ""}</span>
               </span>
-              <span className="mt-1 max-w-xs text-[length:var(--text-sm)] text-muted-foreground">
-                {t(`${step}.description`)}
-              </span>
+              <span className="mt-0.5 hidden text-[length:var(--text-xs)] text-muted-foreground sm:block">{t(`${step}.description`)}</span>
             </li>
           );
         })}

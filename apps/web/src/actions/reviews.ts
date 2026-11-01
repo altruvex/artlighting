@@ -1,6 +1,8 @@
 "use server";
 
 import { auth } from "@/lib/auth-server";
+import { CATALOGUE_TAG, reviewsTag } from "@/lib/cache.server";
+import { updateTag } from "next/cache";
 import {
   productReviewsSection,
   submitReview as submitReviewToDb,
@@ -14,7 +16,14 @@ export type SubmitReviewResult = { ok: true } | { ok: false; error: "not_signed_
 export async function submitReview(productId: string, input: ReviewInput): Promise<SubmitReviewResult> {
   const { userId } = await auth();
   if (!userId) return { ok: false, error: "not_signed_in" };
-  return submitReviewToDb(userId, productId, input);
+  const result = await submitReviewToDb(userId, productId, input);
+  if (result.ok) {
+    // The list this customer is about to reload, and the rating every card
+    // and the product page show.
+    updateTag(reviewsTag(productId));
+    updateTag(CATALOGUE_TAG);
+  }
+  return result;
 }
 
 /**

@@ -24,12 +24,13 @@ import { ChipSpinner, OptionGroup, optionChip } from "./option-group";
  * the listed price already covers that one.
  */
 export default function ProductBulbButtons({
-  configId,
+  ensureConfigId,
   choices,
   selectedBulbId,
   onBulbChange,
 }: {
-  configId?: string;
+  /** The visitor's configuration id, created on first use. */
+  ensureConfigId: () => Promise<string | null>;
   choices: BulbChoice[];
   selectedBulbId?: string | null;
   /** Reports the id and what it adds, both as the server computed them. */
@@ -52,9 +53,10 @@ export default function ProductBulbButtons({
       setActive(choice.id);
       onBulbChange(choice.id, choice.increase);
 
-      if (!configId) return;
       setSaving(choice.id);
       try {
+        const configId = await ensureConfigId();
+        if (!configId) throw new Error("No configuration");
         const result = await chooseBulb({ configId, bulbId: choice.id });
         if (!result.success) {
           setActive(previous);
@@ -69,7 +71,7 @@ export default function ProductBulbButtons({
         setSaving(null);
       }
     },
-    [active, saving, configId, choices, onBulbChange, t],
+    [active, saving, ensureConfigId, choices, onBulbChange, t],
   );
 
   if (choices.length === 0) return null;

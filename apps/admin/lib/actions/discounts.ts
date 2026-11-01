@@ -7,6 +7,7 @@ import { requirePermission } from "@/lib/auth";
 import { serializeMoney } from "@repo/money";
 import { getTranslations } from "next-intl/server";
 import { revalidatePath } from "next/cache";
+import { revalidateStorefront } from "@/lib/storefront";
 import { ActionError, run } from "./result";
 
 /**
@@ -37,7 +38,8 @@ export async function createDiscount(input: catalog.DiscountInput) {
   return run(async () => {
     await requirePermission("discount:write");
     const discount = await asActionError(() => catalog.createDiscount(input));
-    revalidatePath("/admin/dashboard/discounts");
+    revalidateStorefront();
+    revalidatePath("/dashboard/discounts");
     return { id: discount.id };
   });
 }
@@ -46,7 +48,8 @@ export async function updateDiscount(discountId: string, input: catalog.Discount
   return run(async () => {
     await requirePermission("discount:write");
     const discount = await asActionError(() => catalog.updateDiscount(discountId, input));
-    revalidatePath("/admin/dashboard/discounts");
+    revalidateStorefront();
+    revalidatePath("/dashboard/discounts");
     return { id: discount.id };
   });
 }
@@ -59,7 +62,8 @@ export async function setDiscountActive(discountId: string, isActive: boolean) {
   return run(async () => {
     await requirePermission("discount:write");
     await catalog.setDiscountActive(discountId, isActive);
-    revalidatePath("/admin/dashboard/discounts");
+    revalidateStorefront();
+    revalidatePath("/dashboard/discounts");
   });
 }
 

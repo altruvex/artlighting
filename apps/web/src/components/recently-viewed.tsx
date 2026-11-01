@@ -53,7 +53,7 @@ export function RecentlyViewed({ locale, exclude }: { locale: string; exclude?: 
         <button
           type="button"
           onClick={clearRecentlyViewed}
-          className="shrink-0 rounded-md text-[length:var(--text-sm)] font-medium text-muted-foreground underline-offset-4 transition-colors duration-[var(--dur-hover)] hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="inline-flex min-h-10 shrink-0 items-center rounded-md px-1 text-[length:var(--text-sm)] font-medium text-muted-foreground underline-offset-4 transition-colors duration-[var(--dur-hover)] hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           {t("clear")}
         </button>

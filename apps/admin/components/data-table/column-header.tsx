@@ -1,7 +1,7 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "@repo/ui/components/button";
+import { cn } from "@repo/ui/lib/utils";
 import type { Column } from "@tanstack/react-table";
 import type { AdminTableFeatures } from "./features";
 import { ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon } from "lucide-react";
@@ -22,6 +22,9 @@ export function ColumnHeader<TData extends Record<string, unknown>, TValue>({
   if (!column.getCanSort()) return <span className={className}>{title}</span>;
 
   const sorted = column.getIsSorted();
+  // The ghost button's padding is pulled back on the side the label hugs, so
+  // the text lines up with the cells under it whichever edge that is.
+  const alignEnd = column.columnDef.meta?.align === "end";
   const Icon = sorted === "asc" ? ArrowUpIcon : sorted === "desc" ? ArrowDownIcon : ChevronsUpDownIcon;
 
   return (
@@ -29,7 +32,7 @@ export function ColumnHeader<TData extends Record<string, unknown>, TValue>({
       variant="ghost"
       size="sm"
       onClick={() => column.toggleSorting(sorted === "asc")}
-      className={cn("-ms-2 h-7 gap-1 px-2 data-[state=open]:bg-accent", className)}
+      className={cn("h-7 gap-1 px-2 data-[state=open]:bg-accent", alignEnd ? "-me-2" : "-ms-2", className)}
       aria-label={t("sortBy", { column: typeof title === "string" ? title : "" })}
     >
       <span>{title}</span>

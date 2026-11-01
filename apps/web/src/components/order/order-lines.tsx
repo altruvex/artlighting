@@ -4,6 +4,7 @@ import NormalPrice from "@/components/price/normal-price"
 import { Link } from "@/i18n/navigation"
 import { formatNumber } from "@/lib/numbers"
 import type { OrderLineView, OrderView } from "@/lib/order-view"
+import { cn } from "@/lib/utils"
 import { money } from "@repo/money"
 import { useLocale, useTranslations } from "next-intl"
 import Image from "next/image"
@@ -20,11 +21,11 @@ export function OrderLines({ lines }: { lines: OrderLineView[] }) {
   const t = useTranslations("order")
 
   return (
-    <section aria-labelledby="order-lines-heading" className="rounded-2xl border border-border bg-card/50">
-      <h2 id="order-lines-heading" className="border-b border-border px-5 py-4 font-semibold sm:px-6">
+    <section aria-labelledby="order-lines-heading">
+      <h2 id="order-lines-heading" className="eyebrow pb-3">
         {t("products")}
       </h2>
-      <ul className="divide-y divide-border">
+      <ul className="divide-y divide-border border-y border-border">
         {lines.map((line) => (
           <OrderLineRow key={line.id} line={line} />
         ))}
@@ -40,7 +41,7 @@ function OrderLineRow({ line }: { line: OrderLineView }) {
   const discounted = money(line.discountAmount).greaterThan(0)
 
   const name = line.href ? (
-    <Link href={line.href} className="font-semibold underline-offset-4 hover:underline">
+    <Link href={line.href} className="font-semibold underline-offset-4 transition-colors duration-[var(--dur-hover)] hover:underline">
       {line.name}
     </Link>
   ) : (
@@ -48,8 +49,8 @@ function OrderLineRow({ line }: { line: OrderLineView }) {
   )
 
   return (
-    <li className="flex gap-4 px-5 py-4 sm:px-6">
-      <div className="relative size-20 shrink-0 overflow-hidden rounded-xl bg-muted sm:size-24">
+    <li className="flex gap-4 py-5">
+      <div className="relative size-20 shrink-0 overflow-hidden rounded-sm bg-muted sm:size-24">
         {line.image && <Image src={line.image} alt={line.name} fill sizes="96px" className="object-cover" />}
       </div>
 
@@ -100,9 +101,9 @@ export function OrderTotals({ order, children }: { order: OrderView; children?: 
   return (
     <section
       aria-labelledby="order-totals-heading"
-      className="rounded-2xl border border-border bg-card/50 p-5 sm:p-6 lg:sticky lg:top-24"
+      className="rounded-md border border-border bg-card/40 p-5 sm:p-6 lg:sticky lg:top-24"
     >
-      <h2 id="order-totals-heading" className="mb-4 font-semibold">
+      <h2 id="order-totals-heading" className="eyebrow mb-4">
         {t("summary")}
       </h2>
       <p className="mb-4 text-[length:var(--text-sm)] text-muted-foreground">
@@ -116,7 +117,7 @@ export function OrderTotals({ order, children }: { order: OrderView; children?: 
           <NormalPrice price={order.subtotal} />
         </Row>
         {hasDiscount && (
-          <Row label={t("discounts")} className="font-medium text-primary">
+          <Row label={t("discounts")} accent>
             −<NormalPrice price={order.discountTotal} />
           </Row>
         )}
@@ -125,7 +126,7 @@ export function OrderTotals({ order, children }: { order: OrderView; children?: 
         </Row>
         <div className="flex items-baseline justify-between gap-4 border-t border-border pt-4">
           <dt className="text-[length:var(--text-base)] font-semibold">{t("total")}</dt>
-          <dd className="font-[family-name:var(--font-display-face)] text-[length:var(--text-xl)] font-semibold tabular-nums">
+          <dd className="text-end font-[family-name:var(--font-display-face)] text-[length:var(--text-xl)] font-semibold tabular-nums">
             <NormalPrice price={order.totalPrice} />
           </dd>
         </div>
@@ -135,11 +136,12 @@ export function OrderTotals({ order, children }: { order: OrderView; children?: 
   )
 }
 
-function Row({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
+/** A label and its figure. `accent` marks the one figure that is in the shopper's favour — the figure, not the label. */
+function Row({ label, children, accent }: { label: string; children: React.ReactNode; accent?: boolean }) {
   return (
-    <div className={`flex items-baseline justify-between gap-4 ${className ?? ""}`}>
-      <dt className={className ? undefined : "text-muted-foreground"}>{label}</dt>
-      <dd className="tabular-nums">{children}</dd>
+    <div className="flex items-baseline justify-between gap-4">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className={cn("text-end tabular-nums", accent && "font-medium text-primary")}>{children}</dd>
     </div>
   )
 }

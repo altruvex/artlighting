@@ -1,0 +1,12 @@
+{
+  "ui": {
+    "close": "Close",
+    "navigation": "Navigation",
+    "navigationDescription": "Main admin navigation.",
+    "toggleSidebar": "Toggle sidebar",
+    "more": "More",
+    "previousSlide": "Previous slide",
+    "nextSlide": "Next slide",
+    "breadcrumb": "Breadcrumb"
+  }
+}

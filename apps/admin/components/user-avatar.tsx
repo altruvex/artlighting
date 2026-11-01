@@ -1,8 +1,8 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar";
+import { cn } from "@repo/ui/lib/utils";
 
 const SIZE_CLASSES = {
-  sm: "size-6 text-[10px]",
+  sm: "size-6 text-2xs",
   md: "size-8 text-xs",
   lg: "size-9 text-xs",
 } as const;

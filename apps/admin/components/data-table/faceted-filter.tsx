@@ -1,7 +1,7 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@repo/ui/components/badge";
+import { Button } from "@repo/ui/components/button";
 import {
   Command,
   CommandEmpty,
@@ -10,10 +10,10 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
+} from "@repo/ui/components/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
+import { Separator } from "@repo/ui/components/separator";
+import { cn } from "@repo/ui/lib/utils";
 import type { Column } from "@tanstack/react-table";
 import type { AdminTableFeatures } from "./features";
 import { CheckIcon, PlusCircleIcon } from "lucide-react";
@@ -70,7 +70,7 @@ export function FacetFilterMenu({
           {selected.size > 0 && (
             <>
               <Separator orientation="vertical" className="mx-0.5 data-[orientation=vertical]:h-4" />
-              <Badge variant="secondary" className="rounded px-1 font-normal tabular-nums">
+              <Badge variant="secondary" className="rounded-sm px-1 font-normal tabular-nums">
                 {selected.size}
               </Badge>
             </>

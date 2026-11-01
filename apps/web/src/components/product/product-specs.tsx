@@ -43,17 +43,15 @@ export default function ProductSpecs({
   if (visible.length === 0) return null;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid gap-x-10 gap-y-8 md:grid-cols-2">
       {visible.map((group, index) => (
         <section
           key={group.name || index}
           aria-label={group.name || undefined}
           className={visible.length === 1 ? "md:col-span-2" : undefined}
         >
-          <div className="h-full rounded-2xl border border-border bg-card/50 p-5">
-            {group.name && (
-              <h3 className="mb-3 text-[length:var(--text-sm)] font-semibold text-primary">{group.name}</h3>
-            )}
+          <div className="h-full border-t border-foreground/70 pt-4">
+            {group.name && <h3 className="eyebrow mb-2">{group.name}</h3>}
             <dl className={visible.length === 1 ? "grid gap-x-10 md:grid-cols-2" : undefined}>
               {group.items.map((item) => (
                 <div
@@ -94,7 +92,7 @@ function SpecValue({ item }: { item: LocalizedSpecGroup["items"][number] }) {
     return (
       <ul className="flex flex-wrap gap-1.5" dir="auto">
         {item.parts.map((part, index) => (
-          <li key={`${index}-${part.text}`} className="rounded-md border border-border px-2 py-0.5 text-[length:var(--text-xs)] tabular-nums">
+          <li key={`${index}-${part.text}`} className="rounded-sm border border-border px-2 py-0.5 text-[length:var(--text-xs)] tabular-nums">
             {part.text}
           </li>
         ))}

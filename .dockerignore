@@ -22,3 +22,6 @@ dist
 # marketing assets) are never read by this build.
 apps/web
 apps/admin
+# …except the one storefront file the worker reads: the English catalog
+# messages the datasheet's generated description is worded from.
+!apps/web/messages/en/catalog.json

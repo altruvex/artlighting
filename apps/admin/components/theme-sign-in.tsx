@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Mail, Lock, Loader2, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@repo/ui/components/button";
+import { Input } from "@repo/ui/components/input";
+import { Label } from "@repo/ui/components/label";
 import { authClient } from "@/lib/auth-client";
 import { useTranslations } from "next-intl";
 
@@ -36,17 +36,18 @@ export function ThemedSignIn() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="glass-surface animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6 rounded-3xl p-8 shadow-2xl shadow-black/5 sm:p-10"
+      // The system's radius and elevation, like every other surface: the
+      // 3xl corners and 2xl shadow made the one card in the admin that did
+      // not belong to it. The entrance is a short settle, not a slide.
+      className="glass-surface animate-in fade-in slide-in-from-bottom-2 duration-(--dur-sheet) ease-(--ease-out) space-y-6 rounded-lg p-6 shadow-e3 sm:p-8"
     >
       <div className="flex flex-col items-center text-center">
-        <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/20">
-          <Image src="/logo-en.png" alt="" width={36} height={36} className="rounded-md" />
+        <div className="mb-5 flex size-12 items-center justify-center rounded-lg border bg-background">
+          <Image src="/logo-en.png" alt="" width={32} height={32} className="rounded-sm" />
         </div>
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary">
-          {t("brand")}
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold text-foreground">{t("title")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="eyebrow">{t("brand")}</p>
+        <h1 className="mt-2 text-[length:var(--text-xl)] text-foreground">{t("title")}</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground text-pretty">
           {t("subtitle")}
         </p>
       </div>
@@ -55,41 +56,41 @@ export function ThemedSignIn() {
         <div
           role="alert"
           aria-live="polite"
-          className="flex items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+          className="flex items-start gap-2 rounded-md border border-danger/25 bg-danger/10 px-3 py-2.5 text-sm text-danger"
         >
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <AlertCircle aria-hidden className="mt-0.5 size-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       <div className="space-y-4">
-        <div className="glow-ring-focus space-y-2 rounded-xl">
+        <div className="space-y-1.5">
           <Label htmlFor="email">{t("email")}</Label>
           <div className="relative">
-            <Mail className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Mail aria-hidden className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="email"
               type="email"
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-11 rounded-xl ps-10"
+              className="h-10 ps-9"
               required
             />
           </div>
         </div>
 
-        <div className="glow-ring-focus space-y-2 rounded-xl">
+        <div className="space-y-1.5">
           <Label htmlFor="password">{t("password")}</Label>
           <div className="relative">
-            <Lock className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Lock aria-hidden className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="password"
               type="password"
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-11 rounded-xl ps-10"
+              className="h-10 ps-9"
               required
             />
           </div>
@@ -98,12 +99,13 @@ export function ThemedSignIn() {
 
       <Button
         type="submit"
-        className="h-11 w-full rounded-xl text-base font-medium shadow-lg shadow-primary/20 transition-shadow hover:shadow-primary/30 disabled:opacity-70"
+        size="lg"
+        className="w-full"
         disabled={isLoading}
       >
         {isLoading ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 aria-hidden className="size-4 animate-spin" />
             {t("submitting")}
           </>
         ) : (
@@ -111,7 +113,7 @@ export function ThemedSignIn() {
         )}
       </Button>
 
-      <p className="text-center text-xs text-muted-foreground">
+      <p className="text-center text-xs text-muted-foreground text-pretty">
         {t("accessNote")}
       </p>
     </form>
@@ -125,5 +127,5 @@ export function ThemedSignIn() {
  */
 function safeNext(next: string | null): string {
   if (next && next.startsWith("/") && !next.startsWith("//")) return next;
-  return "/admin/dashboard";
+  return "/dashboard";
 }

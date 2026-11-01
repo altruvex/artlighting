@@ -1,12 +1,12 @@
 "use client"
 
 import { submitShippingAddress } from "@/actions/checkout"
-import { Container } from "@/components/container"
+import { CHECKOUT_GRID, CheckoutHeader } from "@/components/order/checkout-header"
 import CustomInput from "@/components/custom-input"
 import { OrderLines, OrderTotals } from "@/components/order/order-lines"
 import { orderErrorText } from "@/components/order/order-error"
-import { Button } from "@/components/ui/button"
-import { Form } from "@/components/ui/form"
+import { Button } from "@repo/ui/components/button"
+import { Form } from "@repo/ui/components/form"
 import { useRouter } from "@/i18n/navigation"
 import type { OrderView } from "@/lib/order-view"
 import { authFormConfirmingOrderSchema } from "@/lib/utils"
@@ -51,29 +51,18 @@ export default function Confirm({ order, prefill }: { order: OrderView; prefill:
     })
 
   return (
-    <div className="py-8 md:py-12">
-      <Container>
-        <header className="mb-8 space-y-2">
-          <h1 className="font-[family-name:var(--font-display-face)] text-[length:var(--text-3xl)] font-semibold">
-            {t("title")}
-          </h1>
-          <p className="text-muted-foreground">{t("subtitle")}</p>
-        </header>
-
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
-          <div className="space-y-8">
-            <OrderLines lines={order.lines} />
-
-            <section
-              aria-labelledby="shipping-heading"
-              className="rounded-2xl border border-border bg-card/50 p-5 sm:p-6"
-            >
-              <h2 id="shipping-heading" className="mb-6 font-semibold">
+    <>
+      <CheckoutHeader eyebrow={t("eyebrow")} title={t("title")} lede={<p>{t("subtitle")}</p>} />
+        <div className={CHECKOUT_GRID}>
+          <div className="space-y-12">
+            <section aria-labelledby="shipping-heading">
+              <h2 id="shipping-heading" className="eyebrow pb-3">
                 {t("shippingInfo.title")}
               </h2>
+              <div className="border-t border-border pt-6">
               <Form {...form}>
                 <form id="address-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-5" noValidate>
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-x-4 gap-y-5 md:grid-cols-2">
                     <CustomInput
                       control={form.control}
                       name="fullName"
@@ -99,7 +88,7 @@ export default function Confirm({ order, prefill }: { order: OrderView; prefill:
                     type="text"
                     required
                   />
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-x-4 gap-y-5 md:grid-cols-2">
                     <CustomInput
                       control={form.control}
                       name="city"
@@ -116,7 +105,7 @@ export default function Confirm({ order, prefill }: { order: OrderView; prefill:
                       type="text"
                     />
                   </div>
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-x-4 gap-y-5 md:grid-cols-2">
                     <CustomInput
                       control={form.control}
                       name="zipCode"
@@ -135,7 +124,9 @@ export default function Confirm({ order, prefill }: { order: OrderView; prefill:
                   </div>
                 </form>
               </Form>
+              </div>
             </section>
+            <OrderLines lines={order.lines} />
           </div>
 
           <OrderTotals order={order}>
@@ -154,7 +145,6 @@ export default function Confirm({ order, prefill }: { order: OrderView; prefill:
             </Button>
           </OrderTotals>
         </div>
-      </Container>
-    </div>
+    </>
   )
 }

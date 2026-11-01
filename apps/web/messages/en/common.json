@@ -1,0 +1,172 @@
+{
+    "not-found": {
+        "title": "This page is not here.",
+        "description": "The link may be out of date, or the page may have moved. Search the catalogue, or start from one of the pages below.",
+        "placeholder": "Search by product name or code",
+        "card-title": "Try one of these",
+        "home-page": "Home Page",
+        "all-products": "The catalogue",
+        "contact-us": "Contact the showroom",
+        "search": "Search"
+    },
+    "loading": {
+        "title": "Loading…",
+        "description": "This won't take long"
+    },
+    "search": {
+        "placeholder": "Search in products...",
+        "noResults": "No results found",
+        "showingResults": "Showing results for",
+        "searching": "Searching...",
+        "viewAll": "View All",
+        "submit": "Search"
+    },
+    "header": {
+        "about-us": "About Us",
+        "projects": "Projects",
+        "products": "Products",
+        "blog": "Blog",
+        "contact-us": "Contact Us",
+        "view-details": "View details",
+        "shop": "Shop",
+        "offers": "Offers",
+        "all-products": "All products",
+        "menu": "Menu",
+        "browse": "Browse by type",
+        "see-offers": "Everything discounted right now",
+        "models": "All models",
+        "account": "Account",
+        "home": "Art Lighting — home",
+        "logo": "Art Lighting",
+        "close": "Close menu"
+    },
+    "footer": {
+        "brandName": "Art Lighting",
+        "brandDescription": "Lighting design, supply and distribution in Egypt since 2010. Sole authorised agent for Balcom; authorised agent for Mister LED.",
+        "indoorLighting": "Indoor Lighting",
+        "outdoorLighting": "Outdoor Lighting",
+        "chandeliers": "Chandeliers",
+        "company": "Company",
+        "aboutUs": "About Us",
+        "contact": "Contact",
+        "faqs": "FAQs",
+        "privacyPolicy": "Privacy Policy",
+        "followUs": "Follow Us",
+        "theme": "Theme",
+        "copyright": "© {year} {brand}. All rights reserved.",
+        "shop": "Shop",
+        "allProducts": "All products",
+        "offers": "Offers",
+        "help": "Help",
+        "callUs": "Call us",
+        "whatsapp": "WhatsApp",
+        "projects": "Projects",
+        "blog": "News",
+        "themeLabel": "Change theme",
+        "themeLight": "Light",
+        "themeDark": "Dark",
+        "themeSystem": "System",
+        "solutions": "Solutions",
+        "resources": "Resources",
+        "profile": "Company profile (PDF)",
+        "directions": "Directions",
+        "sitemap": "Site map",
+        "legalName": "Art Lighting for Electrical Supplies",
+        "agency": "Sole authorised agent for Balcom in Egypt"
+    },
+    "cta": {
+        "title": "Illuminate Your World",
+        "description": "Explore our exquisite collection of lighting fixtures designed to transform any space. Find the ideal illumination for your home or business.",
+        "shopAllCollections": "Shop All Collections",
+        "getExpertAdvice": "Get Expert Advice",
+        "whatsappSupport": "24/7 WhatsApp Support",
+        "address": "49 El Shaheed Sayed Zakaria St, Sheraton Al Matar, El Nozha, Cairo",
+        "workingHours": "Saturday - Thursday, 9:30am - 5:30pm"
+    },
+    "toast": {
+        "signInRequired": "Please sign in first",
+        "addToCartSuccess": "{productName} has been successfully added to your cart",
+        "addToCartError": "Failed to add product to cart, please try again"
+    },
+    "assurance": {
+        "label": "Buying from Art Lighting",
+        "shipping": "Delivery in {days} working days",
+        "shippingShort": "{days}-day delivery",
+        "shippingDetail": "cash on delivery",
+        "returns": "{days}-day returns",
+        "returnsDetail": "defects replaced at our cost",
+        "certified": "Certified products",
+        "certifiedDetail": "approved by consultants"
+    },
+    "promo": {
+        "label": "Current offers",
+        "off": "{figure} off",
+        "withCode": "with code",
+        "shop": "Shop the offer",
+        "dismiss": "Hide offers",
+        "endsIn": "Ends in",
+        "dh": "{d}d {h}h",
+        "hm": "{h}h {m}m",
+        "on": {
+            "family": "on all {family}",
+            "families": "on all {families}",
+            "products": "on {count, plural, one{# product} other{# products}}",
+            "categories": "across {count, plural, one{# category} other{# categories}}",
+            "cart": "on your whole order",
+            "cartOver": "on orders over {amount}"
+        },
+        "family": {
+            "INDOOR": "indoor lighting",
+            "OUTDOOR": "outdoor lighting",
+            "CHANDELIER": "chandeliers"
+        }
+    },
+    "a11y": {
+        "skipToContent": "Skip to content",
+        "showPassword": "Show password",
+        "hidePassword": "Hide password"
+    },
+    "recent": {
+        "title": "Recently viewed",
+        "subtitle": "From your last visit",
+        "clear": "Clear history",
+        "cleared": "Viewing history cleared"
+    },
+    "closingCta": {
+        "eyebrow": "The showroom",
+        "title": "Not sure which light fits?",
+        "body": "Send us a photo of the room or its measurements on WhatsApp and the showroom will suggest the right fittings and how many — no obligation.",
+        "whatsapp": "Message us on WhatsApp",
+        "call": "Call the showroom",
+        "visit": "Visit the showroom",
+        "hours": "Showroom hours"
+    },
+    "nav": {
+        "home": "Home",
+        "breadcrumb": "Breadcrumb",
+        "products": "Products",
+        "applications": "Applications",
+        "services": "Services",
+        "projects": "Projects",
+        "guide": "Lighting guide",
+        "about": "About",
+        "contact": "Contact",
+        "offers": "Offers",
+        "allProducts": "All products",
+        "allApplications": "All applications",
+        "shopSection": "Shop",
+        "companySection": "Company",
+        "applicationsIntro": "Start from the space you are lighting.",
+        "seeAll": "See all"
+    },
+    "ui": {
+        "close": "Close",
+        "navigation": "Navigation",
+        "navigationDescription": "Main navigation.",
+        "toggleSidebar": "Toggle sidebar",
+        "more": "More",
+        "previousSlide": "Previous slide",
+        "nextSlide": "Next slide",
+        "breadcrumb": "Breadcrumb"
+    }
+}

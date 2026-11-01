@@ -1,7 +1,7 @@
 export { ColumnHeader } from "./column-header";
 export { DataTable, type DataTableFacet } from "./data-table";
 export { FacetedFilter, FacetFilterMenu, type FacetOption } from "./faceted-filter";
-export { adminTableFeatures, type AdminColumn, type AdminTableFeatures } from "./features";
+export { adminTableFeatures, type AdminColumn, type AdminColumnMeta, type AdminTableFeatures } from "./features";
 export { ServerDataTable, type ServerFacet } from "./server-data-table";
 export {
   DEFAULT_PAGE_SIZE,

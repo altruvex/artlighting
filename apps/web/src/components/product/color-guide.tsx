@@ -62,9 +62,9 @@ export default function ColorGuide({ colorTemperature }: { colorTemperature?: st
         </h3>
         <p className="text-[length:var(--text-sm)] text-muted-foreground">{tPdp("colorGuideSub")}</p>
       </div>
-      <ul className="grid gap-3">
+      <ul className="border-t border-border">
         {cards.map((card) => (
-          <li key={card.temp} className="flex gap-4 rounded-2xl border border-border bg-card/50 p-4">
+          <li key={card.temp} className="flex gap-4 border-b border-border py-5">
             <span aria-hidden className={`mt-1 size-8 shrink-0 rounded-full ring-1 ring-foreground/15 ${SWATCH[card.temp]}`} />
             <div className="min-w-0 space-y-1.5">
               <p className="flex flex-wrap items-baseline gap-x-2 font-semibold">

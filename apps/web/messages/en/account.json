@@ -1,0 +1,51 @@
+{
+    "auth-section": {
+        "account": "Account",
+        "signIn": "Sign In",
+        "signUp": "Sign Up",
+        "helpSupport": "Help & Support",
+        "dashboard": "Dashboard",
+        "loading": "Loading...",
+        "userMenu": "User menu"
+    },
+    "auth": {
+        "welcomeBack": "Welcome back",
+        "signInTitle": "Sign in",
+        "signInSubtitle": "Sign in to track orders and manage your account",
+        "joinUs": "Join us",
+        "signUpTitle": "Create your account",
+        "signUpSubtitle": "Join Art Lighting",
+        "name": "Name",
+        "email": "Email",
+        "password": "Password",
+        "signIn": "Sign in",
+        "signingIn": "Signing in…",
+        "signUp": "Sign up",
+        "creatingAccount": "Creating account…",
+        "noAccount": "Don't have an account?",
+        "haveAccount": "Already have an account?",
+        "backHome": "Back to home",
+        "signOut": "Sign out",
+        "panelSignInTitle": "Your Art Lighting account",
+        "panelSignInBody": "Track your orders and check out faster.",
+        "panelSignUpTitle": "Create your account",
+        "panelSignUpBody": "Order online, track your orders and save your details for next time.",
+        "imageAlt": "Lighting by Art Lighting",
+        "loading": "Loading...",
+        "errors": {
+            "invalidCredentials": "That email and password do not match",
+            "userExists": "An account with this email already exists",
+            "weakPassword": "That password is too short — use at least 8 characters",
+            "signInFailed": "We could not sign you in. Please try again",
+            "signUpFailed": "We could not create your account. Please try again"
+        }
+    },
+    "login": {
+        "loginRequired": "Sign-in required",
+        "loginDescription": "To continue with your order, please sign in to your account.",
+        "loginNote": "Once you sign in you'll come straight back to this page, with your choices saved.",
+        "proceedToLogin": "Sign in",
+        "signUp": "Sign up",
+        "close": "Close"
+    }
+}

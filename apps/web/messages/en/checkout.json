@@ -1,0 +1,301 @@
+{
+    "preview": {
+        "title": "Review your order",
+        "loadingTitle": "Loading your order...",
+        "loadingSubtitle": "This won't take long.",
+        "errorTitle": "Error loading product",
+        "errorSubtitle": "There was an error fetching the product details.",
+        "retryButton": "Retry",
+        "refreshButton": "Refresh page",
+        "noImagesAvailable": "No images available",
+        "inStock": "In stock and ready to ship",
+        "pricePerItem": "Price per item",
+        "quantity": "Quantity",
+        "discountAmount": "Discount",
+        "priceAfterDiscount": "Price after Discount",
+        "totalPrice": "Total",
+        "confirmingOrder": "Confirming...",
+        "confirmOrder": "Continue to delivery",
+        "authError": "Please log in to continue with your order.",
+        "generalError": "There was an error creating your order. Please try again.",
+        "waitAuth": "Please wait while we verify your authentication status.",
+        "configMissing": "Configuration data is missing. Please refresh the page.",
+        "eyebrow": "Step 1 of 3",
+        "lede": "Check the product and the options you chose. Delivery details come next.",
+        "choices": "Your choices",
+        "choiceColor": "Colour temperature",
+        "choiceIp": "Protection rating",
+        "figures": "Key figures",
+        "summary": "Price",
+        "deliveryNote": "Delivery is added at the next step: a flat EGP 69 per order in Cairo.",
+        "spec": {
+            "luminousFlux": "Luminous flux",
+            "colorTemperature": "Colour temperature",
+            "beamAngle": "Beam angle",
+            "cri": "CRI",
+            "mainMaterial": "Material",
+            "lifeTime": "Lifetime"
+        }
+    },
+    "confirm": {
+        "title": "Where should we deliver?",
+        "subtitle": "The showroom may call this number to confirm the order before it is sent.",
+        "orderSummary": {
+            "title": "Order Summary",
+            "subtotal": "Subtotal",
+            "item": "item",
+            "items": "items",
+            "discount": "Discount",
+            "shipping": "Shipping",
+            "total": "Total",
+            "youSave": "You save",
+            "off": "off",
+            "subtotalAfterDiscount": "Subtotal after discount"
+        },
+        "productDetails": {
+            "pricePerItem": "Price per item",
+            "quantity": "Quantity"
+        },
+        "shippingInfo": {
+            "title": "Shipping information",
+            "fullName": {
+                "label": "Full name",
+                "placeholder": "Enter your full name"
+            },
+            "phoneNumber": {
+                "label": "Phone number",
+                "placeholder": "Enter your phone number"
+            },
+            "address": {
+                "label": "Address",
+                "placeholder": "Enter your street address"
+            },
+            "city": {
+                "label": "City",
+                "placeholder": "Enter your city"
+            },
+            "state": {
+                "label": "State / province",
+                "placeholder": "Enter your state"
+            },
+            "zipCode": {
+                "label": "Postal code",
+                "placeholder": "Enter postal code (optional)"
+            },
+            "country": {
+                "label": "Country",
+                "placeholder": "Enter your country"
+            }
+        },
+        "buttons": {
+            "tryAgain": "Try Again",
+            "goHome": "Go Home",
+            "returnHome": "Return Home",
+            "processingOrder": "Processing order…",
+            "completeOrder": "Complete order"
+        },
+        "errors": {
+            "unableToLoad": "Unable to load order",
+            "orderNotFound": "Order not found",
+            "somethingWentWrong": "Something went wrong while loading your order details.",
+            "orderNotFoundDesc": "We couldn't find the order you're looking for.",
+            "authenticationError": "Authentication Error",
+            "authorizationFailed": "Authorization failed for this order.",
+            "dataError": "Data Error",
+            "orderInfoNotAvailable": "Order information is not available. Please refresh the page.",
+            "orderProcessingFailed": "We couldn't process your order",
+            "unexpectedError": "An unexpected error occurred during order processing.",
+            "invalidResponse": "Invalid response from server"
+        },
+        "success": {
+            "orderProcessed": "Your order has been processed. Redirecting to completion page..."
+        },
+        "eyebrow": "Step 2 of 3"
+    },
+    "complete": {
+        "title": "Review and place your order",
+        "description": "Check the products, the address and the total. Nothing is charged now — you pay in cash when the order arrives.",
+        "orderProcessing": "Order processing",
+        "readyForShipping": "Ready for shipping",
+        "orderComplete": "Order complete",
+        "orderedProducts": "Ordered Products",
+        "product": "Product",
+        "qty": "Qty",
+        "colorTemp": "Color Temp",
+        "wattage": "Wattage",
+        "lamp": "Lamp",
+        "ipRating": "IP Rating",
+        "discount": "Discount",
+        "price": "Price",
+        "total": "Total",
+        "modernDesign": "Modern, minimalist design",
+        "shippingInformation": "Shipping information",
+        "shippingAddress": "Shipping address",
+        "estimatedDeliveryDate": "Estimated delivery:",
+        "customerDetails": "Customer Details",
+        "name": "Name",
+        "phoneNumber": "Phone Number",
+        "billingAddress": "Billing Address",
+        "deliveryDetails": "Delivery details",
+        "cairoDelivery": "Your order will be delivered to Cairo",
+        "outsideCairoShipping": "Shipping to locations outside Cairo",
+        "shippingCost": "Shipping Cost",
+        "fixedRateForCairo": "Fixed rate for Cairo",
+        "toBeDetermined": "To be determined",
+        "willContactForShippingPrice": "We will contact you with the shipping price.",
+        "estimatedDeliveryTime": "Estimated Delivery Time",
+        "businessDays": "3-5 business days",
+        "striveForQuickDelivery": "We strive to deliver your order as quickly as possible.",
+        "deliveryTimeWillBeProvided": "Delivery time will be provided when we contact you with the shipping price.",
+        "whyChooseOurProducts": "Why Choose Our Products?",
+        "energyEfficient": "Energy-Efficient",
+        "energyEfficientDesc": "Our lighting products are designed to be energy-efficient, helping you save on your utility bills while reducing your carbon footprint.",
+        "adjustableBrightness": "Adjustable Brightness",
+        "adjustableBrightnessDesc": "Many of our lighting options feature adjustable brightness settings, allowing you to create the perfect ambiance for any occasion.",
+        "durableConstruction": "Durable Construction",
+        "durableConstructionDesc": "Our lighting products are built to last, with high-quality materials and construction that ensure long-lasting performance.",
+        "completeYourOrder": "Place order",
+        "LoadingCompleteYourOrder": "Completing your order ...",
+        "loadingOrderDetails": "Loading order details...",
+        "errorLoadingOrderDetails": "Error loading order details",
+        "noOrderFound": "No order found",
+        "noShippingAddressAvailable": "No shipping address available",
+        "noBillingAddressAvailable": "No billing address available",
+        "unknownLamp": "Unknown Lamp",
+        "na": "N/A",
+        "off": "OFF",
+        "complete-notifications": {
+            "success": "Order completed successfully. Redirecting to thank you page",
+            "error": {
+                "title": "Order completion issue",
+                "description": "There was an issue completing your order. Please try again or contact support."
+            },
+            "error-unknown": "There was an error completing your order. Please try again."
+        },
+        "eyebrow": "Step 3 of 3",
+        "payment": "Payment: cash on delivery."
+    },
+    "thankYou": {
+        "pageTitle": "Thank you — your order is placed.",
+        "orderReceived": "We have received it and the showroom is preparing it. A confirmation is on its way to your email.",
+        "orderSummary": "Order Summary",
+        "orderNumber": "Order number",
+        "shippingAddress": "Delivering to",
+        "estimatedDeliveryDate": "Estimated delivery",
+        "shippingFee": "Shipping Fee:",
+        "item": "Item",
+        "qty": "Qty",
+        "colorTemp": "Color Temp",
+        "wattage": "Wattage",
+        "lamp": "Lamp",
+        "ipRating": "IP Rating",
+        "subtotal": "Subtotal Before Discount:",
+        "discount": "Discount:",
+        "afterDiscount": "After Discount:",
+        "price": "Item Price:",
+        "total": "Total:",
+        "continueShopping": "Continue shopping",
+        "spotlight": "spotlight with Maximum wattage of",
+        "chandelier": "chandelier with",
+        "unknownLamp": "Unknown Lamp",
+        "loadingOrderDetails": "Loading order details...",
+        "errorLoadingOrderDetails": "Error loading order details",
+        "noOrderFound": "No order found.",
+        "checkOrderId": "Please check your order ID.",
+        "orderNotCompleted": "This order has not been completed.",
+        "completeOrderFirst": "Please complete your order first.",
+        "outsideCairoShipping": "We will inform you of the shipping cost as your location is outside Cairo, and your order will be completed once the shipping fee is confirmed",
+        "eyebrow": "Order confirmed",
+        "payment": "Payment",
+        "cod": "Cash on delivery",
+        "nextTitle": "What happens next",
+        "next1": "The showroom may call you to confirm the order and the delivery address.",
+        "next2": "Orders are delivered within four working days. For addresses outside Cairo, we confirm the delivery cost with you before sending.",
+        "next3": "You pay in cash when the order arrives.",
+        "emailNote": "Keep the confirmation email — it has your order number and everything in the order.",
+        "questions": "Questions about this order? Call"
+    },
+    "cart": {
+        "title": "Shopping cart",
+        "items": "items",
+        "item": "item",
+        "loading": "Loading your cart…",
+        "emptyCart": {
+            "title": "Your cart is empty",
+            "description": "Add a product to your cart to get started.",
+            "continueShopping": "Continue shopping"
+        },
+        "signInRequired": {
+            "title": "Sign in to view your cart",
+            "description": "Sign in to see your cart and continue shopping.",
+            "signUp": "Sign up"
+        },
+        "actions": {
+            "viewDetails": "View details",
+            "orderNow": "Order now",
+            "remove": "Remove",
+            "openCart": "Open cart",
+            "increase": "Increase quantity",
+            "decrease": "Decrease quantity"
+        },
+        "messages": {
+            "quantityUpdated": "Quantity updated",
+            "itemRemoved": "Removed from your cart.",
+            "failedToLoad": "Failed to load cart items",
+            "errorLoading": "Error loading cart",
+            "failedToUpdate": "Failed to update quantity",
+            "failedToRemove": "Couldn't remove the item. Please try again."
+        },
+        "discount": "discount",
+        "viewProduct": "View product",
+        "orderNow": "Order now",
+        "count": "{count, plural, one {{formatted} item} other {{formatted} items}}",
+        "subtotal": "Subtotal",
+        "saved": "You save",
+        "perItemNote": "Each product is ordered on its own — use “Order now” on the one you want.",
+        "continueShopping": "Keep shopping"
+    },
+    "steps": {
+        "preview": {
+            "name": "Your order",
+            "description": "The product and your choices"
+        },
+        "confirm": {
+            "name": "Delivery",
+            "description": "Where to deliver it"
+        },
+        "complete": {
+            "name": "Review and place",
+            "description": "Check everything, then place the order"
+        },
+        "label": "Order steps",
+        "current": "Current step",
+        "done": "Done"
+    },
+    "order": {
+        "products": "Products",
+        "quantity": "Quantity",
+        "each": "each",
+        "lineOf": "{quantity} × {unit}",
+        "bulb": "Bulb",
+        "protection": "Protection",
+        "discount": "off",
+        "summary": "Order summary",
+        "subtotal": "Subtotal",
+        "discounts": "Discounts",
+        "shipping": "Shipping",
+        "total": "Total",
+        "count": "{count, plural, one {{formatted} product} other {{formatted} products}}",
+        "checkout": "Checkout",
+        "checkingOut": "Preparing your order...",
+        "errors": {
+            "signed_out": "Sign in to place your order",
+            "empty": "Your cart is empty",
+            "unavailable": "A product in your cart is no longer available — remove it and try again",
+            "not_found": "We could not find that order",
+            "invalid": "Please check the details you entered",
+            "failed": "Something went wrong. Please try again",
+            "out_of_stock": "There isn't enough {product} — {available} left right now"
+        }
+    }
+}

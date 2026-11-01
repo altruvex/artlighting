@@ -10,7 +10,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar";
+} from "@repo/ui/components/sidebar";
 import { activeNavItem, NAV_GROUPS } from "@/constant";
 import { can } from "@/lib/permissions";
 import type { CurrentAdmin } from "@/lib/auth";
@@ -32,8 +32,10 @@ export function AppSidebar({ admin }: { admin: Pick<CurrentAdmin, "name" | "emai
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild tooltip={tShell("brand")}>
-              <Link href="/admin/dashboard">
-                <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-sidebar-primary/15 ring-1 ring-sidebar-primary/30">
+              <Link href="/dashboard">
+                {/* A neutral frame: the logo is already gold, and the sidebar's
+                    gold belongs to the active item. */}
+                <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-sidebar-border bg-background">
                   <Image src="/logo-en.png" alt="" width={24} height={24} className="rounded-sm" />
                 </span>
                 <span className="grid leading-tight">
@@ -48,7 +50,7 @@ export function AppSidebar({ admin }: { admin: Pick<CurrentAdmin, "name" | "emai
 
       <SidebarContent>
         {NAV_GROUPS.map((group) => {
-          const items = group.items.filter((item) => !item.adminOnly || can(admin.role, "staff:manage"));
+          const items = group.items.filter((item) => !item.permission || can(admin.role, item.permission));
           if (items.length === 0) return null;
           return (
             <SidebarGroup key={group.key}>

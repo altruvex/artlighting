@@ -1,5 +1,3 @@
-"use client"
-
 import { money, type MoneyInput } from "@repo/money"
 import type { ProductFamily } from "@repo/catalog/families";
 import { formatNumberWithConversion } from "@/lib/numbers"

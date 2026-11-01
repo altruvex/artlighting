@@ -1,47 +1,28 @@
-import Breadcrumb from "@/components/breadcrumb/custom-breadcrumb";
+import { SECTION_FRAME } from "@/components/section-heading";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 
+/**
+ * The notice under the page header: the brand's mark and one line on what
+ * is coming. It was a centred card with its own title, a gold heading and
+ * type sizes of its own; the page's title and lede now belong to the
+ * PageHeader every company page opens with, and this is set beside a rule
+ * like the rest of them.
+ */
 export default function JetraArriving() {
   const t = useTranslations("jetra");
 
   return (
-    <>
-      <Breadcrumb />
-      <section className="w-full py-8 md:py-12 lg:py-16">
-        <div className="container px-4 md:px-6 mx-auto max-w-6xl">
-          <div className="flex flex-col items-center space-y-4 text-center">
-            <div className="space-y-2">
-              <h2 className="text-3xl font-light tracking-tight sm:text-4xl md:text-5xl text-primary">
-                {t("title")}
-              </h2>
-              <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                {t("subtitle")}
-              </p>
-            </div>
-            <div className="w-full max-w-sm">
-              <div className="rounded-lg border border-border bg-card p-8 shadow-sm">
-                <div className="flex justify-center">
-                  <div className="w-32 h-32 rounded-full bg-muted flex items-center justify-center">
-                    <Image
-                      width={500}
-                      height={500}
-                      src="/brand/jetra.png"
-                      alt={t("brandAlt")}
-                    />
-                  </div>
-                </div>
-                <h3 className="mt-6 text-xl font-medium text-destructive">
-                  {t("comingSoon")}
-                </h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {t("description")}
-                </p>
-              </div>
-            </div>
-          </div>
+    <section aria-label={t("comingSoon")} className={`${SECTION_FRAME} pb-20 lg:pb-28`}>
+      <div className="flex max-w-2xl items-center gap-6 border-b border-border pb-10 sm:gap-8">
+        <div className="relative size-24 shrink-0 sm:size-28">
+          {/* The file was /brand/jetra.png, which does not exist; the
+              brand folder holds a light and a dark version. */}
+          <Image fill sizes="112px" src="/brand/jetra-black.png" alt={t("brandAlt")} className="object-contain dark:hidden" />
+          <Image fill sizes="112px" src="/brand/jetra-white.png" alt="" className="hidden object-contain dark:block" />
         </div>
-      </section>
-    </>
+        <p className="border-s border-border ps-6 text-pretty text-muted-foreground sm:ps-8">{t("description")}</p>
+      </div>
+    </section>
   );
 }

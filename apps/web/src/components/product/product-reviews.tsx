@@ -1,19 +1,22 @@
 "use client";
 
 import { reviewsPage, submitReview } from "@/actions/reviews";
+import type { ProductPersonalState } from "@/lib/product-personal.server";
 import type { ReviewsSection, ReviewView } from "@/lib/reviews.server";
+import { useAuth } from "@/lib/auth-hooks";
 import { formatDate } from "@/lib/date";
 import { formatNumber } from "@/lib/numbers";
 import { cn } from "@/lib/utils";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@repo/ui/components/textarea";
+import { Button } from "@repo/ui/components/button";
+import { Input } from "@repo/ui/components/input";
 import { Link } from "@/i18n/navigation";
 import { BadgeCheck, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { ratingLabel, StarRating, StarRatingInput } from "./star-rating";
+import { ratingLabel, StarRating } from "./star-rating";
+import { StarRatingInput } from "./star-rating-input";
 
 const STARS = [5, 4, 3, 2, 1] as const;
 
@@ -37,15 +40,20 @@ function summarize(distribution: ReviewsSection["distribution"]) {
 export function ProductReviews({
   productId,
   locale,
-  signedIn,
   initial,
+  personal,
 }: {
   productId: string;
   locale: string;
-  signedIn: boolean;
+  /** Everyone's view: the list is prerendered, so no row is marked as the viewer's. */
   initial: ReviewsSection;
+  /** Fetched after the page loads: the viewer's own review and which row is theirs. */
+  personal: ProductPersonalState | null;
 }) {
   const t = useTranslations("reviews");
+  // From the session cookie, not a prop: the page around this is the same
+  // prerendered HTML for every visitor.
+  const { isSignedIn: signedIn } = useAuth();
   const [reviews, setReviews] = useState<ReviewView[]>(initial.reviews);
   const [hasMore, setHasMore] = useState(initial.hasMore);
   const [distribution, setDistribution] = useState(initial.distribution);
@@ -56,6 +64,25 @@ export function ProductReviews({
   const [title, setTitle] = useState(initial.mine?.title ?? "");
   const [body, setBody] = useState(initial.mine?.body ?? "");
   const [isSubmitting, startSubmit] = useTransition();
+
+  const adoptViewer = useCallback(
+    ({ mine: own, ownReviewId }: ProductPersonalState["review"]) => {
+      if (!own) return;
+      setMine(own);
+      setRating(own.rating);
+      setTitle(own.title ?? "");
+      setBody(own.body ?? "");
+      if (ownReviewId) {
+        const you = locale === "ar" ? "أنت" : "You";
+        setReviews((rows) => rows.map((row) => (row.id === ownReviewId ? { ...row, isOwn: true, authorName: you } : row)));
+      }
+    },
+    [locale],
+  );
+
+  useEffect(() => {
+    if (personal) adoptViewer(personal.review);
+  }, [personal, adoptViewer]);
   const [isLoadingMore, startLoadMore] = useTransition();
 
   const { total, average } = summarize(distribution);
@@ -147,7 +174,7 @@ export function ProductReviews({
         {!signedIn ? (
           <Link
             href="/sign-in"
-            className="inline-block text-[length:var(--text-sm)] font-medium text-primary underline-offset-4 hover:underline"
+            className="inline-flex min-h-10 items-center text-[length:var(--text-sm)] font-medium text-primary underline-offset-4 hover:underline"
           >
             {t("signInToReview")}
           </Link>
@@ -156,7 +183,7 @@ export function ProductReviews({
             {mine ? t("editReview") : t("writeReview")}
           </Button>
         ) : (
-          <div className="space-y-4 rounded-2xl border border-border bg-card/50 p-5">
+          <div className="space-y-4 rounded-md border border-border p-5">
             <div className="space-y-2">
               <p className="text-[length:var(--text-sm)] font-medium">{t("yourRating")}</p>
               <StarRatingInput value={rating} onChange={setRating} label={t("yourRating")} />
@@ -222,7 +249,7 @@ export function ProductReviews({
                       {t("verifiedPurchase")}
                     </span>
                   )}
-                  <span className="text-[length:var(--text-xs)] text-muted-foreground">
+                  <span className="text-[length:var(--text-xs)] tabular-nums text-muted-foreground">
                     {formatDate(new Date(review.createdAt), locale)}
                   </span>
                 </div>

@@ -30,6 +30,9 @@ const DEV_EMAIL_DOMAIN = "seed.dev.local";
 /** Dev-only password for the seeded customers. Never used anywhere real. */
 const DEV_CUSTOMER_PASSWORD = "dev-password-12345";
 
+/** Dev-only admin-app account (role MANAGER); shares the password above. */
+const DEV_ADMIN_EMAIL = `manager@${DEV_EMAIL_DOMAIN}`;
+
 const CUSTOMERS = [
   {
     email: `mona.farouk@${DEV_EMAIL_DOMAIN}`,
@@ -225,6 +228,28 @@ async function main() {
       index += 1;
     }
   }
+
+  // A MANAGER account for signing in to the admin app on dev. Same Better
+  // Auth shape as apps/admin/lib/auth-server.ts (admin tables, not users).
+  const adminAuth = betterAuth({
+    database: prismaAdapter(prisma, { provider: "postgresql" }),
+    secret: process.env.BETTER_AUTH_SECRET ?? "dev-seed-secret-dev-seed-secret-32",
+    emailAndPassword: { enabled: true },
+    user: {
+      modelName: "admin",
+      additionalFields: { role: { type: "string", required: false, defaultValue: "SALES" } },
+    },
+    session: { modelName: "adminSession", fields: { userId: "adminId" } },
+    account: { modelName: "adminAccount", fields: { userId: "adminId" } },
+    verification: { modelName: "adminVerification" },
+  });
+  if (!(await prisma.admin.findUnique({ where: { email: DEV_ADMIN_EMAIL } }))) {
+    await adminAuth.api.signUpEmail({
+      body: { email: DEV_ADMIN_EMAIL, password: DEV_CUSTOMER_PASSWORD, name: "Dev Manager" },
+    });
+  }
+  await prisma.admin.update({ where: { email: DEV_ADMIN_EMAIL }, data: { role: "MANAGER" } });
+  console.log(`Admin: <${DEV_ADMIN_EMAIL}> (password: ${DEV_CUSTOMER_PASSWORD})`);
 
   const byStatus = await prisma.order.groupBy({ by: ["status"], _count: { _all: true } });
   console.log(`Created ${created} orders:`);

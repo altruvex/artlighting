@@ -1,14 +1,16 @@
 import { auth } from "@/lib/auth-server"
-import { familySlug, productDiscountRates } from "@repo/catalog";
+import { productDiscountRates } from "@repo/catalog";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { localizeSpecGroups, specGroupSelect, specsByKey } from "@/lib/spec-groups";
 import { serializeRate } from "@repo/money";
 import { serializeRowMoney, toViewConfiguration } from "@/lib/serialize-money";
 import { readGuestToken } from "@/lib/guest-token"
-import { getLocaleFromParams, getServerI18n } from "@/lib/i18n/utils"
+import { editableConfigurationId } from "@/lib/configuration-access.server"
+import { getLocaleFromParams } from "@/lib/i18n/utils"
 import { PagePropsTypes } from "@/types"
 import { prisma } from "@repo/database"
 import type { Metadata } from "next"
+import { constructMetadata } from "@/lib/metadata"
 import { notFound, unstable_rethrow } from "next/navigation"
 import Preview, { type ProductWithSpecs } from "./preview"
 
@@ -18,15 +20,6 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
   const { ProductId } = resolvedParams
   const resolvedSearchParams = await searchParams
   const id = resolvedSearchParams?.id
-
-  console.log("Preview page - Resolved parameters:", {
-    locale,
-    ProductId,
-    searchParamsId: id,
-    timestamp: new Date().toISOString()
-  })
-
-  const { service } = await getServerI18n(locale)
 
   if (!ProductId && (!id || typeof id !== "string")) {
     console.error("Missing required parameters:", { ProductId, id })
@@ -38,7 +31,6 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
 
   try {
     if (ProductId) {
-      console.log(`Fetching configuration for ProductId: ${ProductId}`)
       const { userId } = await auth()
       const guestToken = await readGuestToken()
       configuration = await prisma.configuration.findFirst({
@@ -48,10 +40,7 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
         orderBy: { updatedAt: 'desc' }
       })
 
-      if (configuration) {
-        console.log(`Found configuration: ${configuration.id}`)
-      } else {
-        console.log(`No configuration found for ProductId: ${ProductId}, creating default`)
+      if (!configuration) {
         const productExists = await prisma.product.findUnique({
           where: { productId: ProductId },
           // The engine reads these to decide what applies.
@@ -74,7 +63,6 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
               totalPrice: productExists.price,
             },
           })
-          console.log(`Created default configuration: ${configuration.id}`)
         }
       }
       product = await prisma.product.findUnique({
@@ -101,21 +89,16 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
           specGroups: specGroupSelect(locale),
         }
       })
-      console.log("Product fetch result:", {
-        found: !!product,
-        hasTranslations: product?.translations?.length ?? 0,
-        specGroups: product?.specGroups?.length ?? 0,
-      })
     }
     if (!configuration && id && typeof id === "string") {
-      console.log(`Fallback: Fetching configuration by ID: ${id}`)
-
-      configuration = await prisma.configuration.findUnique({
-        where: { id },
-      })
+      // Only the visitor's own configuration: a cuid in the URL is not a
+      // credential, and someone else's row answers like a missing one.
+      const ownedId = await editableConfigurationId(id)
+      configuration = ownedId
+        ? await prisma.configuration.findUnique({ where: { id: ownedId } })
+        : null
 
       if (configuration) {
-        console.log(`Found configuration by ID: ${configuration.id}, productId: ${configuration.productId}`)
 
         product = await prisma.product.findUnique({
           where: { productId: configuration.productId },
@@ -153,10 +136,15 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
       console.error("Product not found after all attempts")
       return notFound()
     }
+    // `cost` is what the product costs the company — it never leaves the
+    // admin — and it, the "was" price and the rating are Decimals a Client
+    // Component cannot receive. The whole row used to be spread into the
+    // page, cost included.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { cost: _cost, compareAtPrice: _compareAtPrice, ratingAverage: _ratingAverage, specGroups, ...productRow } = product
     // The structured specs, by key — the legacy ProductSpecification
-    // columns are no longer written. Kept out of the spread below: their
-    // measurements are Decimals, which a Client Component cannot receive.
-    const { specGroups, ...productRow } = product
+    // columns are no longer written. Read here rather than spread: their
+    // measurements are Decimals too.
     const specs = specsByKey(localizeSpecGroups(specGroups, locale))
 
     const localizedProduct: ProductWithSpecs = {
@@ -189,12 +177,6 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
       chandelierLightingType: product.chandelierLightingType ?? undefined,
     }
 
-    console.log("Final data for preview:", {
-      configurationId: configuration.id,
-      productId: localizedProduct.productId,
-      productName: localizedProduct.productName,
-      locale
-    })
 
     return (
       <Preview
@@ -218,99 +200,22 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
   }
 }
 
+/**
+ * A step in checkout, not a page to be found: it is noindexed, and titled
+ * plainly. It used to generate an "Energy Efficient LED Spotlight" title
+ * for every product, whatever the product was.
+ */
 export const generateMetadata = async ({ params }: PagePropsTypes): Promise<Metadata> => {
-  const resolvedParams = await params
-  const locale = getLocaleFromParams(resolvedParams)
-  const { ProductId } = resolvedParams
-
-  try {
-    const product = await prisma.product.findFirst({
-      where: { productId: ProductId },
-      include: {
-        translations: {
-          where: { language: locale }
-        },
-        specGroups: specGroupSelect(locale),
-        images: productImageSelect()
-      }
-    })
-
-    if (!product) {
-      const fallbackTitles = {
-        en: "Unknown Product",
-        ar: "منتج غير معروف"
-      } as const
-
-      const fallbackDescriptions = {
-        en: "Product not found",
-        ar: "المنتج غير موجود"
-      } as const
-
-      return {
-        title: fallbackTitles[locale as keyof typeof fallbackTitles] || fallbackTitles.en,
-        description: fallbackDescriptions[locale as keyof typeof fallbackDescriptions] || fallbackDescriptions.en,
-      }
-    }
-
-    const localizedName = product.translations?.[0]?.name || product.productName
-    const specs = specsByKey(localizeSpecGroups(product.specGroups, locale))
-
-    // The enum is a value, not a label: if a family ever loses its copy below,
-    // the slug is what shows, never "INDOOR".
-    let titleToSectionType: string = familySlug(product.sectionType)
-    let typeOfSpotlight = ""
-
-    const sectionTypeTranslations = {
-      INDOOR: {
-        en: { title: "Indoor lighting", description: "Ideal for homes and offices" },
-        ar: { title: "الإضاءة الداخلية", description: "مثالية للمنازل والمكاتب" }
-      },
-      OUTDOOR: {
-        en: { title: "Outdoor lighting", description: "Create the perfect ambiance for outdoor entertaining" },
-        ar: { title: "الإضاءة الخارجية", description: "اخلق الأجواء المثالية للترفيه في الهواء الطلق" }
-      },
-      CHANDELIER: {
-        en: { title: "Chandelier", description: "A chandelier is a branched, decorative lighting fixture designed to be hung from the ceiling." },
-        ar: { title: "ثريا", description: "الثريا هي تركيبة إضاءة زخرفية متفرعة مصممة للتعليق من السقف." }
-      }
-    } as const
-
-    const sectionData = sectionTypeTranslations[product.sectionType]
-    if (sectionData) {
-      const localeData = sectionData[locale as keyof typeof sectionData] || sectionData.en
-      titleToSectionType = localeData.title
-      typeOfSpotlight = localeData.description
-    }
-
-    const titleTemplates = {
-      en: `Preview ${localizedName} LED Spotlight | ${product.brand} | Energy Efficient ${titleToSectionType}`,
-      ar: `معاينة ${localizedName} كشاف LED | ${product.brand} | ${titleToSectionType} موفر للطاقة`
-    } as const
-
-    const descriptionTemplates = {
-      en: `Preview of ${localizedName} With a high CRI ${specs.cri || 'N/A'}, and high beam angle of ${specs.beamAngle || 'N/A'} this spotlight provides bright, ${typeOfSpotlight}`,
-      ar: `معاينة ${localizedName} بمؤشر إضاءة عالي ${specs.cri || 'غير متاح'}، وزاوية شعاع عالية ${specs.beamAngle || 'غير متاح'} يوفر هذا الكشاف إضاءة ساطعة، ${typeOfSpotlight}`
-    } as const
-    const imageUrl = imageUrls(product)[0]
-
-    return {
-      title: titleTemplates[locale as keyof typeof titleTemplates] || titleTemplates.en,
-      description: descriptionTemplates[locale as keyof typeof descriptionTemplates] || descriptionTemplates.en,
-      openGraph: {
-        images: [imageUrl]
-      },
-      twitter: {
-        card: "summary_large_image",
-        images: [imageUrl]
-      }
-    }
-  } catch (error) {
-    console.error("Error generating metadata:", error)
-    return {
-      title: "Preview Product",
-      description: "Product preview page",
-    }
-  }
+  const locale = getLocaleFromParams(await params)
+  return constructMetadata({
+    locale,
+    title: locale === "ar" ? "مراجعة الطلب | آرت لايتنج" : "Review your order | Art Lighting",
+    noIndex: true,
+  })
 }
+
+// The visitor's own saved configuration — nothing is shared between visitors
+// to prefetch, so this page blocks instead.
+export const instant = false
 
 export default Page

@@ -2,6 +2,8 @@ import "server-only";
 
 import { stageFor, type Db } from "@repo/catalog";
 import { prisma } from "@repo/database";
+import { cacheLife, cacheTag } from "next/cache";
+import { CATALOGUE_TAG, reviewsTag } from "@/lib/cache.server";
 
 /**
  * Product reviews: reading them, and keeping a product's own
@@ -43,11 +45,38 @@ function displayName(name: string, locale: string): string {
 
 /** One page of a product's reviews, newest first. `productCuid` is Product.id — Review.productId's own foreign key, not the human-readable product code. */
 async function reviewsForProduct(
+  productCode: string,
   productCuid: string,
   locale: string,
   viewerId: string | null,
   page = 1,
 ): Promise<{ reviews: ReviewView[]; hasMore: boolean }> {
+  const rows = await reviewRows(productCode, productCuid, page);
+
+  const hasMore = rows.length > REVIEWS_PAGE_SIZE;
+  return {
+    hasMore,
+    reviews: rows.slice(0, REVIEWS_PAGE_SIZE).map((row) => ({
+      id: row.id,
+      rating: row.rating,
+      title: row.title,
+      body: row.body,
+      verifiedPurchase: row.verifiedPurchase,
+      createdAt: row.createdAt,
+      isOwn: row.userId === viewerId,
+      authorName: row.userId === viewerId ? (locale === "ar" ? "أنت" : "You") : displayName(row.authorName, locale),
+    })),
+  };
+}
+
+/**
+ * The rows themselves, the same for every viewer and so cached; who "you"
+ * are is applied on top by reviewsForProduct. Dropped by submitReview.
+ */
+async function reviewRows(productCode: string, productCuid: string, page: number) {
+  "use cache";
+  cacheTag(reviewsTag(productCode));
+  cacheLife("hours");
   const rows = await prisma.review.findMany({
     where: { productId: productCuid },
     orderBy: { createdAt: "desc" },
@@ -64,25 +93,18 @@ async function reviewsForProduct(
       user: { select: { name: true } },
     },
   });
-
-  const hasMore = rows.length > REVIEWS_PAGE_SIZE;
-  return {
-    hasMore,
-    reviews: rows.slice(0, REVIEWS_PAGE_SIZE).map((row) => ({
-      id: row.id,
-      rating: row.rating,
-      title: row.title,
-      body: row.body,
-      verifiedPurchase: row.verifiedPurchase,
-      createdAt: row.createdAt.toISOString(),
-      isOwn: row.userId === viewerId,
-      authorName: row.userId === viewerId ? (locale === "ar" ? "أنت" : "You") : displayName(row.user.name, locale),
-    })),
-  };
+  return rows.map(({ user, createdAt, ...row }) => ({
+    ...row,
+    createdAt: createdAt.toISOString(),
+    authorName: user.name,
+  }));
 }
 
 /** How many reviews gave each star, 5 down to 1 — for the distribution bars. */
-async function ratingDistribution(productCuid: string): Promise<Record<1 | 2 | 3 | 4 | 5, number>> {
+async function ratingDistribution(productCode: string, productCuid: string): Promise<Record<1 | 2 | 3 | 4 | 5, number>> {
+  "use cache";
+  cacheTag(reviewsTag(productCode));
+  cacheLife("hours");
   const rows = await prisma.review.groupBy({
     by: ["rating"],
     where: { productId: productCuid },
@@ -124,16 +146,51 @@ export async function productReviewsSection(
   locale: string,
   viewerId: string | null,
   page = 1,
+  /** Product.id when the caller already has it — saves the lookup. */
+  knownCuid?: string,
 ): Promise<ReviewsSection> {
-  const product = await prisma.product.findUnique({ where: { productId }, select: { id: true } });
-  if (!product) return EMPTY_SECTION;
+  const productCuid = knownCuid ?? (await productCuidFor(productId));
+  if (!productCuid) return EMPTY_SECTION;
+  const product = { id: productCuid };
 
   const [{ reviews, hasMore }, distribution, mine] = await Promise.all([
-    reviewsForProduct(product.id, locale, viewerId, page),
-    page === 1 ? ratingDistribution(product.id) : Promise.resolve(null),
+    reviewsForProduct(productId, product.id, locale, viewerId, page),
+    page === 1 ? ratingDistribution(productId, product.id) : Promise.resolve(null),
     page === 1 && viewerId ? ownReview(product.id, viewerId) : Promise.resolve(null),
   ]);
   return { reviews, hasMore, distribution, mine };
+}
+
+/** A product code's cuid. It never changes for a code, so it is cached for as long as allowed. */
+async function productCuidFor(productId: string): Promise<string | null> {
+  "use cache";
+  cacheLife("max");
+  // A code created after a miss was cached must not stay "not found".
+  cacheTag(CATALOGUE_TAG);
+  const product = await prisma.product.findUnique({ where: { productId }, select: { id: true } });
+  return product?.id ?? null;
+}
+
+/**
+ * What the reviews section shows only to this viewer: their own review (to
+ * prefill the form) and which row in the list is theirs. Kept apart from
+ * the list so the list can be cached and prerendered for everyone, and
+ * this streamed in per request.
+ */
+export async function viewerReviewState(
+  productId: string,
+  userId: string | null,
+): Promise<{ mine: ReviewsSection["mine"]; ownReviewId: string | null }> {
+  if (!userId) return { mine: null, ownReviewId: null };
+  const productCuid = await productCuidFor(productId);
+  if (!productCuid) return { mine: null, ownReviewId: null };
+  const own = await prisma.review.findUnique({
+    where: { productId_userId: { productId: productCuid, userId } },
+    select: { id: true, rating: true, title: true, body: true },
+  });
+  if (!own) return { mine: null, ownReviewId: null };
+  const { id, ...mine } = own;
+  return { mine, ownReviewId: id };
 }
 
 /** This customer's own review of the product, if they have written one. */

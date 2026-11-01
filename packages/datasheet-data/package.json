@@ -4,13 +4,19 @@
   "private": true,
   "type": "module",
   "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./core": "./draft-core.ts"
+  },
   "scripts": {
     "check-types": "tsc --noEmit",
     "lint": "eslint ."
   },
   "dependencies": {
     "@repo/database": "workspace:*",
-    "@repo/datasheet": "workspace:*"
+    "@repo/datasheet": "workspace:*",
+    "intl-messageformat": "^11.2.15",
+    "@repo/catalog": "workspace:*"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",

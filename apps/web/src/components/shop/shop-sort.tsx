@@ -34,7 +34,7 @@ export function ShopSort({ value, params }: { value: Sort; params: ShopParams })
             router.push(setParam(params, "sort", next === "featured" ? null : next), { scroll: false });
           })
         }
-        className="h-9 rounded-md border border-input bg-card pe-8 ps-3 font-medium transition-colors duration-[var(--dur-hover)] hover:border-primary/60 disabled:opacity-60"
+        className="h-10 rounded-md border border-input bg-card pe-8 ps-3 font-medium transition-colors duration-[var(--dur-hover)] hover:border-primary/60 disabled:opacity-60 sm:h-9"
       >
         {OPTIONS.map((option) => (
           <option key={option} value={option}>

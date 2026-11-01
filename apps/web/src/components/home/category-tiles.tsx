@@ -3,6 +3,7 @@ import { SECTION_FRAME, SectionHeading } from "@/components/section-heading";
 import { formatNumber } from "@/lib/numbers";
 import { familySlug, type ProductFamily } from "@repo/catalog/families";
 import Image from "next/image";
+import { Onward } from "@/components/editorial/arrow";
 import { getTranslations } from "next-intl/server";
 
 /** One photograph per family, chosen from the landing imagery already in the repo. */
@@ -39,8 +40,8 @@ export async function CategoryTiles({
   const n = (value: number) => formatNumber(value, locale === "ar" ? "ar" : "en");
 
   return (
-    <section aria-labelledby="categories-heading" className={`${SECTION_FRAME} py-16 lg:py-24`}>
-      <SectionHeading id="categories-heading" title={t("title")} href="/products" hrefLabel={t("all")} />
+    <section aria-labelledby="categories-heading" className={`${SECTION_FRAME} py-20 lg:py-28`}>
+      <SectionHeading id="categories-heading" eyebrow={t("eyebrow")} title={t("title")} subtitle={t("subtitle")} href="/products" hrefLabel={t("all")} />
 
       {/* Two columns, not three: with the first tile spanning both rows, a
           three-column grid left two empty cells under the other tiles. */}
@@ -49,7 +50,7 @@ export async function CategoryTiles({
           <li key={family} className={index === 0 ? "sm:col-span-2 lg:col-span-1 lg:row-span-2" : ""}>
             <Link
               href={`/products?family=${familySlug(family)}`}
-              className="group relative isolate flex h-full min-h-56 overflow-hidden rounded-2xl lg:min-h-72"
+              className="group relative isolate flex h-full min-h-60 overflow-hidden rounded-sm bg-muted lg:min-h-80"
             >
               <Image
                 src={IMAGE[family].src}
@@ -57,20 +58,23 @@ export async function CategoryTiles({
                 fill
                 sizes={index === 0 ? "(min-width: 1024px) 50vw, 100vw" : "50vw"}
                 style={{ objectPosition: IMAGE[family].position }}
-                className="-z-10 object-cover transition-transform duration-700 ease-[var(--ease-out)] group-hover:scale-[1.04]"
+                className="-z-10 object-cover transition-transform duration-700 ease-[var(--ease-out)] group-hover:scale-[1.03]"
               />
-              <div aria-hidden className="absolute inset-0 -z-10 bg-linear-to-t from-background/90 via-background/30 to-transparent" />
-              <div className="mt-auto flex w-full items-end justify-between gap-3 p-5 sm:p-6">
+              {/* The hero's warm night ground, not black: a black veil on a warm
+                  photograph reads as dirt, the way a black shadow does. */}
+              <div aria-hidden className="absolute inset-0 -z-10 bg-linear-to-t from-[oklch(0.16_0.006_60/0.78)] via-[oklch(0.16_0.006_60/0.15)] to-transparent" />
+              <div className="mt-auto flex w-full items-end justify-between gap-3 p-5 text-[oklch(0.975_0.002_80)] sm:p-6">
                 <div>
                   <p className="font-[family-name:var(--font-display-face)] text-[length:var(--text-xl)] font-semibold">
                     {tFamily(family)}
                   </p>
-                  <p className="text-[length:var(--text-sm)] text-muted-foreground tabular-nums">
+                  <p className="text-[length:var(--text-sm)] text-[oklch(0.975_0.002_80/0.72)] tabular-nums">
                     {t("count", { count: count.get(family) ?? 0, formatted: n(count.get(family) ?? 0) })}
                   </p>
                 </div>
-                <span className="rounded-full border border-foreground/20 bg-background/40 px-3 py-1.5 text-[length:var(--text-sm)] font-medium backdrop-blur transition-colors duration-[var(--dur-hover)] group-hover:border-primary group-hover:bg-primary group-hover:text-primary-foreground">
+                <span className="inline-flex items-center gap-2 border-b border-[oklch(0.975_0.002_80/0.4)] pb-0.5 text-[length:var(--text-sm)] font-medium transition-colors duration-[var(--dur-hover)] group-hover:border-[oklch(0.975_0.002_80)]">
                   {t("shop")}
+                  <Onward />
                 </span>
               </div>
             </Link>

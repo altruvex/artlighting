@@ -1,12 +1,12 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@repo/ui/components/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@repo/ui/components/dropdown-menu';
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useTranslations } from 'next-intl';
@@ -19,8 +19,8 @@ export default function ChangeTheme() {
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon">
-                    <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                    <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                    <Sun aria-hidden className="size-[1.2rem] rotate-0 scale-100 transition-[rotate,scale] duration-[var(--dur-pop)] ease-[var(--ease-out)] dark:-rotate-90 dark:scale-0" />
+                    <Moon aria-hidden className="absolute size-[1.2rem] rotate-90 scale-0 transition-[rotate,scale] duration-[var(--dur-pop)] ease-[var(--ease-out)] dark:rotate-0 dark:scale-100" />
                     <span className="sr-only">{t('themeLabel')}</span>
                 </Button>
             </DropdownMenuTrigger>

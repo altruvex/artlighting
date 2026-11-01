@@ -20,6 +20,15 @@ import {
 } from "@tanstack/react-table";
 
 /**
+ * Per-column presentation both admin tables read. `align: "end"` is for
+ * figures — amounts, counts, quantities — so a column of numbers lines up on
+ * its last digit and the header sits over it (end, so it follows RTL).
+ */
+export interface AdminColumnMeta {
+  align?: "end";
+}
+
+/**
  * Features every admin table uses, registered explicitly (v9 no longer
  * bundles them). Adding one here is what makes its APIs exist on the table.
  */
@@ -44,6 +53,8 @@ export const adminTableFeatures = tableFeatures({
     basic: sortFn_basic,
     text: sortFn_text,
   },
+  // Type-only slot: types `columnDef.meta` as AdminColumnMeta.
+  columnMeta: {} as AdminColumnMeta,
 });
 
 export type AdminTableFeatures = typeof adminTableFeatures;

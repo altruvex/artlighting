@@ -1,8 +1,9 @@
 "use server";
 
 import { prisma } from "@repo/database";
-import { requireAdmin } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { revalidateStorefront } from "@/lib/storefront";
 import { run } from "./result";
 
 export async function createCategory(data: {
@@ -11,12 +12,13 @@ export async function createCategory(data: {
   parentId?: string | null;
 }) {
   return run(async () => {
-    await requireAdmin();
+    await requirePermission("category:write");
     const count = await prisma.category.count({ where: { parentId: data.parentId ?? null } });
     const category = await prisma.category.create({
       data: { name: data.name, slug: data.slug, parentId: data.parentId ?? null, order: count },
     });
-    revalidatePath("/admin/dashboard/categories");
+    revalidateStorefront();
+    revalidatePath("/dashboard/categories");
     return category;
   });
 }
@@ -26,9 +28,10 @@ export async function updateCategory(
   data: { name?: string; slug?: string; isActive?: boolean }
 ) {
   return run(async () => {
-    await requireAdmin();
+    await requirePermission("category:write");
     const category = await prisma.category.update({ where: { id: categoryId }, data });
-    revalidatePath("/admin/dashboard/categories");
+    revalidateStorefront();
+    revalidatePath("/dashboard/categories");
     return category;
   });
 }
@@ -42,7 +45,7 @@ export async function updateCategory(
  */
 export async function moveCategory(categoryId: string, direction: "up" | "down") {
   return run(async () => {
-    await requireAdmin();
+    await requirePermission("category:write");
 
     const category = await prisma.category.findUniqueOrThrow({ where: { id: categoryId } });
     const siblings = await prisma.category.findMany({
@@ -59,7 +62,8 @@ export async function moveCategory(categoryId: string, direction: "up" | "down")
       prisma.category.update({ where: { id: swapWith.id }, data: { order: category.order } }),
     ]);
 
-    revalidatePath("/admin/dashboard/categories");
+    revalidateStorefront();
+    revalidatePath("/dashboard/categories");
     return category;
   });
 }

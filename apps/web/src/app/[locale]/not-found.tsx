@@ -1,151 +1,64 @@
-"use client";
+import { Onward } from "@/components/editorial/arrow";
+import { Link } from "@/i18n/navigation";
+import { SearchIcon } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import Image from "next/image";
 
-import { searchProducts } from "@/actions/search";
-import type { ProductFamily } from "@repo/catalog/families";
-import { serializeRate } from "@repo/money";
-import type { MoneyInput } from "@repo/money";
-import ProductCard from "@/components/product-card/product-card";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Contact, Home, Search, ShoppingBag } from "lucide-react";
-import { Link } from '@/i18n/navigation';
-import { useEffect, useState } from "react";
-import { useDebounce } from "use-debounce";
-import { useLocale, useTranslations } from 'next-intl';
-
-interface Product {
-  productId: string;
-  productName: string;
-  Brand: string;
-  brand: string;
-  price: string;
-  productImages: string[];
-  sectionType: ProductFamily;
-  spotlightType: string;
-  discount: string;
-  ProductId: string;
-  chandelierLightingType: string;
-  hNumber: number;
-  maximumWattage: string;
-  lampBase: string;
-  mainMaterial: string;
-  beamAngle: string;
-}
-
+/**
+ * A missing page.
+ *
+ * It searched as you typed through a client-side copy of the product
+ * list and linked "All products" to /category — itself a redirect. Now it
+ * is a plain form that lands on the shop's own search, which works before
+ * any JavaScript loads, and three ways back into the site.
+ */
 export default function NotFound() {
-  // Declared before the search effect below uses it: a const read above its
-  // declaration throws at run time, which tsc does not catch across a
-  // closure.
+  const t = useTranslations("not-found");
+  const tNav = useTranslations("nav");
   const locale = useLocale();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  useEffect(() => {
-    const performSearch = async () => {
-      if (debouncedSearchTerm.trim() === "") {
-        setFilteredProducts([]);
-        return;
-      }
-      setIsSearching(true);
-      try {
-        const results = await searchProducts(debouncedSearchTerm, locale);
 
-        const formattedResults: Product[] = results.map((product): Product => ({
-          ...product,
-          ProductId: product.productId,
-          Brand: product.brand,
-          brand: product.brand,
-          discount: product.discount ?? serializeRate(0),
-          chandelierLightingType: "",
-          hNumber: product.hNumber ?? 0,
-          maximumWattage: "",
-          lampBase: "",
-          mainMaterial: "",
-          beamAngle: "",
-        }));
-        setFilteredProducts(formattedResults);
-      } catch (error) {
-        console.error("Error searching products:", error);
-        setFilteredProducts([]);
-      } finally {
-        setIsSearching(false);
-      }
-    };
-    performSearch();
-  }, [debouncedSearchTerm]);
-  const t = useTranslations('not-found');
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <div className="grow flex flex-col items-center justify-start pt-16 px-4 md:px-6">
-        <div className="w-full space-y-8">
-          <h1 className="text-4xl font-extrabold tracking-tight text-center lg:text-5xl">
-            {t('title')}
-          </h1>
-          <p className="text-xl text-center text-muted-foreground">
-            {t('description')}
-          </p>
-          <div className="relative max-w-xl mx-auto ">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground " />
-            <Input
+    <main id="main" className="mx-auto flex min-h-dvh w-full max-w-screen-2xl flex-col px-4 py-10 sm:px-6 lg:px-10">
+      <Link href="/" className="w-fit" aria-label={tNav("home")}>
+        <Image src={locale === "ar" ? "/logo-ar.png" : "/logo-en.png"} alt="" width={56} height={56} className="size-14" />
+      </Link>
+      <div className="my-auto max-w-2xl py-20">
+        <p className="eyebrow">404</p>
+        <h1 className="mt-4 text-[length:var(--text-4xl)] font-medium leading-[1.05] ltr:tracking-tight rtl:leading-[1.3]">{t("title")}</h1>
+        <p className="lede mt-6">{t("description")}</p>
+
+        <form action={`/${locale}/products`} method="get" role="search" className="mt-10 flex max-w-xl gap-2">
+          <label htmlFor="nf-search" className="sr-only">{t("placeholder")}</label>
+          <div className="relative flex-1">
+            <SearchIcon className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <input
+              id="nf-search"
+              name="q"
               type="search"
-              placeholder={t('placeholder')}
-              className="pl-10 pr-4 py-4 h-12 w-full text-lg shadow-md rounded-xl border border-input outline-none"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={t("placeholder")}
+              className="h-12 w-full rounded-md border border-input bg-background ps-10 pe-3 outline-none transition-[border-color,box-shadow] duration-[var(--dur-hover)] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
             />
           </div>
-          {isSearching && (
-            <div className="text-center">
-              <p className="text-lg text-muted-foreground">Searching...</p>
-            </div>
-          )}
-          {filteredProducts.length > 0 && (
-            <Card className="w-full">
-              <CardHeader>
-                <CardTitle className="text-xl text-primary">Search Results</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5  gap-6">
-                  {filteredProducts.map((product) => (
-                    <ProductCard key={product.productId} product={product} />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          <Card className="max-w-2xl mx-auto">
-            <CardHeader>
-              <CardTitle>{t('card-title')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 ">
-                <Link
-                  href="/"
-                  className="flex items-center justify-center p-4 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors"
-                >
-                  <Home className="mr-2 h-5 w-5" />
-                  {t('home-page')}
-                </Link>
-                <Link
-                  href="/category"
-                  className="flex items-center justify-center p-4 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors"
-                >
-                  <ShoppingBag className="mr-2 h-5 w-5" />
-                  {t('all-products')}
-                </Link>
-                <Link
-                  href="/contact-us"
-                  className="flex items-center justify-center p-4 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors"
-                >
-                  <Contact className="mr-2 h-5 w-5" />
-                  {t('contact-us')}
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          <button type="submit" className="h-12 shrink-0 rounded-md bg-primary px-5 font-semibold text-primary-foreground transition-[transform,background-color] duration-[var(--dur-press)] ease-[var(--ease-out)] hover:bg-primary/90 active:scale-[0.98]">
+            {t("search")}
+          </button>
+        </form>
+
+        <ul className="mt-12 border-t border-border">
+          {[
+            { href: "/products", label: t("all-products") },
+            { href: "/applications", label: tNav("applications") },
+            { href: "/contact-us", label: t("contact-us") },
+          ].map((link) => (
+            <li key={link.href} className="border-b border-border">
+              <Link href={link.href} className="group flex items-center justify-between py-4 font-medium transition-colors duration-[var(--dur-hover)] hover:text-primary">
+                {link.label}
+                <Onward className="text-muted-foreground transition-[transform,color] duration-[var(--dur-hover)] group-hover:translate-x-1 group-hover:text-primary rtl:group-hover:-translate-x-1" />
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
-    </div>
+    </main>
   );
 }

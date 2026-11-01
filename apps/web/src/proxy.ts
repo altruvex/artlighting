@@ -3,6 +3,7 @@ import createIntlMiddleware from "next-intl/middleware";
 import { GUEST_COOKIE } from "./lib/guest-token";
 import { routing } from "./i18n/routing";
 import { familyFromSlug, familySlug } from "@repo/catalog/families";
+import { isKnownPath, legacyTarget } from "./lib/known-routes";
 
 // Create intl middleware instance
 const intlMiddleware = createIntlMiddleware(routing);
@@ -22,7 +23,7 @@ export default function middleware(req: NextRequest) {
   // streaming by the time they run, so the hop lands as a 200 with a
   // client-side redirect in the body — right for a visitor, wrong for a
   // crawler following a link that moved. Here it is a real 308.
-  const moved = shopUrl(req.nextUrl.pathname);
+  const moved = shopUrl(req.nextUrl.pathname) ?? legacyUrl(req.nextUrl.pathname);
   if (moved && !isRedirect(response)) {
     const url = new URL(moved, req.nextUrl.origin);
     return withGuestToken(req, NextResponse.redirect(url, 308));
@@ -32,7 +33,7 @@ export default function middleware(req: NextRequest) {
   // it. Returning a bare rewrite here skipped the intl middleware
   // altogether, and the locale it passes downstream went with it: an
   // Arabic 404 came back with its heading in English.
-  if (unknownFamily(req.nextUrl.pathname) && !isRedirect(response)) {
+  if ((unknownFamily(req.nextUrl.pathname) || unknownPath(req.nextUrl.pathname)) && !isRedirect(response)) {
     const notFound = NextResponse.rewrite(req.nextUrl, { status: 404 });
     response.headers.forEach((value, key) => notFound.headers.set(key, value));
     return withGuestToken(req, notFound);
@@ -91,6 +92,32 @@ function unknownFamily(pathname: string): boolean {
   const [, category, , section] = pathname.split("/").filter(Boolean);
   if (category !== "category" || !section) return false;
   return familyFromSlug(section) === null;
+}
+
+/** The locale and the segments after it, or null for a path without a locale. */
+function localeSegments(pathname: string): { locale: string; segments: string[] } | null {
+  const [locale, ...segments] = pathname.split("/").filter(Boolean);
+  if (!locale || !routing.locales.includes(locale as never)) return null;
+  return { locale, segments };
+}
+
+/** A URL an earlier version of the site published, now permanently elsewhere. */
+function legacyUrl(pathname: string): string | null {
+  const parsed = localeSegments(pathname);
+  if (!parsed) return null;
+  const target = legacyTarget(parsed.segments);
+  if (target === null) return null;
+  return `/${parsed.locale}${target === "/" ? "" : target}`;
+}
+
+/**
+ * True for a path no route answers. The catch-all page renders the 404,
+ * but — like the unknown family above — only after the response has begun
+ * as a 200; this gives it the status it should have had.
+ */
+function unknownPath(pathname: string): boolean {
+  const parsed = localeSegments(pathname);
+  return parsed !== null && !isKnownPath(parsed.segments);
 }
 
 /**

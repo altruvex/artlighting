@@ -1,13 +1,13 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@repo/ui/components/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@repo/ui/components/dropdown-menu"
 import { SignedIn, SignedOut, SignInButton, SignUpButton, useUser } from "@/lib/auth-hooks"
 import { UserButton } from "@/components/user-button"
 import { LogIn, UserPlus } from "lucide-react"
@@ -43,7 +43,7 @@ export default function AuthSection({ variant = "bar" }: { variant?: "bar" | "sh
         <div className="h-9 flex-1 animate-pulse rounded-md bg-muted" />
       </div>
     ) : (
-      <div className="h-9 w-9 animate-pulse rounded-md bg-muted" />
+      <div className="size-10 lg:size-9 animate-pulse rounded-md bg-muted" />
     )
   }
 
@@ -54,7 +54,7 @@ export default function AuthSection({ variant = "bar" }: { variant?: "bar" | "sh
           <SheetAuthButtons t={t} />
         </SignedOut>
         <SignedIn>
-          <UserButton className="h-9 w-9" />
+          <UserButton className="size-10 lg:size-9" />
         </SignedIn>
       </>
     )
@@ -66,7 +66,7 @@ export default function AuthSection({ variant = "bar" }: { variant?: "bar" | "sh
         <AccountMenu t={t} label={tHeader("account")} />
       </SignedOut>
       <SignedIn>
-        <UserButton className="h-9 w-9" />
+        <UserButton className="size-10 lg:size-9" />
       </SignedIn>
     </>
   )
@@ -84,7 +84,7 @@ function AccountMenu({ t, label }: AuthProps & { label: string }) {
         <Button
           variant="outline"
           size="icon"
-          className="h-9 w-9 bg-transparent"
+          className="size-10 bg-transparent lg:size-9"
           aria-label={label}
         >
           <LogIn className="size-4" />

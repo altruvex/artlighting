@@ -1,7 +1,8 @@
 "use client";
 
 import { updateProductIP } from "@/actions/product-ip";
-import { formatNumber } from "@/lib/numbers";
+import { formatNumberWithConversion } from "@/lib/numbers";
+import { cn } from "@/lib/utils";
 import { Decimal, money, type MoneyInput, serializeMoney } from "@repo/money";
 import type { ProductIP } from "@repo/database";
 import { Droplets } from "lucide-react";
@@ -47,7 +48,8 @@ const IP_NUMERIC_MAP = {
 } satisfies Record<ProductIP, number>;
 
 interface ProductIPButtonsProps {
-  configId: string;
+  /** The visitor's configuration id, created on first use. */
+  ensureConfigId: () => Promise<string | null>;
   /**
    * The rating the fixture is built to — the floor. Separate from the
    * selection on purpose: taking the floor from whatever is currently
@@ -65,7 +67,7 @@ interface ProductIPButtonsProps {
 }
 
 export default function ProductIPButtons({
-  configId,
+  ensureConfigId,
   baseIp,
   productIp,
   basePrice,
@@ -104,6 +106,8 @@ export default function ProductIPButtons({
         // production build. Awaiting it without reading the result meant the
         // catch never ran and every attempt toasted success, including the
         // ones that saved nothing.
+        const configId = await ensureConfigId();
+        if (!configId) throw new Error("No configuration");
         const result = await updateProductIP({ configId, newProductIp: newIp });
         if (!result.success) {
           console.error("Failed to change IP rating:", result.error);
@@ -119,7 +123,7 @@ export default function ProductIPButtons({
         setIsUpdating(false);
       }
     },
-    [selectedIp, isUpdating, configId, t]
+    [selectedIp, isUpdating, ensureConfigId, t]
   );
 
 
@@ -159,11 +163,13 @@ export default function ProductIPButtons({
               disabled={isUpdating}
               className={optionChip(isActive)}
             >
-              <Droplets className="size-4 shrink-0 text-primary" aria-hidden />
+              <Droplets className={cn("size-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} aria-hidden />
               <span dir="ltr">{t(`ratings.${ip}.label`)}</span>
               {money(displayedIncrease).greaterThan(0) && (
                 <span className="text-muted-foreground">
-                  +{formatNumber(money(displayedIncrease).toNumber(), isRTL ? "ar" : "en")}
+                  {/* With the currency, as the bulb options print theirs: "+90" beside
+                      "+EGP 90" read as two different kinds of figure. */}
+                  +{formatNumberWithConversion(money(displayedIncrease).toFixed(2), isRTL ? "ar" : "en")}
                 </span>
               )}
               {isUpdating && isActive && <ChipSpinner />}

@@ -5,15 +5,19 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@repo/ui/components/dropdown-menu";
 import { useUser } from "@/lib/auth-hooks";
 import { signOut } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 
 /** Signed-in user's avatar with a sign-out dropdown. */
 export function UserButton({ className }: { className?: string }) {
   const { user } = useUser();
   const router = useRouter();
+  const t = useTranslations("auth");
+  const tSection = useTranslations("auth-section");
 
   if (!user) return null;
 
@@ -23,11 +27,16 @@ export function UserButton({ className }: { className?: string }) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className={`rounded-full bg-primary text-primary-foreground flex items-center justify-center font-medium transition-opacity hover:opacity-80 ${className ?? "w-10 h-10"}`}
+          type="button"
+          aria-label={tSection("userMenu")}
+          className={cn(
+            "flex items-center justify-center rounded-full bg-primary font-medium text-primary-foreground transition-opacity duration-[var(--dur-hover)] ease-[var(--ease-out)] hover:opacity-85",
+            className ?? "size-10",
+          )}
         >
           {user.image ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={user.image} alt="" className="w-full h-full rounded-full object-cover" />
+            <img src={user.image} alt="" className="size-full rounded-full object-cover" />
           ) : (
             initial
           )}
@@ -41,7 +50,7 @@ export function UserButton({ className }: { className?: string }) {
             router.refresh();
           }}
         >
-          Sign out
+          {t("signOut")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

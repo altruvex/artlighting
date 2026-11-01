@@ -1,35 +1,18 @@
 import { prisma } from "@repo/database";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { sellableFrom, familiesMatching, inventorySelect, productBulbSelect, productDiscountRates, type ProductFamily } from "@repo/catalog";
+import { sellableFrom, inventorySelect, productBulbSelect, productDiscountRates, type ProductFamily } from "@repo/catalog";
 import { bulbChoices, type BulbChoice } from "@repo/catalog/bulb-pricing";
 import { localizeSpecGroups, specGroupSelect, specNumbersByKey, specsByKey, type LocalizedSpecGroup } from "@/lib/spec-groups";
 import { serializeMoney, serializeRate } from "@repo/money";
 import { toViewConfiguration } from "@/lib/serialize-money";
-import type { Prisma } from "@repo/database";
-import { CacheService, CacheTTL, CachePrefix } from "@/lib/cache/redis.service";
+import { CATALOGUE_TAG, catalogueCacheLife } from "@/lib/cache.server";
+import { cacheTag } from "next/cache";
 
 export interface ProductFilters {
   brand?: string;
   sectionType?: ProductFamily;
   spotlightType?: string;
-  categoryId?: string;
-  lightingtypeId?: string;
   isActive?: boolean;
-  featured?: boolean;
-  searchQuery?: string;
-}
-
-export interface PaginationParams {
-  page?: number;
-  limit?: number;
-  cursor?: string;
-}
-
-export interface ProductListResult<T> {
-  products: T[];
-  total: number;
-  hasMore: boolean;
-  nextCursor?: string;
 }
 
 export interface LocalizedProductData {
@@ -44,6 +27,8 @@ export interface LocalizedProductData {
   priceIncrease: string;
   productImages: string[];
   images: string[];
+  /** A downloadable datasheet, when one has been uploaded for this product. */
+  specSheetUrl: string | null;
   specGroups: LocalizedSpecGroup[];
   sectionType: ProductFamily;
   spotlightType: string;
@@ -121,6 +106,7 @@ export function transformToLocalizedProduct(
     priceIncrease: serializeMoney(product.priceIncrease ?? 0),
     productImages: imageUrls(product),
     images: imageUrls(product),
+    specSheetUrl: product.specSheetUrl ?? null,
     // Grouped, localized and already formatted — the page no longer builds
     // this table by hand with a label written out in each language.
     specGroups: localizedGroups,
@@ -198,149 +184,44 @@ function buildProductInclude(language: string, withRelations = false) {
     }),
   };
 }
+async function cachedProductDetail(productId: string, language: string): Promise<LocalizedProductData | null> {
+  "use cache";
+  cacheTag(CATALOGUE_TAG);
+  await catalogueCacheLife();
+  const raw = await prisma.product.findUnique({
+    where: { productId },
+    include: buildProductInclude(language, true),
+  });
+  if (!raw) return null;
+  const rates = await productDiscountRates([raw], prisma);
+  return transformToLocalizedProduct(raw, language, rates);
+}
+
 export class ProductService {
-  private static readonly DEFAULT_PAGE_SIZE = 20;
-  private static readonly MAX_PAGE_SIZE = 100;
-
-  static async getLocalizedProducts(
-    filters: ProductFilters,
-    language: string,
-    pagination: PaginationParams = {},
-    _options?: Record<string, boolean>
-  ): Promise<ProductListResult<LocalizedProductData>> {
-    const { page = 1, limit = this.DEFAULT_PAGE_SIZE, cursor } = pagination;
-    const safeLimit = Math.min(limit, this.MAX_PAGE_SIZE);
-    const skip = cursor ? undefined : (page - 1) * safeLimit;
-
-    const cacheKey = `${CachePrefix.PRODUCTS_LIST}${JSON.stringify(filters)}:${language}:${page}:${safeLimit}`;
-    const cached = await CacheService.get<ProductListResult<LocalizedProductData>>(cacheKey);
-    if (cached) return cached;
-
-    const searchFamilies = familiesMatching(filters.searchQuery);
-
-    const where: Prisma.ProductWhereInput = {
-      isActive: filters.isActive !== undefined ? filters.isActive : true,
-      ...(filters.brand && { brand: filters.brand }),
-      ...(filters.sectionType && { sectionType: filters.sectionType }),
-      ...(filters.spotlightType && { spotlightType: filters.spotlightType }),
-      ...(filters.categoryId && { categoryId: filters.categoryId }),
-      ...(filters.lightingtypeId && { lightingtypeId: filters.lightingtypeId }),
-      ...(filters.featured !== undefined && { featured: filters.featured }),
-      ...(filters.searchQuery && {
-        OR: [
-          { productName: { contains: filters.searchQuery, mode: "insensitive" } },
-          { brand: { contains: filters.searchQuery, mode: "insensitive" } },
-          // An enum takes no `contains`; the substring match runs over the
-          // family slugs and comes back as exact values.
-          ...(searchFamilies.length ? [{ sectionType: { in: searchFamilies } }] : []),
-        ],
-      }),
-    };
-
-    const [rawProducts, total] = await Promise.all([
-      prisma.product.findMany({
-        where,
-        include: buildProductInclude(language),
-        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : { skip }),
-        take: safeLimit + 1,
-        orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
-      }),
-      prisma.product.count({ where }),
-    ]);
-
-    const hasMore = rawProducts.length > safeLimit;
-    const sliced = hasMore ? rawProducts.slice(0, safeLimit) : rawProducts;
-    const nextCursor = hasMore ? sliced[sliced.length - 1]?.id : undefined;
-    const rates = await productDiscountRates(sliced, prisma);
-
-    const result: ProductListResult<LocalizedProductData> = {
-      products: sliced.map((p) => transformToLocalizedProduct(p, language, rates)),
-      total,
-      hasMore,
-      nextCursor,
-    };
-
-    await CacheService.set(cacheKey, result, CacheTTL.FIVE_MINUTES);
-    return result;
-  }
-
+  /**
+   * One product as its page renders it, or null when it does not exist or
+   * does not match the filters.
+   *
+   * The row itself is cached (`"use cache"`, per product and locale) and
+   * the filters are checked against it afterwards. The Redis entry this
+   * replaces was keyed without the filters, so whichever call filled it
+   * answered for all of them: the metadata's unfiltered read made an
+   * inactive product render, and a product was reachable under the other
+   * brand's URL. It also cost a network round trip on every hit, and
+   * nothing ever invalidated it.
+   */
   static async getLocalizedProductDetail(
     productId: string,
     language: string,
-    filters?: Partial<Pick<ProductFilters, "brand" | "sectionType" | "spotlightType" | "isActive">>
+    filters?: ProductFilters
   ): Promise<LocalizedProductData | null> {
-    const cacheKey = `${CachePrefix.PRODUCT}detail:${productId}:${language}`;
-    const cached = await CacheService.get<LocalizedProductData>(cacheKey);
-    if (cached) return cached;
-
-    const raw = await prisma.product.findUnique({
-      where: {
-        productId,
-        ...(filters?.sectionType && { sectionType: filters.sectionType }),
-        ...(filters?.spotlightType && { spotlightType: filters.spotlightType }),
-        ...(filters?.brand && { brand: filters.brand }),
-        ...(filters?.isActive !== undefined && { isActive: filters.isActive }),
-      },
-      include: buildProductInclude(language, true),
-    });
-
-    if (!raw) return null;
-
-    const rates = await productDiscountRates([raw], prisma);
-    const product = transformToLocalizedProduct(raw, language, rates);
-    await CacheService.set(cacheKey, product, CacheTTL.FIFTEEN_MINUTES);
+    const product = await cachedProductDetail(productId, language);
+    if (!product) return null;
+    if (filters?.sectionType && product.sectionType !== filters.sectionType) return null;
+    if (filters?.spotlightType && product.spotlightType !== filters.spotlightType) return null;
+    if (filters?.brand && product.brand !== filters.brand) return null;
+    if (filters?.isActive !== undefined && product.isActive !== filters.isActive) return null;
     return product;
-  }
-
-  static async getProductById(productId: string, language: string) {
-    return this.getLocalizedProductDetail(productId, language);
-  }
-
-  static async getRelatedProducts(
-    productId: string,
-    brand: string,
-    sectionType: ProductFamily,
-    language: string,
-    opts: { spotlightType?: string; maxIP?: number; limit?: number } = {}
-  ): Promise<LocalizedProductData[]> {
-    const { spotlightType, maxIP, limit = 8 } = opts;
-    const cacheKey = `${CachePrefix.PRODUCTS_LIST}related:${productId}:${language}`;
-    const cached = await CacheService.get<LocalizedProductData[]>(cacheKey);
-    if (cached) return cached;
-
-    const raw = await prisma.product.findMany({
-      where: {
-        productId: { not: productId },
-        brand,
-        sectionType,
-        isActive: true,
-        ...(spotlightType || maxIP
-          ? {
-            OR: [
-              ...(spotlightType ? [{ spotlightType }] : []),
-              ...(maxIP
-                ? [
-                  {
-                    maxIP: {
-                      gte: Math.max(20, maxIP - 20),
-                      lte: maxIP + 20,
-                    },
-                  },
-                ]
-                : []),
-            ],
-          }
-          : {}),
-      },
-      include: buildProductInclude(language, true),
-      take: limit,
-      orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
-    });
-
-    const rates = await productDiscountRates(raw, prisma);
-    const products = raw.map((p) => transformToLocalizedProduct(p, language, rates));
-    await CacheService.set(cacheKey, products, CacheTTL.FIVE_MINUTES);
-    return products;
   }
 
   /**
@@ -385,39 +266,5 @@ export class ProductService {
     }
 
     return toViewConfiguration(config);
-  }
-
-  static async getFeaturedProducts(language: string, limit = 10) {
-    const cacheKey = `${CachePrefix.PRODUCTS_LIST}featured:${language}:${limit}`;
-    const cached = await CacheService.get(cacheKey);
-    if (cached) return cached;
-
-    const raw = await prisma.product.findMany({
-      where: { featured: true, isActive: true },
-      include: buildProductInclude(language),
-      take: limit,
-      orderBy: { createdAt: "desc" },
-    });
-
-    const rates = await productDiscountRates(raw, prisma);
-    const products = raw.map((p) => transformToLocalizedProduct(p, language, rates));
-    await CacheService.set(cacheKey, products, CacheTTL.FIVE_MINUTES);
-    return products;
-  }
-
-  static async getProductsByIds(productIds: string[], language: string) {
-    const raw = await prisma.product.findMany({
-      where: { id: { in: productIds } },
-      include: buildProductInclude(language),
-    });
-    const rates = await productDiscountRates(raw, prisma);
-    return raw.map((p) => transformToLocalizedProduct(p, language, rates));
-  }
-
-  static async invalidateProductCache(productId?: string) {
-    if (productId) {
-      await CacheService.deletePattern(`${CachePrefix.PRODUCT}${productId}:*`);
-    }
-    await CacheService.deletePattern(`${CachePrefix.PRODUCTS_LIST}*`);
   }
 }

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { getTranslations } from "next-intl/server";
-import { AdminAuthError, requireAdmin } from "@/lib/auth";
+import { AdminAuthError, requirePermission } from "@/lib/auth";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ jobId: string }> }) {
   const t = await getTranslations("BulkDatasheet");
   try {
-    await requireAdmin();
+    await requirePermission("datasheet:generate");
   } catch (err) {
     if (err instanceof AdminAuthError) {
       return NextResponse.json({ error: t("errors.unauthorized") }, { status: 401 });

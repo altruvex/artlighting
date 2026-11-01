@@ -2,7 +2,7 @@
 
 import { setLocale } from "@/i18n/actions";
 import { locales, type Locale } from "@/i18n/config";
-import { cn } from "@/lib/utils";
+import { cn } from "@repo/ui/lib/utils";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
@@ -44,9 +44,10 @@ export function LanguageSwitcher({ className }: { className?: string }) {
           disabled={isPending}
           onClick={() => choose(locale)}
           className={cn(
-            "rounded-full px-3 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            // h-7 inside the p-0.5 track: a 32px target, still one quiet pill.
+            "h-7 rounded-full px-3 transition-[color,background-color,box-shadow] duration-(--dur-hover) ease-(--ease-out) outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
             locale === current
-              ? "bg-background text-foreground shadow-sm"
+              ? "bg-background text-foreground shadow-e1"
               : "text-muted-foreground hover:text-foreground",
           )}
         >

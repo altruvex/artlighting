@@ -8,6 +8,10 @@ import { getTranslations } from "next-intl/server"
 import { notFound } from "next/navigation"
 import Complete from "./complete"
 
+// Everything here is the signed-in customer's own order — nothing is shared
+// between visitors to prefetch, so this page blocks instead.
+export const instant = false
+
 /**
  * The review step. Loaded here, scoped to the signed-in customer — it used
  * to find the order by id alone, so the number in the URL was the only

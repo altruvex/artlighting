@@ -1,5 +1,7 @@
+import type { Permission } from "@/lib/permissions";
 import {
   BellIcon,
+  FileTextIcon,
   FolderTreeIcon,
   LayoutDashboardIcon,
   LightbulbIcon,
@@ -15,6 +17,7 @@ import {
 export type NavKey =
   | "dashboard"
   | "orders"
+  | "quotations"
   | "customers"
   | "discounts"
   | "inventory"
@@ -29,8 +32,8 @@ export interface NavItem {
   key: NavKey;
   url: string;
   icon: LucideIcon;
-  /** Only shown to admins (the page itself also enforces it). */
-  adminOnly?: boolean;
+  /** Shown only to roles with this permission (the page itself also enforces it). */
+  permission?: Permission;
 }
 
 export interface NavGroup {
@@ -46,30 +49,31 @@ export interface NavGroup {
 export const NAV_GROUPS: NavGroup[] = [
   {
     key: "overview",
-    items: [{ key: "dashboard", url: "/admin/dashboard", icon: LayoutDashboardIcon }],
+    items: [{ key: "dashboard", url: "/dashboard", icon: LayoutDashboardIcon }],
   },
   {
     key: "sales",
     items: [
-      { key: "orders", url: "/admin/dashboard/orders", icon: ShoppingCartIcon },
-      { key: "customers", url: "/admin/dashboard/users", icon: UsersIcon },
-      { key: "discounts", url: "/admin/dashboard/discounts", icon: PercentIcon },
+      { key: "orders", url: "/dashboard/orders", icon: ShoppingCartIcon, permission: "order:read" },
+      { key: "quotations", url: "/dashboard/quotations", icon: FileTextIcon, permission: "quotation:read" },
+      { key: "customers", url: "/dashboard/users", icon: UsersIcon, permission: "customer:read" },
+      { key: "discounts", url: "/dashboard/discounts", icon: PercentIcon, permission: "catalog:read" },
     ],
   },
   {
     key: "catalog",
     items: [
-      { key: "products", url: "/admin/dashboard/products", icon: PackageIcon },
-      { key: "inventory", url: "/admin/dashboard/inventory", icon: WarehouseIcon },
-      { key: "bulbs", url: "/admin/dashboard/bulbs", icon: LightbulbIcon },
-      { key: "categories", url: "/admin/dashboard/categories", icon: FolderTreeIcon },
+      { key: "products", url: "/dashboard/products", icon: PackageIcon, permission: "catalog:read" },
+      { key: "inventory", url: "/dashboard/inventory", icon: WarehouseIcon, permission: "catalog:read" },
+      { key: "bulbs", url: "/dashboard/bulbs", icon: LightbulbIcon, permission: "catalog:read" },
+      { key: "categories", url: "/dashboard/categories", icon: FolderTreeIcon, permission: "catalog:read" },
     ],
   },
   {
     key: "system",
     items: [
-      { key: "team", url: "/admin/dashboard/team", icon: ShieldIcon, adminOnly: true },
-      { key: "notifications", url: "/admin/dashboard/notification", icon: BellIcon },
+      { key: "team", url: "/dashboard/team", icon: ShieldIcon, permission: "staff:manage" },
+      { key: "notifications", url: "/dashboard/notification", icon: BellIcon },
     ],
   },
 ];

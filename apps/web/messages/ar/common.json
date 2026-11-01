@@ -1,0 +1,172 @@
+{
+    "not-found": {
+        "title": "هذه الصفحة غير موجودة.",
+        "description": "ربما يكون الرابط قديمًا أو نُقلت الصفحة. ابحث في المنتجات، أو ابدأ من إحدى الصفحات بالأسفل.",
+        "placeholder": "ابحث باسم المنتج أو الكود",
+        "card-title": "جرب هذه البدائل",
+        "home-page": "الصفحة الرئيسيه",
+        "all-products": "المنتجات",
+        "contact-us": "تواصل مع المعرض",
+        "search": "بحث"
+    },
+    "loading": {
+        "title": "جارٍ التحميل…",
+        "description": "لن يستغرق هذا وقتًا طويلاً"
+    },
+    "search": {
+        "placeholder": "ابحث في المنتجات...",
+        "noResults": "لا توجد نتائج",
+        "showingResults": "عرض النتائج",
+        "searching": "جاري البحث...",
+        "viewAll": "عرض الكل",
+        "submit": "ابحث"
+    },
+    "header": {
+        "about-us": "عن الشركة",
+        "projects": "المشاريع",
+        "products": "المنتجات",
+        "blog": "الاحداث",
+        "contact-us": "اتصل بنا",
+        "view-details": "اعرف المزيد",
+        "shop": "المتجر",
+        "offers": "العروض",
+        "all-products": "كل المنتجات",
+        "menu": "القائمة",
+        "browse": "تصفّح حسب النوع",
+        "see-offers": "كل المنتجات المخفّضة حاليًا",
+        "models": "كل الموديلات",
+        "account": "حسابي",
+        "home": "آرت لايتنج — الرئيسية",
+        "logo": "آرت لايتنج",
+        "close": "إغلاق القائمة"
+    },
+    "footer": {
+        "brandName": "آرت لايتنج",
+        "brandDescription": "تصميم وتوريد وتوزيع الإضاءة في مصر منذ ٢٠١٠. الوكيل الوحيد المعتمد لبالكوم، ووكيل معتمد لمستر ليد.",
+        "indoorLighting": "إضاءة داخلية",
+        "outdoorLighting": "إضاءة خارجية",
+        "chandeliers": "النجف",
+        "company": "الشركة",
+        "aboutUs": "من نحن",
+        "contact": "اتصل بنا",
+        "faqs": "الأسئلة الشائعة",
+        "privacyPolicy": "سياسة الخصوصية",
+        "followUs": "تابعنا",
+        "theme": "السمة",
+        "copyright": "© {year} {brand}. جميع الحقوق محفوظة.",
+        "shop": "تسوّق",
+        "allProducts": "كل المنتجات",
+        "offers": "العروض",
+        "help": "المساعدة",
+        "callUs": "اتصل بنا",
+        "whatsapp": "واتساب",
+        "projects": "المشاريع",
+        "blog": "الأخبار",
+        "themeLabel": "تغيير السمة",
+        "themeLight": "فاتح",
+        "themeDark": "داكن",
+        "themeSystem": "حسب النظام",
+        "solutions": "الحلول",
+        "resources": "المصادر",
+        "profile": "ملف الشركة (PDF)",
+        "directions": "الاتجاهات",
+        "sitemap": "خريطة الموقع",
+        "legalName": "آرت لايتنج للأدوات الكهربائية",
+        "agency": "الوكيل الوحيد المعتمد لبالكوم في مصر"
+    },
+    "cta": {
+        "title": "أضئ عالمك",
+        "description": "استكشف مجموعتنا الرائعة من تجهيزات الإضاءة المصممة لتحويل أي مساحة. اعثر على الإضاءة المثالية لمنزلك أو عملك.",
+        "shopAllCollections": "تسوق جميع المجموعات",
+        "getExpertAdvice": "احصل على استشارة خبير",
+        "whatsappSupport": "دعم واتساب ٢٤/٧",
+        "address": "٤٩ شارع الشهيد سيد زكريا، شيراتون المطار، النزهة، القاهرة",
+        "workingHours": "السبت - الخميس، ٩:٣٠ص - ٥:٣٠م"
+    },
+    "toast": {
+        "signInRequired": "يرجى تسجيل الدخول أولاً",
+        "addToCartSuccess": "تم إضافة {productName} للسلة بنجاح",
+        "addToCartError": "فشل في إضافة المنتج للسلة، حاول مرة أخرى"
+    },
+    "assurance": {
+        "label": "الشراء من آرت لايتنج",
+        "shipping": "توصيل خلال {days} أيام عمل",
+        "shippingShort": "توصيل خلال {days} أيام",
+        "shippingDetail": "الدفع عند الاستلام",
+        "returns": "استرجاع خلال {days} يومًا",
+        "returnsDetail": "العيوب تُستبدل على نفقتنا",
+        "certified": "منتجات معتمدة",
+        "certifiedDetail": "باعتماد الاستشاريين"
+    },
+    "promo": {
+        "label": "العروض الحالية",
+        "off": "خصم {figure}",
+        "withCode": "بالكود",
+        "shop": "تسوّق العرض",
+        "dismiss": "إخفاء العروض",
+        "endsIn": "ينتهي خلال",
+        "dh": "{d} يوم و{h} ساعة",
+        "hm": "{h} ساعة و{m} دقيقة",
+        "on": {
+            "family": "على كل {family}",
+            "families": "على كل {families}",
+            "products": "على {count, plural, one{منتج واحد} two{منتجين} few{# منتجات} other{# منتج}}",
+            "categories": "على {count, plural, one{فئة واحدة} two{فئتين} few{# فئات} other{# فئة}}",
+            "cart": "على طلبك كله",
+            "cartOver": "على الطلبات فوق {amount}"
+        },
+        "family": {
+            "INDOOR": "الإضاءة الداخلية",
+            "OUTDOOR": "الإضاءة الخارجية",
+            "CHANDELIER": "النجف"
+        }
+    },
+    "a11y": {
+        "skipToContent": "تخطَّ إلى المحتوى",
+        "showPassword": "إظهار كلمة المرور",
+        "hidePassword": "إخفاء كلمة المرور"
+    },
+    "recent": {
+        "title": "شاهدتها مؤخرًا",
+        "subtitle": "من زيارتك الأخيرة",
+        "clear": "امسح السجل",
+        "cleared": "اتمسح سجل المشاهدة"
+    },
+    "closingCta": {
+        "eyebrow": "المعرض",
+        "title": "لست متأكدًا من الإضاءة المناسبة؟",
+        "body": "ابعث صورة المكان أو مقاساته على واتساب، وسيقترح فريق المعرض الإضاءة المناسبة وعدد الوحدات — بدون أي التزام.",
+        "whatsapp": "راسلنا على واتساب",
+        "call": "اتصل بالمعرض",
+        "visit": "زور المعرض",
+        "hours": "مواعيد المعرض"
+    },
+    "nav": {
+        "home": "الرئيسية",
+        "breadcrumb": "مسار التنقل",
+        "products": "المنتجات",
+        "applications": "الاستخدامات",
+        "services": "الخدمات",
+        "projects": "المشروعات",
+        "guide": "دليل الإضاءة",
+        "about": "عن الشركة",
+        "contact": "تواصل معنا",
+        "offers": "العروض",
+        "allProducts": "كل المنتجات",
+        "allApplications": "كل الاستخدامات",
+        "shopSection": "المتجر",
+        "companySection": "الشركة",
+        "applicationsIntro": "ابدأ من المكان الذي تريد إضاءته.",
+        "seeAll": "عرض الكل"
+    },
+    "ui": {
+        "close": "إغلاق",
+        "navigation": "التنقل",
+        "navigationDescription": "القائمة الرئيسية.",
+        "toggleSidebar": "إظهار أو إخفاء القائمة الجانبية",
+        "more": "المزيد",
+        "previousSlide": "الشريحة السابقة",
+        "nextSlide": "الشريحة التالية",
+        "breadcrumb": "مسار التنقل"
+    }
+}

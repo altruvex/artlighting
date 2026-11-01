@@ -7,7 +7,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+} from "@repo/ui/components/breadcrumb";
 import { activeNavItem } from "@/constant";
 import { ChevronRightIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -26,7 +26,7 @@ export function Breadcrumbs() {
   const pathname = usePathname();
   const section = activeNavItem(pathname);
 
-  const crumbs: { label: string; href?: string }[] = [{ label: t("dashboard"), href: "/admin/dashboard" }];
+  const crumbs: { label: string; href?: string }[] = [{ label: t("dashboard"), href: "/dashboard" }];
   if (section && section.key !== "dashboard") {
     crumbs.push({ label: t(section.key), href: section.url });
     const rest = pathname.slice(section.url.length).split("/").filter(Boolean);

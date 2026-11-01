@@ -1,14 +1,16 @@
 "use client";
 
+import { productPersonal } from "@/actions/configuration";
 import { SECTION_FRAME, SectionHeading } from "@/components/section-heading";
 import { RecordView } from "@/components/recently-viewed";
+import type { ProductPersonalState } from "@/lib/product-personal.server";
 import type { ReviewsSection } from "@/lib/reviews.server";
 import type { LocalizedProductData } from "@/lib/services/product.service";
 import { specsByKey } from "@/lib/specs-view";
 import { useProductDescription } from "@/lib/use-product-description";
-import type { Configuration } from "@/types/products";
 import type { ProductColorTemp, ProductIP } from "@repo/database";
 import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 import BuyBox from "./buy-box";
 import ColorGuide from "./color-guide";
 import ProductGallery from "./product-gallery";
@@ -28,17 +30,28 @@ import ProductSpecs from "./product-specs";
  */
 export default function ProductDetail({
   product,
-  configuration,
   locale,
   reviews,
-  signedIn,
 }: {
   product: LocalizedProductData;
-  configuration?: Configuration;
   locale: string;
   reviews: ReviewsSection;
-  signedIn: boolean;
 }) {
+  // Who is looking — their saved options and their own review — asked for
+  // once the prerendered page is on screen; null until then.
+  const [personal, setPersonal] = useState<ProductPersonalState | null>(null);
+  useEffect(() => {
+    let live = true;
+    productPersonal(product.productId)
+      .then((state) => {
+        if (live) setPersonal(state);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [product.productId]);
+
   const t = useTranslations("pdp");
   const tReviews = useTranslations("reviews");
   const lightingTypeName =
@@ -73,13 +86,12 @@ export default function ProductDetail({
             productName={product.productName}
             price={product.price}
             productId={product.productId}
-            configId={configuration?.id}
             discount={product.discount}
             brand={product.brand}
             bulbChoices={product.bulbChoices ?? []}
             lightingTypeName={lightingTypeName}
             shortDescription={shortDescription}
-            configuration={configuration}
+            personal={personal}
             ip={(product.productIp as ProductIP | null) ?? undefined}
             baseIp={(product.productIp as ProductIP | null) ?? undefined}
             maxIP={product.maxIP ?? undefined}
@@ -99,7 +111,7 @@ export default function ProductDetail({
         </section>
       )}
 
-      <div className={`${SECTION_FRAME} grid gap-12 pt-16 lg:grid-cols-12 lg:gap-14 lg:pt-20`}>
+      <div className={`${SECTION_FRAME} grid gap-12 pt-16 lg:grid-cols-12 lg:gap-14 lg:pt-24`}>
         <div className="space-y-10 lg:col-span-5">
           {fullDescription && (
             <section aria-labelledby="about-heading">
@@ -120,9 +132,9 @@ export default function ProductDetail({
         </section>
       </div>
 
-      <section aria-labelledby="reviews-heading" id="reviews" className={`${SECTION_FRAME} pt-16 lg:pt-20`}>
+      <section aria-labelledby="reviews-heading" id="reviews" className={`${SECTION_FRAME} pt-16 lg:pt-24`}>
         <SectionHeading id="reviews-heading" title={tReviews("title")} />
-        <ProductReviews productId={product.productId} locale={locale} signedIn={signedIn} initial={reviews} />
+        <ProductReviews productId={product.productId} locale={locale} initial={reviews} personal={personal} />
       </section>
     </article>
   );

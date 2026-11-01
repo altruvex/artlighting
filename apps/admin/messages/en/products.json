@@ -168,29 +168,30 @@
     },
     "specifications": {
       "title": "Specifications",
-      "description": "Technical spec sheet fields shown on the product page, per language.",
-      "save": "Save {language} specifications",
-      "saved": "{language} specifications saved"
-    },
-    "specFields": {
-      "input": "Input (AC voltage)",
-      "maximumWattage": "Maximum wattage",
-      "brandOfLed": "Brand of LED",
-      "luminousFlux": "Luminous flux",
-      "mainMaterial": "Main material",
-      "cri": "CRI",
-      "beamAngle": "Beam angle",
-      "workingTemperature": "Working temperature",
-      "fixtureDimmable": "Fixture dimmable",
-      "electrical": "Electrical (driver)",
-      "powerFactor": "Power factor",
-      "colorTemperature": "Color temperature",
-      "ip": "IP rating",
-      "energySaving": "Energy saving",
-      "lifeTime": "Life time",
-      "finish": "Finish (chandeliers)",
-      "lampBase": "Lamp base (chandeliers)",
-      "bulb": "Bulb included (chandeliers)"
+      "description": "Grouped as on the product page. Type each value in English: figures and catalogue options show in Arabic by themselves; free text needs its own Arabic.",
+      "notSet": "Not set",
+      "arabicPreview": "Arabic page shows:",
+      "newOption": "A new option. It is shared with every product that picks it, so it needs an Arabic name.",
+      "notAFigure": "Not read as a figure, so it is saved as text and needs its own Arabic.",
+      "arabicOptionName": "Arabic name for the new option",
+      "valueEn": "Value (English)",
+      "valueAr": "Value (Arabic)",
+      "customLabelEn": "Name (English)",
+      "customLabelAr": "Name (Arabic)",
+      "newRow": "New row",
+      "willRemove": "Removed when you save.",
+      "remove": "Remove {label}",
+      "undoRemove": "Keep {label}",
+      "addRow": "Add a row",
+      "groupEmpty": "Not on this product yet. Fill in a value to add this group.",
+      "changes": "{count, plural, =0 {No unsaved changes} one {# unsaved change} other {# unsaved changes}}",
+      "problems": "{count, plural, one {# spec needs its Arabic or its name before saving} other {# specs need their Arabic or their name before saving}}",
+      "discard": "Reset specifications",
+      "save": "Save specifications",
+      "saved": "Specifications saved",
+      "arabicToReview": "Saved. Check the Arabic for: {labels}",
+      "invalid": "These specifications could not be read. Reload the page and try again.",
+      "saveFailed": "The specifications could not be saved. Nothing was changed."
     },
     "images": {
       "title": "Images",
@@ -220,9 +221,18 @@
         "uploadNotConfigured": "Image uploads are not configured on this environment.",
         "uploadFailed": "Upload failed. Please try again.",
         "invalidType": "Only JPEG, PNG, WEBP and AVIF images are accepted.",
-        "tooLarge": "That image is larger than 8MB."
+        "tooLarge": "That image is larger than 8MB.",
+        "roleInvalid": "That is not a valid image role.",
+        "notFound": "That image no longer exists on this product."
       },
-      "uploadProgress": "Uploading {done} of {total}…"
+      "uploadProgress": "Uploading {done} of {total}…",
+      "role": "Datasheet role",
+      "roleAuto": "Automatic",
+      "rolePhoto": "Product photo",
+      "roleDrawing": "Dimension drawing",
+      "roleApplication": "Installed shot",
+      "roleSet": "Datasheet role updated",
+      "roleHint": "Automatic: the first image is the photo, the rest are drawings."
     },
     "variants": {
       "title": "Stock & variants",
@@ -242,7 +252,7 @@
       "price": "Price (EGP)",
       "update": "Update price",
       "updated": "Price updated",
-      "ownerOnly": "Only owners can change price.",
+      "ownerOnly": "Only managers can change price.",
       "history": "Price history",
       "historyDescription": "The last 10 recorded changes.",
       "noHistory": "No changes recorded yet.",
@@ -251,7 +261,7 @@
     },
     "discounts": {
       "title": "Discounts",
-      "ownerOnly": "Only owners can create or change discounts.",
+      "ownerOnly": "Only managers can create or change discounts.",
       "type": "Type",
       "percentage": "Percentage",
       "fixed": "Fixed",
@@ -277,7 +287,14 @@
       "title": "Datasheet",
       "description": "Generate the spec sheet for this product from its current data.",
       "downloadPptx": "Download PPTX",
-      "downloadPdf": "Download PDF"
+      "downloadPdf": "Download PDF",
+      "openStudio": "Edit & export datasheet",
+      "pptxConfirmDialog": {
+        "title": "Edit specs before downloading?",
+        "description": "You're about to download the PPTX datasheet with the specs currently saved on this product. Keep them as-is, or open the editor to change specs first — from there you can choose whether to save the changes back to the product or use them for this export only.",
+        "keepAsIs": "Keep as-is, download",
+        "editSpecs": "Edit specs first"
+      }
     }
   },
   "NewProduct": {
@@ -383,7 +400,9 @@
       "generateFailed": "Failed to generate datasheet",
       "pdfNotConfigured": "PDF export is not configured (DATASHEET_WORKER_URL/DATASHEET_WORKER_SECRET unset)",
       "pdfUnreachable": "PDF conversion service unreachable",
-      "pdfFailed": "PDF conversion failed"
+      "pdfFailed": "PDF conversion failed",
+      "invalidDraft": "The edited datasheet could not be read.",
+      "doesNotFit": "This datasheet does not fit on one page. Shorten it in the editor and try again."
     }
   },
   "Inventory": {
@@ -660,5 +679,93 @@
       "defaultRequired": "A fixture with arms has to be sold with one of them — pick which.",
       "inUse": "Still in use by {products} fixtures and {configurations} saved carts. Turn it off instead."
     }
+  },
+  "DatasheetStudio": {
+    "title": "Datasheet — {code}",
+    "subtitle": "Edit what this sheet prints and watch the page update. Your edits stay in the exported file unless you choose to save them to the product.",
+    "back": "Back to product",
+    "reset": "Reset",
+    "export": "Export",
+    "fixLayoutFirst": "The page does not fit yet — see the warning above the preview",
+    "undo": "Undo",
+    "preview": "Live preview",
+    "previewLabel": "Preview of the datasheet for {code}",
+    "changesCount": "{count, plural, one {# change can be saved to the product} other {# changes can be saved to the product}}",
+    "descriptionAuthored": "This is the product's own English description.",
+    "descriptionGenerated": "Generated from the product's specs, exactly as on the product page. Edit it freely.",
+    "sectionTitle": "Section title",
+    "newSectionTitle": "Additional Data",
+    "addSection": "Add section",
+    "addRow": "Add row",
+    "rowLabel": "Label",
+    "rowValue": "Value for {label}",
+    "highlight": "Highlight this value in gold",
+    "moveUp": "Move row up",
+    "moveDown": "Move row down",
+    "removeRow": "Remove row from this sheet",
+    "moveSectionUp": "Move section up",
+    "moveSectionDown": "Move section down",
+    "removeSection": "Remove section from this sheet",
+    "source": {
+      "spec": "From the product's specs",
+      "editedSpec": "Edited · product says “{value}”",
+      "derived": "From the product's brand · file only",
+      "new": "New · file only unless saved"
+    },
+    "sections": {
+      "heading": "Title",
+      "description": "Description",
+      "pictures": "Pictures",
+      "picturesDescription": "Pick which of the product's images the sheet uses. File only."
+    },
+    "fields": {
+      "code": "Product code",
+      "category": "Line under the code"
+    },
+    "pictures": {
+      "photo": "Product photo",
+      "drawings": "Dimension drawings",
+      "drawingsHint": "Up to four, arranged automatically.",
+      "drawingsMax": "A sheet holds at most four drawings.",
+      "application": "Installed shot",
+      "brandLogo": "Show the {brand} logo under Brand & Partners"
+    },
+    "layout": {
+      "specsOverflow": "The specifications no longer fit on one page, even compressed. Remove or shorten rows before exporting.",
+      "descriptionTooLong": "The description leaves too little room for the dimension drawing. Shorten it before exporting."
+    },
+    "errors": {
+      "invalid": "Those changes could not be read.",
+      "notFound": "This product no longer exists.",
+      "saveFailed": "The changes could not be saved to the product. Nothing was changed."
+    },
+    "exportDialog": {
+      "title": "Export datasheet",
+      "description": "The file uses everything on screen, including edits you do not save.",
+      "format": "Format",
+      "formats": {
+        "pdf": "PDF",
+        "pptx": "PowerPoint (.pptx)"
+      },
+      "saveQuestion": "{count, plural, one {Save this change to the product too?} other {Save these changes to the product too?}}",
+      "saveExplain": "Saved changes update the product's specs, so the product page and future sheets show them. Untick anything that is for this file only.",
+      "fileOnlyNote": "Removed rows, the title lines and the pictures are never saved: they only shape this file.",
+      "change": {
+        "description": "Description",
+        "label": "Label renamed",
+        "added": "New spec in {group}"
+      },
+      "noChanges": "Nothing was changed from the product's own data.",
+      "noPermission": "You can export this file, but saving changes to the product needs product editing rights.",
+      "fileOnly": "No, this file only",
+      "saveAndExport": "{count, plural, one {Save # change & export} other {Save # changes & export}}",
+      "exportOnly": "Export",
+      "working": "Working…",
+      "saved": "{count, plural, one {# change saved to the product} other {# changes saved to the product}}",
+      "arabicToReview": "Saved in English. Check the Arabic wording for: {labels}",
+      "downloaded": "Datasheet downloaded",
+      "failed": "The datasheet could not be exported."
+    },
+    "jumpToPreview": "Preview"
   }
 }

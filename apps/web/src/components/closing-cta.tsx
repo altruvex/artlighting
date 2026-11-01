@@ -1,5 +1,5 @@
 import { SECTION_FRAME } from "@/components/section-heading";
-import { Button } from "@/components/ui/button";
+import { Button } from "@repo/ui/components/button";
 import { SHOWROOM_MAP, SHOWROOM_PHONE, SHOWROOM_WHATSAPP } from "@/lib/showroom";
 import { Clock, MapPin, MessageCircle, Phone } from "lucide-react";
 import { getTranslations } from "next-intl/server";
@@ -21,7 +21,7 @@ export async function ClosingCta({ locale }: { locale: string }) {
 
   return (
     <section aria-labelledby="closing-cta-heading" className={`${SECTION_FRAME} py-12 lg:py-20`}>
-      <div className="relative isolate overflow-hidden rounded-3xl border border-border">
+      <div className="relative isolate overflow-hidden rounded-sm border border-border">
         <Image
           src="/misterled-landing/landing-2.png"
           alt=""
@@ -41,10 +41,10 @@ export async function ClosingCta({ locale }: { locale: string }) {
         />
         <div className="max-w-xl space-y-6 px-6 py-12 sm:px-10 sm:py-16 lg:px-14 lg:py-20">
           <div className="space-y-3">
-            <p className="text-[length:var(--text-xs)] font-semibold uppercase tracking-[0.14em] text-primary">{t("eyebrow")}</p>
+            <p className="eyebrow">{t("eyebrow")}</p>
             <h2
               id="closing-cta-heading"
-              className="font-[family-name:var(--font-display-face)] text-[length:var(--text-3xl)] font-semibold leading-[1.1] tracking-tight text-balance"
+              className="font-[family-name:var(--font-display-face)] text-[length:var(--text-3xl)] font-medium leading-[1.1] ltr:tracking-tight rtl:leading-[1.3] text-balance"
             >
               {t("title")}
             </h2>

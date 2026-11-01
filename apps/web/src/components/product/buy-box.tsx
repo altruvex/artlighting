@@ -1,21 +1,23 @@
 "use client"
 
 import { addToCart } from "@/actions/cart"
+import { ensureConfiguration } from "@/actions/configuration"
 import { updateProductIP } from "@/actions/product-ip"
 import { saveConfig as _saveConfig, type SaveConfigArgs } from "@/actions/save-config"
 import DiscountPrice from "@/components/price/discount-price"
 import NormalPrice from "@/components/price/normal-price"
-import { Button } from "@/components/ui/button"
+import { Button } from "@repo/ui/components/button"
 import {
   Dialog, DialogClose, DialogContent, DialogDescription,
   DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog"
+} from "@repo/ui/components/dialog"
 import { useRouter } from "@/i18n/navigation"
 import { useAuth } from "@/lib/auth-hooks"
 import { notifyCartChanged } from "@/lib/cart-events"
 import { formatNumber, formatPercent } from "@/lib/numbers"
 import { SHOWROOM_PHONE } from "@/lib/showroom"
 import { cn } from "@/lib/utils"
+import type { ProductPersonalState } from "@/lib/product-personal.server"
 import { ProductIP, type Configuration, type SupportedCurrency } from "@/types/products"
 import type { BulbChoice } from "@repo/catalog/bulb-pricing"
 import type { ProductFamily } from "@repo/catalog/families"
@@ -45,7 +47,6 @@ export interface BuyBoxProps {
   /** Serialized money (see @repo/money): never a float. */
   price: string
   productId: string
-  configId?: string
   /** Rate, not percent: 0.13 = 13%. */
   discount: string
   brand: string
@@ -55,7 +56,12 @@ export interface BuyBoxProps {
   lightingTypeName?: string
   /** One line under the title, built from the catalogue. */
   shortDescription: string
-  configuration?: Configuration
+  /**
+   * Who is looking, fetched after the prerendered page loads; null until
+   * then. The box renders with the defaults and adopts the saved choices
+   * when it arrives.
+   */
+  personal: ProductPersonalState | null
   /** The rating the customer starts on. */
   ip?: PrismaProductIP
   /** The fixture's own rating — the floor the customer upgrades from. */
@@ -84,13 +90,12 @@ export default function BuyBox({
   productName,
   price,
   productId,
-  configId,
   discount,
   brand,
   bulbChoices = [],
   lightingTypeName,
   shortDescription,
-  configuration: initialConfiguration,
+  personal,
   ip,
   baseIp,
   maxIP,
@@ -111,32 +116,82 @@ export default function BuyBox({
   const [showDialog, setShowDialog] = useState(false)
   const [quantity, setQuantity] = useState(1)
   const [isClicked, setIsClicked] = useState(false)
-  const [configuration, setConfiguration] = useState<Configuration | undefined>(initialConfiguration)
+  const [configuration, setConfiguration] = useState<Configuration | undefined>(undefined)
 
-  const [selectedColorTemp, setSelectedColorTemp] = useState<ProductColorTemp>(
-    initialConfiguration?.colorTemp ?? defaultColorTemp,
-  )
+  // The configuration row is created on the first choice, not by the page
+  // view: a visitor who only looks never writes. Every option and "order
+  // now" goes through ensureConfigId, which creates it at most once.
+  const [configId, setConfigId] = useState<string | undefined>(undefined)
+  const configIdRef = useRef<string | undefined>(undefined)
+  const pendingConfigRef = useRef<Promise<string | null> | null>(null)
+  // Set on the customer's first choice: a saved configuration that arrives
+  // after it must not undo what they just picked.
+  const touchedRef = useRef(false)
+  const ensureConfigId = useCallback((): Promise<string | null> => {
+    touchedRef.current = true
+    if (configIdRef.current) return Promise.resolve(configIdRef.current)
+    pendingConfigRef.current ??= ensureConfiguration(productId, locale)
+      .then((created) => {
+        if (!created) return null
+        configIdRef.current = created.id
+        setConfigId(created.id)
+        return created.id
+      })
+      .catch(() => null)
+      .finally(() => {
+        // A failure may be retried by the next click.
+        if (!configIdRef.current) pendingConfigRef.current = null
+      })
+    return pendingConfigRef.current
+  }, [productId, locale])
 
-  const [selectedProductIp, setSelectProductIp] = useState<PrismaProductIP>(
-    (initialConfiguration?.productIp as unknown as PrismaProductIP) ?? ip ?? "IP20",
-  )
+  const [selectedColorTemp, setSelectedColorTemp] = useState<ProductColorTemp>(defaultColorTemp)
+
+  const [selectedProductIp, setSelectProductIp] = useState<PrismaProductIP>(ip ?? "IP20")
 
   // Which bulb, not which of two hard-coded wattages. The fixture is sold
   // with one, so the default stands until the customer picks another.
   const [selectedBulbId, setSelectedBulbId] = useState<string | undefined>(
-    configuration?.bulbId ?? bulbChoices.find((choice) => choice.isDefault)?.id,
+    bulbChoices.find((choice) => choice.isDefault)?.id,
   )
 
   // Money as serialized strings; see @repo/money. Both start from the saved
   // configuration, not zero: the IP and the bulb are restored on load, and
   // starting the amounts at zero showed the upgrade picked at the base price.
-  const [priceIncrease, setPriceIncrease] = useState<string>(initialConfiguration?.priceIncrease ?? "0")
-  const [lampPriceIncrease, setLampPriceIncrease] = useState<string>(configuration?.lampPriceIncrease ?? "0")
+  const [priceIncrease, setPriceIncrease] = useState<string>("0")
+  const [lampPriceIncrease, setLampPriceIncrease] = useState<string>("0")
 
   const { isSignedIn } = useAuth()
   // What the server currently holds for the IP, so neither effect below
   // writes a value it already has.
-  const appliedIpRef = useRef<string | undefined>(initialConfiguration?.productIp as string | undefined)
+  const appliedIpRef = useRef<string | undefined>(undefined)
+  // Bumped when a saved configuration is adopted, to remount the option
+  // groups: each keeps its own selection, initialised from its props.
+  const [savedVersion, setSavedVersion] = useState(0)
+
+  const applySaved = useCallback(
+    (saved: Configuration | null) => {
+      if (!saved) return
+      if (!configIdRef.current) {
+        configIdRef.current = saved.id
+        setConfigId(saved.id)
+      }
+      if (touchedRef.current) return
+      appliedIpRef.current = saved.productIp as string | undefined
+      setConfiguration(saved)
+      setSelectedColorTemp(saved.colorTemp ?? defaultColorTemp)
+      if (saved.productIp) setSelectProductIp(saved.productIp as unknown as PrismaProductIP)
+      if (saved.bulbId) setSelectedBulbId(saved.bulbId)
+      setPriceIncrease(saved.priceIncrease ?? "0")
+      setLampPriceIncrease(saved.lampPriceIncrease ?? "0")
+      setSavedVersion((version) => version + 1)
+    },
+    [defaultColorTemp],
+  )
+
+  useEffect(() => {
+    if (personal) applySaved(personal.configuration)
+  }, [personal, applySaved])
   const isUpdatingRef = useRef(false)
   const lastUpdateRef = useRef<string>("")
 
@@ -254,11 +309,17 @@ export default function BuyBox({
     },
   })
 
-  const handleOrderNow = useCallback(() => {
-    if (soldOut || isSavingConfig || isClicked || !configId || quantity < 1) return
+  const handleOrderNow = useCallback(async () => {
+    if (soldOut || isSavingConfig || isClicked || quantity < 1) return
     setIsClicked(true)
-    saveConfig({ configId, productId, quantity })
-  }, [soldOut, isSavingConfig, isClicked, configId, productId, quantity, saveConfig])
+    const id = await ensureConfigId()
+    if (!id) {
+      toast.error(tNotification("orderError"))
+      setIsClicked(false)
+      return
+    }
+    saveConfig({ configId: id, productId, quantity })
+  }, [soldOut, isSavingConfig, isClicked, ensureConfigId, productId, quantity, saveConfig, tNotification])
 
   const handleAddToBag = useCallback(() => {
     if (!isSignedIn) {
@@ -283,14 +344,14 @@ export default function BuyBox({
   }, [isSignedIn, quantity, productId, tNotification, productName])
 
   const stockLine = soldOut
-    ? { tone: "text-destructive", dot: "bg-destructive", text: tPdp("soldOut") }
+    ? { tone: "text-danger", dot: "bg-danger", text: tPdp("soldOut") }
     : stock !== null && stock <= LOW_STOCK
       ? {
           tone: "text-foreground",
-          dot: "bg-primary",
+          dot: "bg-warning",
           text: tPdp("fewLeft", { count: stock, formatted: formatNumber(stock, locale === "ar" ? "ar" : "en") }),
         }
-      : { tone: "text-foreground", dot: "bg-emerald-500", text: tPdp("inStock") }
+      : { tone: "text-foreground", dot: "bg-success", text: tPdp("inStock") }
 
   const ipNote = showIP20Text
     ? t("availableOnlyIP20")
@@ -304,11 +365,9 @@ export default function BuyBox({
     <div className="space-y-6">
       <header className="space-y-3">
         {lightingTypeName && (
-          <p className="text-[length:var(--text-xs)] font-semibold uppercase tracking-[0.14em] text-primary">
-            {lightingTypeName}
-          </p>
+          <p className="eyebrow">{lightingTypeName}</p>
         )}
-        <h1 className="font-[family-name:var(--font-display-face)] text-[length:var(--text-3xl)] font-semibold leading-[1.1] tracking-tight text-balance">
+        <h1 className="font-[family-name:var(--font-display-face)] text-[length:var(--text-3xl)] font-medium leading-[1.08] text-balance ltr:tracking-tight rtl:leading-[1.3]">
           {productName}
         </h1>
         {shortDescription && (
@@ -319,7 +378,7 @@ export default function BuyBox({
         {ratingCount > 0 && ratingAverage !== null && (
           <a
             href="#reviews"
-            className="inline-flex items-center gap-2 text-[length:var(--text-sm)] transition-colors duration-[var(--dur-hover)] hover:text-primary"
+            className="inline-flex min-h-10 items-center gap-2 text-[length:var(--text-sm)] transition-colors md:min-h-0 duration-[var(--dur-hover)] hover:text-primary"
           >
             <StarRating value={ratingAverage} />
             <span className="sr-only">{ratingLabel(ratingAverage, ratingCount, locale)}</span>
@@ -330,7 +389,7 @@ export default function BuyBox({
         )}
       </header>
 
-      <div className="space-y-2 rounded-2xl border border-border bg-card/50 p-5">
+      <div className="space-y-2 border-y border-border py-5">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           {/* Keyed on the figure, so the one piece of motion on the page
               plays exactly when the price changes and at no other time. */}
@@ -355,7 +414,9 @@ export default function BuyBox({
               <s className="text-[length:var(--text-base)] tabular-nums text-muted-foreground">
                 <NormalPrice price={totalPriceBeforeDiscount} quantity={quantity} />
               </s>
-              <span className="rounded-md bg-primary px-2 py-0.5 text-[length:var(--text-xs)] font-semibold tabular-nums text-primary-foreground">
+              {/* Outlined, not filled: the price is the figure to read, the
+                  rate only qualifies it. */}
+              <span className="self-center rounded-sm border border-primary/40 px-1.5 py-0.5 text-[length:var(--text-xs)] font-semibold tabular-nums text-primary">
                 {formatPercent(discount, locale)} {t("off")}
               </span>
             </>
@@ -377,20 +438,23 @@ export default function BuyBox({
             for a fixture a bulb goes into. */}
         {bulbChoices.length > 0 && (
           <BulbOptions
-            configId={configId}
+            key={`bulb-${savedVersion}`}
+            ensureConfigId={ensureConfigId}
             choices={bulbChoices}
             selectedBulbId={selectedBulbId}
             onBulbChange={handleBulbChange}
           />
         )}
         <ColorTempOptions
-          configId={configId}
+          key={`temp-${savedVersion}`}
+          ensureConfigId={ensureConfigId}
           productColorTemp={selectedColorTemp}
           onColorTempChange={setSelectedColorTemp}
         />
         {brand === "balcom" && (
           <IpOptions
-            configId={configId ?? ""}
+            key={`ip-${savedVersion}`}
+            ensureConfigId={ensureConfigId}
             baseIp={(baseIp ?? "IP20") as ProductIP}
             productIp={selectedProductIp}
             onProductIpChange={handleProductIPChange}
@@ -399,7 +463,9 @@ export default function BuyBox({
             maxIP={maxIP ?? 20}
           />
         )}
-        {ipNote && <p className="text-[length:var(--text-xs)] font-medium text-destructive">{ipNote}</p>}
+        {/* A limit of the fixture, not an error: the status tone for a
+            heads-up, not the red the site keeps for things that failed. */}
+        {ipNote && <p className="text-[length:var(--text-xs)] font-medium text-warning">{ipNote}</p>}
       </div>
 
       {/* On a phone this rides along at the bottom of the screen; from md up
@@ -443,11 +509,11 @@ export default function BuyBox({
           taken rather than three sections further down the page. */}
       <ul className="grid gap-3 border-t border-border pt-5 text-[length:var(--text-sm)] text-muted-foreground sm:grid-cols-2">
         <li className="flex items-center gap-2.5">
-          <TruckIcon className="size-4 shrink-0 text-primary" aria-hidden />
+          <TruckIcon className="size-4 shrink-0 text-foreground/70" aria-hidden />
           {t("delivery")}
         </li>
         <li className="flex items-center gap-2.5">
-          <BanknoteIcon className="size-4 shrink-0 text-primary" aria-hidden />
+          <BanknoteIcon className="size-4 shrink-0 text-foreground/70" aria-hidden />
           {t("cod")}
         </li>
       </ul>

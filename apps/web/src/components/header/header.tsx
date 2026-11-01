@@ -1,30 +1,22 @@
 "use client"
 
 import { Container } from "@/components/container"
-import { Button } from "@/components/ui/button"
+import { Button } from "@repo/ui/components/button"
 import {
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuList,
   NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu"
-import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+} from "@repo/ui/components/navigation-menu"
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@repo/ui/components/sheet"
 import { ChandelierItems, IndoorItems, OutdoorItems } from "@/constants"
 import { Link, usePathname } from "@/i18n/navigation"
 import { familySlug, type ProductFamily } from "@repo/catalog/families"
 import { cn } from "@/lib/utils"
-import {
-  BoxIcon,
-  BriefcaseIcon,
-  MailIcon,
-  MenuIcon,
-  MoveRight,
-  NewspaperIcon,
-  TagIcon,
-  UserIcon,
-  XIcon,
-} from "lucide-react"
+import { APPLICATIONS } from "@/content/applications"
+import { pick } from "@/content/l10n"
+import { MenuIcon, TagIcon, XIcon } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import Image from "next/image"
 import { CartSidebar } from "../cart-sidebar"
@@ -33,33 +25,25 @@ import AuthSection from "./auth-section"
 import { AuthSectionWrapper } from "./auth-section-wrapper"
 import { SearchHeader } from "./search-header"
 
-interface Project {
-  ProjectId: string
-  ProjectName: string
-  ProjectImages: string[]
-  ProjectDescription: string
-}
-
-interface HeaderProps {
-  projectsForHeader: Project[]
-}
 
 /**
- * The header, as a shop's header.
+ * The header: how a customer understands the company, not how the
+ * database is organised.
  *
- * Three things were wrong with the old one. The account, search and
- * language controls were `<div>`s inside the navigation `<ul>` — invalid
- * nesting, and the hydration error every page logged. The order put "about
- * us" first and the catalogue third, which is the order of a brochure. And
- * the first menu entry a shopper wants — everything, on sale — did not
- * exist at all.
+ * Products first — this is still where most visits go — then the way in
+ * for people who start from a space (applications), what the company does
+ * besides sell (services), the proof (projects), the knowledge (the
+ * guide), and the company itself. Offers live inside the products menu and
+ * in the promo bar above, rather than as a top-level item next to the
+ * company's name.
  *
- * Now: brand, then the shop, the offers and the proof, then the controls
- * in their own group outside the list. The current section is marked, so a
- * shopper can tell where they are.
+ * The controls stay in their own group outside the navigation list — a
+ * `<ul>` may only hold `<li>`, and nesting them was a hydration error. The
+ * current section is marked, so a visitor can tell where they are.
  */
-export default function Header({ projectsForHeader }: HeaderProps) {
+export default function Header() {
   const t = useTranslations("header")
+  const tNav = useTranslations("nav")
   const tProducts = useTranslations("products")
   const tFamily = useTranslations("family")
   const locale = useLocale()
@@ -68,29 +52,37 @@ export default function Header({ projectsForHeader }: HeaderProps) {
 
   const isCurrent = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
 
+  const company = [
+    { href: "/services", label: tNav("services") },
+    { href: "/all-projects", label: tNav("projects") },
+    { href: "/lighting-guide", label: tNav("guide"), wide: true },
+    { href: "/about-us", label: tNav("about") },
+    { href: "/contact-us", label: tNav("contact"), wide: true },
+  ]
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 w-full border-b border-border/70 bg-background/90 backdrop-blur-md">
       <Container>
         <div className="flex h-16 items-center gap-2 sm:gap-4">
-          <Link href="/" className="flex shrink-0 items-center" prefetch={false} aria-label="Art Lighting - Home">
+          <Link href="/" className="flex shrink-0 items-center" prefetch={false} aria-label={t("home")}>
             <Image
               width={80}
               height={80}
               src={locale === "ar" ? "/logo-ar.png" : "/logo-en.png"}
               className="h-12 w-12 sm:h-14 sm:w-14"
-              alt="Art Lighting Logo"
+              alt={t("logo")}
               priority
             />
           </Link>
 
           <NavigationMenu className="hidden lg:flex">
-            <NavigationMenuList className="flex items-center gap-1">
+            <NavigationMenuList className="flex items-center gap-0.5">
               <NavigationMenuItem>
                 <NavigationMenuTrigger className={cn(navTrigger, isCurrent("/products") && navCurrent)}>
-                  {t("shop")}
+                  {tNav("products")}
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <div className="grid w-[min(40rem,calc(100vw-3rem))] grid-cols-[repeat(3,minmax(0,1fr))] gap-5 p-6">
+                  <div className="grid w-[min(44rem,calc(100vw-3rem))] grid-cols-[repeat(3,minmax(0,1fr))] gap-6 p-6">
                     <ShopColumn
                       title={tFamily("INDOOR")}
                       href={`/products?family=${familySlug("INDOOR")}`}
@@ -123,7 +115,7 @@ export default function Header({ projectsForHeader }: HeaderProps) {
                       more={{ label: t("models"), href: `/products?family=${familySlug("CHANDELIER")}` }}
                     />
                   </div>
-                  <div className="flex items-center justify-between gap-4 border-t border-border bg-card/60 px-6 py-4">
+                  <div className="flex items-center justify-between gap-4 border-t border-border px-6 py-4">
                     <Link
                       href="/products"
                       className="text-[length:var(--text-sm)] font-semibold underline-offset-4 hover:underline"
@@ -132,7 +124,7 @@ export default function Header({ projectsForHeader }: HeaderProps) {
                     </Link>
                     <Link
                       href="/products?sale=1&sort=discount"
-                      className="inline-flex items-center gap-2 rounded-full bg-primary/12 px-3 py-1.5 text-[length:var(--text-sm)] font-medium text-primary transition-colors duration-[var(--dur-hover)] hover:bg-primary hover:text-primary-foreground"
+                      className="inline-flex items-center gap-2 text-[length:var(--text-sm)] font-medium text-primary underline-offset-4 hover:underline"
                     >
                       <TagIcon className="size-4" aria-hidden />
                       {t("see-offers")}
@@ -142,66 +134,42 @@ export default function Header({ projectsForHeader }: HeaderProps) {
               </NavigationMenuItem>
 
               <NavigationMenuItem>
-                <NavLink href="/products?sale=1&sort=discount" className="text-primary">
-                  {t("offers")}
-                </NavLink>
-              </NavigationMenuItem>
-
-              <NavigationMenuItem>
-                <NavigationMenuTrigger className={cn(navTrigger, isCurrent("/all-projects") && navCurrent)}>
-                  {t("projects")}
+                <NavigationMenuTrigger className={cn(navTrigger, isCurrent("/applications") && navCurrent)}>
+                  {tNav("applications")}
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <ul className="grid w-[min(40rem,calc(100vw-3rem))] grid-cols-3 gap-4 p-5">
-                    {projectsForHeader.map((project) => (
-                      <li key={project.ProjectId}>
-                        <Link
-                          href={`/all-projects/${project.ProjectId}`}
-                          className="group block overflow-hidden rounded-xl border border-border bg-card transition-colors duration-[var(--dur-hover)] hover:border-primary/50"
-                        >
-                          <Image
-                            width={300}
-                            height={200}
-                            className="h-32 w-full object-cover transition-transform duration-700 ease-[var(--ease-out)] group-hover:scale-[1.04]"
-                            src={project.ProjectImages[0] || "/placeholder.svg"}
-                            alt={project.ProjectName}
-                          />
-                          <div className="space-y-1.5 p-4">
-                            <h3 className="line-clamp-2 text-[length:var(--text-sm)] font-semibold">
-                              {project.ProjectName}
-                            </h3>
-                            <p className="line-clamp-2 text-[length:var(--text-xs)] text-muted-foreground">
-                              {project.ProjectDescription}
-                            </p>
-                            <span className="inline-flex items-center gap-2 text-[length:var(--text-xs)] text-primary group-hover:underline">
-                              {t("view-details")}
-                              <MoveRight className={isRTL ? "rotate-180" : ""} size={14} aria-hidden />
+                  <div className="w-[min(40rem,calc(100vw-3rem))] p-6">
+                    <p className="mb-4 text-[length:var(--text-sm)] text-muted-foreground">{tNav("applicationsIntro")}</p>
+                    <ul className="grid grid-cols-2 gap-x-6">
+                      {APPLICATIONS.map((application) => (
+                        <li key={application.slug} className="border-t border-border">
+                          <Link href={`/applications/${application.slug}`} className="group block py-3">
+                            <span className="block text-[length:var(--text-sm)] font-semibold transition-colors duration-[var(--dur-hover)] group-hover:text-primary">
+                              {pick(application.name, locale)}
                             </span>
-                          </div>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+                            <span className="mt-0.5 line-clamp-1 block text-[length:var(--text-xs)] text-muted-foreground">
+                              {pick(application.summary, locale)}
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="border-t border-border px-6 py-4">
+                    <Link href="/applications" className="text-[length:var(--text-sm)] font-semibold underline-offset-4 hover:underline">
+                      {tNav("allApplications")}
+                    </Link>
+                  </div>
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
-              <NavigationMenuItem>
-                <NavLink href="/blog" current={isCurrent("/blog")}>
-                  {t("blog")}
-                </NavLink>
-              </NavigationMenuItem>
-
-              <NavigationMenuItem className="hidden xl:block">
-                <NavLink href="/about-us" current={isCurrent("/about-us")}>
-                  {t("about-us")}
-                </NavLink>
-              </NavigationMenuItem>
-
-              <NavigationMenuItem className="hidden xl:block">
-                <NavLink href="/contact-us" current={isCurrent("/contact-us")}>
-                  {t("contact-us")}
-                </NavLink>
-              </NavigationMenuItem>
+              {company.map((item) => (
+                <NavigationMenuItem key={item.href} className={item.wide ? "hidden xl:block" : undefined}>
+                  <NavLink href={item.href} current={isCurrent(item.href)}>
+                    {item.label}
+                  </NavLink>
+                </NavigationMenuItem>
+              ))}
             </NavigationMenuList>
           </NavigationMenu>
 
@@ -222,72 +190,67 @@ export default function Header({ projectsForHeader }: HeaderProps) {
 
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9 bg-transparent lg:hidden" aria-label={t("menu")}>
+                <Button variant="outline" size="icon" className="size-10 bg-transparent lg:hidden" aria-label={t("menu")}>
                   <MenuIcon className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
 
-              <SheetContent side={isRTL ? "left" : "right"} className="w-[85vw] max-w-sm overflow-y-auto">
-                <div className="flex items-center justify-between gap-3 px-3 py-2">
+              <SheetContent side={isRTL ? "left" : "right"} showCloseButton={false} className="w-[88vw] max-w-sm overflow-y-auto">
+                <div className="flex items-center justify-between gap-3 px-4 py-3">
                   <SheetHeader className="px-0 py-0">
                     <SheetTitle className="sr-only">{t("menu")}</SheetTitle>
                     <LanguageSwitcher currentLocale={locale} />
                   </SheetHeader>
-                  <SheetClose className="cursor-pointer">
-                    <XIcon className="size-5" />
-                    <span className="sr-only">Close</span>
+                  <SheetClose className="grid size-10 cursor-pointer place-items-center rounded-md transition-colors duration-[var(--dur-hover)] hover:bg-accent">
+                    <XIcon className="size-5" aria-hidden />
+                    <span className="sr-only">{t("close")}</span>
                   </SheetClose>
                 </div>
 
-                <div className="border-y border-border px-3 py-4">
+                <div className="border-y border-border px-4 py-4">
                   <SearchHeader isMobileSheet />
                 </div>
 
-                <nav className="flex flex-col gap-1 p-3">
-                  <SheetClose asChild>
-                    <Link href="/products" className={sheetLink} prefetch={false}>
-                      <BoxIcon className="size-4 shrink-0" aria-hidden />
-                      {t("all-products")}
-                    </Link>
-                  </SheetClose>
+                <nav aria-label={t("menu")} className="px-4 py-2">
+                  <p className="eyebrow pt-4 pb-2">{tNav("shopSection")}</p>
+                  <ul>
+                    {[
+                      { href: "/products", label: t("all-products") },
+                      { href: `/products?family=${familySlug("INDOOR")}`, label: tFamily("INDOOR") },
+                      { href: `/products?family=${familySlug("OUTDOOR")}`, label: tFamily("OUTDOOR") },
+                      { href: `/products?family=${familySlug("CHANDELIER")}`, label: tFamily("CHANDELIER") },
+                      { href: "/products?sale=1&sort=discount", label: tNav("offers"), accent: true },
+                    ].map((item) => (
+                      <li key={item.href} className="border-b border-border/70">
+                        <SheetClose asChild>
+                          <Link href={item.href} className={cn(sheetLink, item.accent && "text-primary")} prefetch={false}>
+                            {item.label}
+                          </Link>
+                        </SheetClose>
+                      </li>
+                    ))}
+                  </ul>
 
-                  <SheetClose asChild>
-                    <Link href="/products?sale=1&sort=discount" className={cn(sheetLink, "text-primary")} prefetch={false}>
-                      <TagIcon className="size-4 shrink-0" aria-hidden />
-                      {t("offers")}
-                    </Link>
-                  </SheetClose>
-
-                  <SheetClose asChild>
-                    <Link href="/all-projects" className={sheetLink} prefetch={false}>
-                      <BriefcaseIcon className="size-4 shrink-0" aria-hidden />
-                      {t("projects")}
-                    </Link>
-                  </SheetClose>
-
-                  <SheetClose asChild>
-                    <Link href="/blog" className={sheetLink} prefetch={false}>
-                      <NewspaperIcon className="size-4 shrink-0" aria-hidden />
-                      {t("blog")}
-                    </Link>
-                  </SheetClose>
-
-                  <SheetClose asChild>
-                    <Link href="/about-us" className={sheetLink} prefetch={false}>
-                      <UserIcon className="size-4 shrink-0" aria-hidden />
-                      {t("about-us")}
-                    </Link>
-                  </SheetClose>
-
-                  <SheetClose asChild>
-                    <Link href="/contact-us" className={sheetLink} prefetch={false}>
-                      <MailIcon className="size-4 shrink-0" aria-hidden />
-                      {t("contact-us")}
-                    </Link>
-                  </SheetClose>
+                  <p className="eyebrow pt-8 pb-2">{tNav("companySection")}</p>
+                  <ul>
+                    {[{ href: "/applications", label: tNav("applications") }, ...company].map((item) => (
+                      <li key={item.href} className="border-b border-border/70">
+                        <SheetClose asChild>
+                          <Link
+                            href={item.href}
+                            aria-current={isCurrent(item.href) ? "page" : undefined}
+                            className={cn(sheetLink, isCurrent(item.href) && "text-primary")}
+                            prefetch={false}
+                          >
+                            {item.label}
+                          </Link>
+                        </SheetClose>
+                      </li>
+                    ))}
+                  </ul>
                 </nav>
 
-                <div className="border-t border-border p-3">
+                <div className="mt-4 border-t border-border p-4">
                   <AuthSectionWrapper>
                     <AuthSection variant="sheet" />
                   </AuthSectionWrapper>
@@ -312,7 +275,7 @@ const navTrigger =
 const navCurrent = "text-primary"
 
 const sheetLink =
-  "flex items-center gap-3 rounded-md p-3 text-[length:var(--text-sm)] font-medium transition-colors duration-[var(--dur-hover)] hover:bg-accent"
+  "flex items-center justify-between py-3.5 text-[length:var(--text-base)] font-medium transition-colors duration-[var(--dur-hover)] hover:text-primary"
 
 function NavLink({
   href,
@@ -341,7 +304,7 @@ function NavLink({
   )
 }
 
-/** One family in the shop menu: the family itself, then its types. */
+/** One family in the products menu: the family itself, then its types. */
 function ShopColumn({
   title,
   href,

@@ -5,6 +5,7 @@ import * as catalog from "@repo/catalog";
 import { requirePermission } from "@/lib/auth";
 import { getTranslations } from "next-intl/server";
 import { revalidatePath } from "next/cache";
+import { revalidateStorefront } from "@/lib/storefront";
 import { ActionError, run } from "./result";
 
 /**
@@ -134,7 +135,8 @@ export async function applyProductsSheet(formData: FormData) {
     if (rows.length > MAX_ROWS) throw new ActionError(t("errors.tooManyRows", { max: MAX_ROWS }));
 
     const result = await catalog.applyImport(rows, admin.id);
-    revalidatePath("/admin/dashboard/products");
+    revalidateStorefront();
+    revalidatePath("/dashboard/products");
     return result;
   });
 }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { upstashRest } from "../upstash-rest.cjs";
 
 /**
  * Server-side environment contract for apps/web, validated once at server
@@ -15,13 +16,18 @@ const core = z.object({
   DATABASE_URL: z.string().startsWith("postgres", "must be a postgres:// connection string"),
   BETTER_AUTH_SECRET: z.string().min(32, "must be at least 32 characters"),
   NEXT_PUBLIC_APP_URL: url,
-  UPSTASH_REDIS_REST_URL: url,
-  UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
 });
 
 const features = z.object({
   BETTER_AUTH_URL: url.optional(),
   NEXT_PUBLIC_ADMIN_URL: url.optional(),
+  // Order and account emails (lib/email). Without the key they are logged.
+  RESEND_API_KEY: z.string().startsWith("re_", "must be a Resend API key (re_…)").optional(),
+  EMAIL_FROM: z.string().min(3).optional(),
+  ORDER_NOTIFY_EMAIL: z.string().min(3).optional(),
+  // Shared with apps/admin: lets it drop the cached catalogue after a write
+  // (app/api/revalidate). Without it, admin edits show within 5 minutes.
+  STOREFRONT_REVALIDATE_SECRET: z.string().min(32, "must be at least 32 characters").optional(),
 });
 
 export function validateServerEnv(): void {
@@ -33,6 +39,10 @@ export function validateServerEnv(): void {
   };
 
   const coreProblems = problems(core, process.env);
+  // Redis can come as REDIS_URL or as the UPSTASH_REDIS_REST_* pair.
+  if (!upstashRest()) {
+    coreProblems.push("  - REDIS_URL: set it (rediss://…@<db>.upstash.io) or UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN");
+  }
   const featureProblems = problems(features, process.env);
 
   if (featureProblems.length > 0) {

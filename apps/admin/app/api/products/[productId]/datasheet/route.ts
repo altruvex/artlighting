@@ -1,85 +1,96 @@
 import { NextResponse } from "next/server";
 import { getTranslations } from "next-intl/server";
-import { AdminAuthError, requireAdmin } from "@/lib/auth";
-import { buildProductDatasheetPptx } from "@repo/datasheet";
+import { AdminAuthError, requirePermission } from "@/lib/auth";
+import { buildProductDatasheetPptx, checkDatasheetLayout, type DatasheetProductData } from "@repo/datasheet";
+import { draftToDatasheetData, productImageResolver } from "@repo/datasheet-data";
+import { datasheetDraftSchema } from "@/lib/datasheet/draft-schema";
 import { getDatasheetProductData } from "@/lib/datasheet/get-datasheet-data";
+import { convertPptxToPdf, PPTX_CONTENT_TYPE } from "@/lib/documents/pdf";
 
-const PPTX_CONTENT_TYPE =
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation";
-
-export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ productId: string }> }
-) {
-  const t = await getTranslations("Datasheet");
+async function authorize(t: Awaited<ReturnType<typeof getTranslations<"Datasheet">>>) {
   try {
-    await requireAdmin();
+    await requirePermission("datasheet:generate");
+    return null;
   } catch (err) {
     if (err instanceof AdminAuthError) {
-      return NextResponse.json({ error: t("errors.unauthorized") }, { status: 401 });
+      return NextResponse.json(
+        { error: err.reason === "unauthenticated" ? t("errors.unauthorized") : err.message },
+        { status: err.reason === "unauthenticated" ? 401 : 403 },
+      );
     }
     throw err;
   }
+}
 
-  const { productId } = await params;
-  const format = new URL(req.url).searchParams.get("format") === "pdf" ? "pdf" : "pptx";
-
-  const data = await getDatasheetProductData(productId);
-  if (!data) {
-    return NextResponse.json({ error: t("errors.notFound") }, { status: 404 });
-  }
-
-  let pptxBuffer: Buffer;
+async function render(
+  data: DatasheetProductData,
+  format: "pptx" | "pdf",
+  t: Awaited<ReturnType<typeof getTranslations<"Datasheet">>>,
+) {
+  let pptx: Buffer;
   try {
-    pptxBuffer = await buildProductDatasheetPptx(data);
+    pptx = await buildProductDatasheetPptx(data);
   } catch (err) {
     console.error("datasheet: failed to build PPTX", err);
     return NextResponse.json({ error: t("errors.generateFailed") }, { status: 500 });
   }
 
+  const filename = (data.productCode || "datasheet").replace(/[^\w.-]+/g, "_");
   if (format === "pptx") {
-    return new Response(new Uint8Array(pptxBuffer), {
-      headers: {
-        "Content-Type": PPTX_CONTENT_TYPE,
-        "Content-Disposition": `attachment; filename="${data.productCode}.pptx"`,
-      },
+    return new Response(new Uint8Array(pptx), {
+      headers: { "Content-Type": PPTX_CONTENT_TYPE, "Content-Disposition": `attachment; filename="${filename}.pptx"` },
     });
   }
 
-  const workerUrl = process.env.DATASHEET_WORKER_URL;
-  const workerSecret = process.env.DATASHEET_WORKER_SECRET;
-  if (!workerUrl || !workerSecret) {
-    return NextResponse.json(
-      { error: t("errors.pdfNotConfigured") },
-      { status: 503 }
-    );
+  const pdf = await convertPptxToPdf(pptx);
+  if (!pdf.ok) {
+    const error =
+      pdf.reason === "notConfigured"
+        ? t("errors.pdfNotConfigured")
+        : pdf.reason === "unreachable"
+          ? t("errors.pdfUnreachable")
+          : t("errors.pdfFailed");
+    return NextResponse.json({ error }, { status: pdf.reason === "notConfigured" ? 503 : 502 });
   }
-
-  let pdfRes: globalThis.Response;
-  try {
-    pdfRes = await fetch(`${workerUrl}/convert`, {
-      method: "POST",
-      headers: {
-        "X-Datasheet-Worker-Secret": workerSecret,
-        "Content-Type": PPTX_CONTENT_TYPE,
-      },
-      body: new Uint8Array(pptxBuffer),
-    });
-  } catch (err) {
-    console.error("datasheet: worker request failed", err);
-    return NextResponse.json({ error: t("errors.pdfUnreachable") }, { status: 502 });
-  }
-
-  if (!pdfRes.ok) {
-    console.error("datasheet: worker returned", pdfRes.status, await pdfRes.text());
-    return NextResponse.json({ error: t("errors.pdfFailed") }, { status: 502 });
-  }
-
-  const pdfBuffer = new Uint8Array(await pdfRes.arrayBuffer());
-  return new Response(pdfBuffer, {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${data.productCode}.pdf"`,
-    },
+  return new Response(pdf.pdf, {
+    headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${filename}.pdf"` },
   });
+}
+
+/** GET: the product's sheet as it stands — the quick download buttons. */
+export async function GET(req: Request, { params }: { params: Promise<{ productId: string }> }) {
+  const t = await getTranslations("Datasheet");
+  const denied = await authorize(t);
+  if (denied) return denied;
+
+  const { productId } = await params;
+  const format = new URL(req.url).searchParams.get("format") === "pdf" ? "pdf" : "pptx";
+  const data = await getDatasheetProductData(productId);
+  if (!data) return NextResponse.json({ error: t("errors.notFound") }, { status: 404 });
+  return render(data, format, t);
+}
+
+/**
+ * POST: a sheet edited in the studio. The edits are used for this file only;
+ * saving them to the product is a separate, explicit action. Pictures come
+ * from the product's own images by id, never from a URL in the request.
+ */
+export async function POST(req: Request, { params }: { params: Promise<{ productId: string }> }) {
+  const t = await getTranslations("Datasheet");
+  const denied = await authorize(t);
+  if (denied) return denied;
+
+  const { productId } = await params;
+  const body = (await req.json().catch(() => null)) as { draft?: unknown; format?: unknown } | null;
+  const parsed = datasheetDraftSchema.safeParse(body?.draft);
+  if (!parsed.success || parsed.data.productId !== productId) {
+    return NextResponse.json({ error: t("errors.invalidDraft") }, { status: 400 });
+  }
+
+  const data = await draftToDatasheetData(parsed.data, await productImageResolver(productId));
+  const report = checkDatasheetLayout(data);
+  if (report.specsOverflow || report.descriptionTooLong) {
+    return NextResponse.json({ error: t("errors.doesNotFit") }, { status: 422 });
+  }
+  return render(data, body?.format === "pdf" ? "pdf" : "pptx", t);
 }

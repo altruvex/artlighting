@@ -5,6 +5,7 @@ import { prisma } from "@repo/database";
 import { requirePermission } from "@/lib/auth";
 import { getTranslations } from "next-intl/server";
 import { revalidatePath } from "next/cache";
+import { revalidateStorefront } from "@/lib/storefront";
 import { ActionError, run } from "./result";
 
 /**
@@ -25,12 +26,13 @@ function quantityOrThrow(quantity: number, message: string, allowNegative = fals
 /** Stock arrived from a supplier. */
 export async function receiveStock(variantId: string, quantity: number, reason?: string) {
   return run(async () => {
-    const admin = await requirePermission("product:write");
+    const admin = await requirePermission("stock:write");
     const t = await getTranslations("Inventory.errors");
     quantityOrThrow(quantity, t("quantityInvalid"));
 
     const level = await catalog.receiveStock(variantId, quantity, admin.id, reason);
-    revalidatePath("/admin/dashboard/inventory");
+    revalidateStorefront();
+    revalidatePath("/dashboard/inventory");
     return level;
   });
 }
@@ -42,7 +44,7 @@ export async function receiveStock(variantId: string, quantity: number, reason?:
  */
 export async function setCountedStock(variantId: string, countedOnHand: number, reason?: string) {
   return run(async () => {
-    const admin = await requirePermission("product:write");
+    const admin = await requirePermission("stock:write");
     const t = await getTranslations("Inventory.errors");
     if (!Number.isInteger(countedOnHand) || countedOnHand < 0 || countedOnHand > MAX_QUANTITY) {
       throw new ActionError(t("quantityInvalid"));
@@ -50,7 +52,8 @@ export async function setCountedStock(variantId: string, countedOnHand: number, 
 
     try {
       const level = await catalog.setCountedStock(variantId, countedOnHand, admin.id, reason);
-      revalidatePath("/admin/dashboard/inventory");
+      revalidateStorefront();
+      revalidatePath("/dashboard/inventory");
       // Null means the count agreed with the system; nothing was written.
       return level;
     } catch (error) {

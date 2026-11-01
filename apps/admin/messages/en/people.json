@@ -81,40 +81,44 @@
     "generate": "Generate",
     "passwordHint": "Minimum 12 characters.",
     "role": "Role",
-    "roleOptions": {
-      "STAFF": "Staff (no price or discount access)",
-      "ADMIN": "Admin (full access)"
-    },
     "roles": {
-      "ADMIN": "Admin",
-      "STAFF": "Staff"
+      "MANAGER": "Manager",
+      "SALES": "Sales",
+      "ENGINEERING": "Engineering",
+      "ACCOUNTS": "Accounts"
+    },
+    "rolesPlural": {
+      "MANAGER": "Managers",
+      "SALES": "Sales",
+      "ENGINEERING": "Engineering",
+      "ACCOUNTS": "Accounts"
+    },
+    "roleDescriptions": {
+      "MANAGER": "Everything: prices, discounts, the team, and every quotation.",
+      "SALES": "Creates and sends quotations, and follows orders. Sees only the quotations they own.",
+      "ENGINEERING": "Products, specs, categories and datasheets. Reads every quotation to review it, without editing.",
+      "ACCOUNTS": "Orders, customers and stock. Reads every quotation, without editing."
     },
     "createAccount": "Create account",
     "createdNotice": "Created {email} — copy this password now, it won't be shown again:",
     "copyPassword": "Copy password",
     "searchPlaceholder": "Search team",
-    "stats": {
-      "total": "Accounts",
-      "admins": "Admins",
-      "staff": "Staff"
-    },
     "columns": {
       "member": "Member",
       "added": "Added"
     },
     "you": "You",
-    "makeStaff": "Make staff",
-    "makeOwner": "Make admin",
+    "changeRole": "Change role",
     "revoke": "Revoke",
+    "revoked": "No access",
     "roleDialog": {
       "title": "Change this member's role?",
-      "toOwner": "{name} will get full access, including prices and discounts.",
-      "toStaff": "{name} will lose access to prices, discounts and team management.",
+      "description": "Choose what {name} does. What they can reach in the admin changes as soon as you confirm.",
       "confirm": "Change role"
     },
     "revokeDialog": {
       "title": "Revoke access?",
-      "description": "{name} will lose access to the admin immediately and won't be able to sign in here again.",
+      "description": "{name} will be signed out and won't be able to sign in again. Their name stays on the quotations and activity they left.",
       "confirm": "Revoke access"
     },
     "empty": {
@@ -131,8 +135,9 @@
     "errors": {
       "passwordTooShort": "Password must be at least 12 characters",
       "emailExists": "An admin with this email already exists",
-      "cantDemoteSelf": "You can't demote yourself",
-      "cantRevokeSelf": "You can't revoke your own access"
+      "cantDemoteSelf": "You can't change your own role. Make someone else a manager first.",
+      "cantRevokeSelf": "You can't revoke your own access",
+      "revokeHasQuotations": "This member still owns {count, plural, one {# open quotation} other {# open quotations}}. Hand them to someone else from the Quotations page first."
     }
   },
   "Categories": {
@@ -174,7 +179,7 @@
     "errors": {
       "unauthenticated": "Your session has expired. Please sign in again.",
       "notAdmin": "This account doesn't have admin access.",
-      "forbidden": "Only an owner can do this."
+      "forbidden": "Your role doesn't allow this."
     }
   },
   "Unauthorized": {

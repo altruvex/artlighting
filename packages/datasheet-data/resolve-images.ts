@@ -12,7 +12,7 @@ const FETCH_TIMEOUT_MS = 15_000;
  * previously generated with no product photo at all.
  */
 const STOREFRONT_BASE_URL = (
-  process.env.STOREFRONT_BASE_URL ?? "https://www.artlighting-eg.com"
+  process.env.STOREFRONT_BASE_URL ?? "https://artlighting-eg.com"
 ).replace(/\/$/, "");
 
 /**
@@ -58,6 +58,15 @@ async function toDataUri(url: string): Promise<ImageRef> {
   return { kind: "data", dataUri: `data:${contentType};base64,${buffer.toString("base64")}` };
 }
 
+/**
+ * Fetches one catalog image (absolute or storefront-relative) as an embedded
+ * data URI, or undefined when it cannot be had — a missing picture must not
+ * fail the document it sits in.
+ */
+export async function resolveImageUrl(rawUrl: string | null | undefined): Promise<ImageRef | undefined> {
+  return tryResolve(rawUrl ?? undefined);
+}
+
 async function tryResolve(rawUrl: string | undefined): Promise<ImageRef | undefined> {
   if (!rawUrl || !rawUrl.trim()) return undefined;
   try {
@@ -68,58 +77,59 @@ async function tryResolve(rawUrl: string | undefined): Promise<ImageRef | undefi
   }
 }
 
-interface ProductForImages {
-  images: { url: string; isPrimary: boolean; order: number }[];
-  brand?: string | null;
+type ImageRole = "PHOTO" | "DRAWING" | "APPLICATION";
+
+interface ProductImageForSheet {
+  url: string;
+  isPrimary: boolean;
+  order: number;
+  altText?: string | null;
+  role?: ImageRole | null;
 }
 
 /**
- * Manufacturer wordmarks for the BRAND & PARTNERS block, by `Product.brand`.
- * Absent brands simply render no block.
+ * Fallback for images nobody has marked yet: an installed/lifestyle shot
+ * named as one in its alt text or file name.
  */
-const BRAND_LOGOS: Record<string, string> = {
-  balcom: "/brand/balcom-black.png",
-};
+const APPLICATION_IMAGE = /\b(application|lifestyle|installed|in[- ]?situ)\b/i;
 
-/** Beyond this the drawing cells are too small to read a dimension from. */
-const MAX_DIAGRAMS = 4;
+function looksLikeApplication(image: { url: string; altText?: string | null }): boolean {
+  const raw = image.url.split("/").pop() ?? "";
+  let file = raw;
+  try {
+    file = decodeURIComponent(raw);
+  } catch {
+    // A stray "%" in a hand-typed file name; match on it as written.
+  }
+  file = file.replace(/[-_]/g, " ");
+  return APPLICATION_IMAGE.test(image.altText ?? "") || APPLICATION_IMAGE.test(file);
+}
 
 /**
- * Resolves every picture a sheet uses.
+ * Sorts a product's pictures into the sheet's three slots.
  *
- * The catalog's convention — read off the files, not assumed — is that a
- * product's images are ordered `(1)`, `(2)`, `(3)`…, where (1) is the product
- * photograph and everything after it is a DIMENSIONED TECHNICAL DRAWING
- * (measured: `JY-202-15W (2).png` carries 104mm / Ø70mm / tilt callouts).
- * That matches the reference sheets, where BO-011-50W shows one drawing and
- * BO-014-100W shows three.
- *
- * Nothing here caps the product at two images: pass four and the renderer
- * arranges four. A failed fetch degrades that one picture to absent rather
- * than failing the whole sheet.
+ * A role set in the admin always wins. An unmarked image follows the
+ * catalog's convention from before roles existed: the first is the photo and
+ * the rest are drawings, unless its name says it is an installed shot.
+ * Exported for tests; pure.
  */
-export async function resolveProductImages(
-  product: ProductForImages
-): Promise<{ mainImage?: ImageRef; dimensionDiagrams: ImageRef[]; brandLogos: ImageRef[] }> {
-  const ordered = [...product.images].sort((a, b) => {
+export function assignImageSlots<T extends ProductImageForSheet>(
+  images: T[]
+): { photo?: T; drawings: T[]; application?: T } {
+  const ordered = [...images].sort((a, b) => {
     if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
     return a.order - b.order;
   });
 
-  // ProductImage is the only source now; the legacy Product.productImages[]
-  // array it used to fall back to has been dropped.
-  const urls = ordered.map((i) => i.url);
-  const logoPath = product.brand ? BRAND_LOGOS[product.brand.trim().toLowerCase()] : undefined;
+  const application =
+    ordered.find((i) => i.role === "APPLICATION") ??
+    ordered.find((i) => !i.role && looksLikeApplication(i));
+  const photo =
+    ordered.find((i) => i.role === "PHOTO") ??
+    ordered.find((i) => !i.role && i !== application);
+  const drawings = ordered.filter(
+    (i) => i !== photo && i !== application && (i.role === "DRAWING" || !i.role)
+  );
 
-  const [mainImage, brandLogo, ...diagrams] = await Promise.all([
-    tryResolve(urls[0]),
-    tryResolve(logoPath),
-    ...urls.slice(1, 1 + MAX_DIAGRAMS).map((u) => tryResolve(u)),
-  ]);
-
-  return {
-    mainImage,
-    dimensionDiagrams: diagrams.filter((d): d is ImageRef => d !== undefined),
-    brandLogos: brandLogo ? [brandLogo] : [],
-  };
+  return { photo, drawings, application };
 }

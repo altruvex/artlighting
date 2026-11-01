@@ -1,7 +1,7 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Button } from "@repo/ui/components/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@repo/ui/components/dropdown-menu"
 import { Globe } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 import { useTransition } from "react"
@@ -54,10 +54,10 @@ export default function LanguageSwitcher({ currentLocale }: LanguageSwitcherProp
                 <Button
                     variant="outline"
                     size="sm"
-                    className="h-9 px-3 gap-2 transition-all duration-200 bg-transparent"
+                    className="h-9 gap-2 bg-transparent px-3 transition-colors duration-[var(--dur-hover)]"
                     disabled={isPending}
                 >
-                    <Globe className="h-4 w-4" />
+                    <Globe className="size-4" aria-hidden />
                     <span className="font-medium text-sm">{currentLanguage.label}</span>
                 </Button>
             </DropdownMenuTrigger>
@@ -66,13 +66,16 @@ export default function LanguageSwitcher({ currentLocale }: LanguageSwitcherProp
                     <DropdownMenuItem
                         key={language.code}
                         onClick={() => handleLanguageChange(language.code)}
-                        className={`cursor-pointer transition-colors ${currentLocale === language.code ? "bg-primary text-primary-foreground font-medium" : "hover:bg-accent"
-                            }`}
-                        disabled={currentLocale === language.code || isPending}
+                        // The current language is marked, not filled: a gold
+                        // block (at half opacity, since it was also disabled)
+                        // read as a disabled button rather than "you are here".
+                        className="cursor-pointer"
+                        aria-current={currentLocale === language.code ? "true" : undefined}
+                        disabled={isPending}
                     >
-                        <div className="flex items-center justify-between w-full gap-3">
-                            <span className="text-sm font-medium">{language.name}</span>
-                            {currentLocale === language.code && <div className="w-2 h-2 rounded-full bg-current" />}
+                        <div className="flex w-full items-center justify-between gap-3">
+                            <span lang={language.code} className="text-sm font-medium">{language.name}</span>
+                            {currentLocale === language.code && <span aria-hidden className="size-1.5 rounded-full bg-primary" />}
                         </div>
                     </DropdownMenuItem>
                 ))}

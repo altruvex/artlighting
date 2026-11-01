@@ -23,14 +23,14 @@ export default function ProductGlance({ groups }: { groups: LocalizedSpecGroup[]
   if (tiles.length < 2) return null;
 
   return (
-    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1">
+    <dl className="grid grid-cols-2 border-t border-border sm:grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1">
       {tiles.map((item) => (
-        <div key={item.key} className="flex flex-col justify-between gap-2 bg-card p-4 sm:p-5">
+        <div key={item.key} className="flex flex-col justify-between gap-3 border-b border-border py-5 pe-4 sm:border-b-0 sm:border-e sm:ps-5 sm:first:ps-0 sm:last:border-e-0">
           <dt className="text-[length:var(--text-xs)] text-muted-foreground">{item.label}</dt>
           {/* One line per figure, each isolated: "٣٠٠٠ كلفن" reads right to
               left and "1,320 lm" left to right, and a single run of both
               would let bidi reorder one into the other. */}
-          <dd className="font-[family-name:var(--font-display-face)] text-[length:var(--text-lg)] font-semibold leading-snug tabular-nums">
+          <dd className="font-[family-name:var(--font-display-face)] text-[length:var(--text-xl)] font-medium leading-snug tabular-nums">
             {(item.parts.length > 0 ? item.parts : [{ text: item.value }]).map((part, index) => (
               <bdi key={index} className="block">
                 {part.text}

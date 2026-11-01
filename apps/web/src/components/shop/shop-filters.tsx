@@ -5,6 +5,7 @@ import { familySlug, type ProductFamily } from "@repo/catalog/families";
 import { formatNumber } from "@/lib/numbers";
 import type { Facet, ShopQuery } from "@/lib/shop.server";
 import { removeParams, setParam, toggleParam, type ShopParams } from "@/lib/shop-url";
+import { useScrollEdges } from "@/lib/use-scroll-edges";
 import { cn } from "@/lib/utils";
 import { SlidersHorizontalIcon, XIcon } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -37,6 +38,8 @@ export function ShopFilters(props: Props) {
     (props.query.onSale ? 1 : 0) +
     (props.query.priceMin !== null || props.query.priceMax !== null ? 1 : 0);
 
+  const railRef = useScrollEdges<HTMLDivElement>();
+
   // A filter link navigates; the sheet should not stay open over the result.
   useEffect(() => {
     setOpen(false);
@@ -62,7 +65,7 @@ export function ShopFilters(props: Props) {
 
       {open && (
         <div
-          className="fixed inset-0 z-50 bg-background/70 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-50 bg-overlay backdrop-blur-[2px] lg:hidden"
           onClick={() => setOpen(false)}
           aria-hidden
         />
@@ -73,23 +76,28 @@ export function ShopFilters(props: Props) {
         aria-label={t("filter")}
         className={cn(
           // Phone: a sheet from the inline-end edge. Desktop: a sticky column.
-          "fixed inset-y-0 end-0 z-50 w-[min(22rem,90vw)] overflow-y-auto bg-background p-6 shadow-[var(--shadow-e3)] transition-transform duration-[var(--dur-sheet)] ease-[var(--ease-drawer)]",
+          // The column itself does not scroll — the body below does, so the
+          // sheet's title stays put and the edge fade does not clip the
+          // sheet's shadow.
+          "fixed inset-y-0 end-0 z-50 flex w-[min(22rem,90vw)] flex-col bg-background p-6 pb-0 shadow-[var(--shadow-e3)] transition-transform duration-[var(--dur-sheet)] ease-[var(--ease-drawer)]",
           open ? "translate-x-0" : "translate-x-full rtl:-translate-x-full",
           "lg:sticky lg:top-24 lg:z-auto lg:h-fit lg:max-h-[calc(100dvh-7rem)] lg:w-auto lg:translate-x-0 lg:bg-transparent lg:p-0 lg:shadow-none rtl:lg:translate-x-0",
         )}
       >
-        <div className="mb-6 flex items-center justify-between lg:hidden">
+        <div className="mb-6 flex shrink-0 items-center justify-between lg:hidden">
           <p className="text-[length:var(--text-lg)] font-semibold">{t("filter")}</p>
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="grid size-9 place-items-center rounded-md hover:bg-muted"
+            className="grid size-10 place-items-center rounded-md transition-colors duration-[var(--dur-hover)] hover:bg-muted"
             aria-label={t("close")}
           >
             <XIcon className="size-5" aria-hidden />
           </button>
         </div>
-        <FilterBody {...props} />
+        <div ref={railRef} className="scroll-fade -mx-1 min-h-0 flex-auto overflow-y-auto overscroll-contain px-1 pb-6">
+          <FilterBody {...props} />
+        </div>
       </aside>
     </>
   );
@@ -145,7 +153,7 @@ function FilterBody({ query, facets, priceBounds, params }: Props) {
 
       {facets.type.length > 1 && (
         <Group title={t("group.type")}>
-          <div className="max-h-72 space-y-0.5 overflow-y-auto pe-1">
+          <TypeList>
             {facets.type.map((facet) => (
               <Option
                 key={facet.value}
@@ -156,9 +164,23 @@ function FilterBody({ query, facets, priceBounds, params }: Props) {
                 n={n}
               />
             ))}
-          </div>
+          </TypeList>
         </Group>
       )}
+    </div>
+  );
+}
+
+/**
+ * The lighting types: the one group long enough to need its own box. It
+ * fades at whichever edge has more below or above it, since no scrollbar
+ * shows (see .scroll-fade).
+ */
+function TypeList({ children }: { children: ReactNode }) {
+  const ref = useScrollEdges<HTMLDivElement>();
+  return (
+    <div ref={ref} className="scroll-fade max-h-72 space-y-0.5 overflow-y-auto overscroll-contain pe-1">
+      {children}
     </div>
   );
 }
@@ -167,7 +189,7 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   const id = useId();
   return (
     <section aria-labelledby={id}>
-      <h2 id={id} className="mb-3 font-[family-name:var(--font-body)] text-[length:var(--text-xs)] font-semibold uppercase tracking-wider text-muted-foreground">
+      <h2 id={id} className="mb-3 font-[family-name:var(--font-body)] text-[length:var(--text-xs)] font-semibold text-muted-foreground ltr:uppercase ltr:tracking-wider">
         {title}
       </h2>
       <div className="space-y-0.5">{children}</div>
@@ -195,8 +217,8 @@ function Option({
       <span
         aria-hidden
         className={cn(
-          "grid size-4 shrink-0 place-items-center rounded-[4px] border transition-colors duration-[var(--dur-hover)]",
-          selected ? "border-primary bg-primary text-primary-foreground" : "border-border",
+          "grid size-4 shrink-0 place-items-center rounded-sm border transition-colors duration-[var(--dur-hover)]",
+          selected ? "border-primary bg-primary text-primary-foreground" : "border-input",
         )}
       >
         {selected && (
@@ -211,7 +233,7 @@ function Option({
   );
   if (empty) {
     return (
-      <span className="flex items-center gap-3 rounded-md px-2 py-1.5 text-muted-foreground/60" aria-disabled="true">
+      <span className="flex min-h-10 items-center gap-3 rounded-md px-2 py-1.5 text-muted-foreground/60 lg:min-h-0" aria-disabled="true">
         {body}
       </span>
     );
@@ -223,7 +245,7 @@ function Option({
       role="checkbox"
       aria-checked={selected}
       className={cn(
-        "flex items-center gap-3 rounded-md px-2 py-1.5 transition-colors duration-[var(--dur-hover)] hover:bg-muted",
+        "flex min-h-10 items-center gap-3 rounded-md px-2 py-1.5 transition-colors duration-[var(--dur-hover)] hover:bg-muted lg:min-h-0",
         selected && "font-medium",
       )}
     >
@@ -270,7 +292,7 @@ function PriceRange({ query, bounds, params }: { query: ShopQuery; bounds: Props
           placeholder={String(bounds.min)}
           value={min}
           onChange={(event) => setMin(event.target.value.replace(/[^\d]/g, ""))}
-          className="h-9 w-full min-w-0 rounded-md border border-input bg-card px-2.5 tabular-nums"
+          className="h-10 w-full min-w-0 rounded-md border border-input bg-card px-2.5 tabular-nums lg:h-9"
         />
         <span className="text-muted-foreground" aria-hidden>
           –
@@ -285,12 +307,12 @@ function PriceRange({ query, bounds, params }: { query: ShopQuery; bounds: Props
           placeholder={String(bounds.max)}
           value={max}
           onChange={(event) => setMax(event.target.value.replace(/[^\d]/g, ""))}
-          className="h-9 w-full min-w-0 rounded-md border border-input bg-card px-2.5 tabular-nums"
+          className="h-10 w-full min-w-0 rounded-md border border-input bg-card px-2.5 tabular-nums lg:h-9"
         />
       </div>
       <button
         type="submit"
-        className="w-full rounded-md border border-border py-1.5 text-[length:var(--text-sm)] font-medium transition-colors duration-[var(--dur-hover)] hover:border-primary/60 active:scale-[0.99]"
+        className="h-10 w-full rounded-md border border-border text-[length:var(--text-sm)] font-medium transition-[border-color,transform] duration-[var(--dur-press)] ease-[var(--ease-out)] hover:border-primary/60 active:scale-[0.98] lg:h-9"
       >
         {t("applyPrice")}
       </button>

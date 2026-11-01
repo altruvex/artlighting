@@ -1,12 +1,13 @@
 "use client"
 
 import { searchProducts } from "@/actions/search"
+import { familySlug } from "@repo/catalog/families"
 import type { ProductFamily } from "@repo/catalog/families";
 import { money, type MoneyInput } from "@repo/money";
-import { Input } from "@/components/ui/input"
+import { Input } from "@repo/ui/components/input"
 import { Link, useRouter } from "@/i18n/navigation"
-import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { Button } from "@repo/ui/components/button"
+import { ScrollArea } from "@repo/ui/components/scroll-area"
 import { Loader2, Search } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import Image from "next/image"
@@ -127,7 +128,7 @@ export function SearchHeader({ isMobile = false, isMobileSheet = false }: Search
                 variant="outline"
                 size="icon"
                 className="h-10 w-10 bg-transparent hover:bg-accent/50 transition-colors"
-                aria-label="Search products"
+                aria-label={t("submit")}
             >
                 <Search className="h-5 w-5" />
             </Button>
@@ -179,7 +180,7 @@ interface SearchResultsProps {
 
 function SearchResults({ isSearching, searchTerm, filteredProducts, onResultClick, t }: SearchResultsProps) {
     return (
-        <div className="absolute top-full left-0 right-0 z-50 bg-background border border-border/50 rounded-lg shadow-xl mt-2">
+        <div className="absolute inset-x-0 top-full z-50 mt-2 rounded-md border border-border bg-popover text-popover-foreground shadow-e3">
             <div className="max-h-96 overflow-hidden">
                 {isSearching && <SearchLoader t={t} />}
 
@@ -203,15 +204,15 @@ function SearchResults({ isSearching, searchTerm, filteredProducts, onResultClic
 function SearchLoader({ t }: { t: any }) {
     return (
         <div className="flex items-center justify-center p-8">
-            <Loader2 className="h-6 w-6 animate-spin mr-2" />
-            <span>{t("searching", { defaultMessage: "Searching..." })}</span>
+            <Loader2 className="me-2 size-5 animate-spin text-muted-foreground" aria-hidden />
+            <span className="text-[length:var(--text-sm)] text-muted-foreground">{t("searching", { defaultMessage: "Searching..." })}</span>
         </div>
     )
 }
 
 function NoResults({ searchTerm, t }: { searchTerm: string; t: any }) {
     return (
-        <div className="p-8 text-center text-muted-foreground">
+        <div className="p-8 text-center text-[length:var(--text-sm)] text-muted-foreground">
             {t("noResults", { defaultMessage: "No products found for", searchTerm })} "{searchTerm}"
         </div>
     )
@@ -225,8 +226,8 @@ function ProductResults({ products, onResultClick, searchTerm, t }: {
 }) {
     return (
         <ScrollArea className="h-96 overflow-y-auto">
-            <div className="p-4">
-                <div className="space-y-4">
+            <div className="p-2">
+                <div className="space-y-1">
                     {products.slice(0, 6).map((product) => (
                         <ProductItem
                             key={product.productId}
@@ -255,22 +256,22 @@ function ProductItem({ product, onResultClick }: {
 }) {
     return (
         <Link
-            href={`/category/${product.brand}/${product.sectionType}/${product.spotlightType}/${product.productId}`}
+            href={`/category/${product.brand}/${familySlug(product.sectionType as ProductFamily)}/${product.spotlightType.toLowerCase()}/${product.productId.toLowerCase()}`}
             onClick={onResultClick}
-            className="block hover:bg-accent/50 rounded-lg p-3 transition-colors"
+            className="block rounded-md p-3 transition-colors duration-[var(--dur-hover)] hover:bg-accent/60 focus-visible:bg-accent/60"
         >
-            <div className="flex items-start gap-4 rtl:flex-row-reverse">
+            <div className="flex items-start gap-4">
                 {product.productImages?.[0] && (
                     <Image
                         src={product.productImages[0]}
                         alt={product.productName}
-                        className="object-cover rounded w-16 h-16 shrink-0"
+                        className="product-photo size-16 shrink-0 rounded-sm bg-muted object-cover"
                         width={64}
                         height={64}
                     />
                 )}
 
-                <div className="flex-1 space-y-1 min-w-0 rtl:text-right">
+                <div className="min-w-0 flex-1 space-y-1">
                     <p className="font-medium uppercase text-sm line-clamp-2">
                         {product.productName}
                     </p>
@@ -288,7 +289,7 @@ function ProductItem({ product, onResultClick }: {
 function ProductPrice({ product }: { product: Product }) {
     if (money(product.discount).greaterThan(0)) {
         return (
-            <div className="flex items-center gap-2 rtl:flex-row-reverse">
+            <div className="flex items-center gap-2 tabular-nums">
                 <span className="text-sm text-destructive font-semibold">
                     <DiscountPrice
                         price={product.price}
@@ -304,7 +305,7 @@ function ProductPrice({ product }: { product: Product }) {
     }
 
     return (
-        <span className="font-semibold text-sm">
+        <span className="text-sm font-semibold tabular-nums">
             <NormalPrice price={product.price} sectionType={product.sectionType} />
         </span>
     )
@@ -317,7 +318,7 @@ function ViewAllResults({ totalResults, searchTerm, onResultClick, t }: {
     t: any
 }) {
     return (
-        <div className="text-center mt-4 text-sm text-muted-foreground border-t pt-4">
+        <div className="mt-2 border-t border-border px-2 pt-3 pb-1 text-center text-sm text-muted-foreground">
             {t("showingResults", {
                 defaultMessage: "Showing 6 of {total} results",
                 total: totalResults

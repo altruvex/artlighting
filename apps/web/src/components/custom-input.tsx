@@ -1,7 +1,7 @@
 "use client"
 
-import { FormControl, FormField, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/form"
+import { Input } from "@repo/ui/components/input"
 import { cn } from "@/lib/utils"
 import { Eye, EyeOff, Lock, Mail, MapPin, Phone, User } from "lucide-react"
 import type React from "react"
@@ -59,49 +59,55 @@ const CustomInput = <T extends FieldValues>({
       control={control}
       name={name}
       render={({ field, fieldState }) => (
-        <div className={cn("space-y-2", className)}>
-          <FormLabel className="text-sm font-medium">
+        // FormItem, not a bare div: it is what gives each field its own id.
+        // Without it every label in the form pointed at "undefined-form-item".
+        <FormItem className={className}>
+          <FormLabel className="text-[length:var(--text-sm)] font-medium">
             {label}
-            {required && <span className="text-destructive ml-1">*</span>}
+            {/* Muted, not red: a required mark is information, and a column
+                of red asterisks read as a form already in error. */}
+            {required && <span className="ms-1 text-muted-foreground" aria-hidden>*</span>}
           </FormLabel>
+          {/* FormControl on the input itself: it wrapped a div, so the
+              label's htmlFor, aria-invalid and aria-describedby all landed
+              on the div and the field had no accessible name. */}
           <div className="relative">
+            {IconComponent && (
+              <IconComponent className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            )}
             <FormControl>
-              <div className="relative">
-                {IconComponent && (
-                  <IconComponent className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                {...field}
+                type={actualType}
+                placeholder={placeholder}
+                disabled={disabled}
+                className={cn(
+                  "h-11",
+                  // Logical sides: in Arabic the icon sits on the right,
+                  // and the text must start clear of it there.
+                  IconComponent && "ps-10",
+                  isPasswordType && "pe-10",
                 )}
-                <Input
-                  {...field}
-                  type={actualType}
-                  placeholder={placeholder}
-                  disabled={disabled}
-                  className={cn(
-                    "h-10",
-                    IconComponent && "pl-10",
-                    isPasswordType && "pr-10",
-                    fieldState.error && "border-destructive",
-                  )}
-                />
-                {isPasswordType && (
-                  <button
-                    type="button"
-                    onClick={togglePasswordVisibility}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                    disabled={disabled}
-                    tabIndex={-1}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="w-4 h-4 text-muted-foreground" />
-                    )}
-                  </button>
-                )}
-              </div>
+              />
             </FormControl>
+            {isPasswordType && (
+              <button
+                type="button"
+                onClick={togglePasswordVisibility}
+                className="absolute end-3 top-1/2 -translate-y-1/2"
+                disabled={disabled}
+                tabIndex={-1}
+              >
+                {showPassword ? (
+                  <EyeOff className="size-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="size-4 text-muted-foreground" />
+                )}
+              </button>
+            )}
           </div>
-          {fieldState.error && <FormMessage className="text-destructive text-sm">{fieldState.error.message}</FormMessage>}
-        </div>
+          {fieldState.error && <FormMessage className="text-danger">{fieldState.error.message}</FormMessage>}
+        </FormItem>
       )}
     />
   )

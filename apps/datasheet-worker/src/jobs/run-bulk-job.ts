@@ -6,7 +6,7 @@ import {
 import {
   getDatasheetProductRows,
   mapProductToDatasheetData,
-  type ProductWithDatasheetRelations,
+  type DatasheetProductRow,
 } from "@repo/datasheet-data";
 import { runConversion } from "../convert";
 import { incrementJobProgress, updateJob, type SkippedEntry } from "./store";
@@ -63,13 +63,13 @@ async function toOutputBuffer(pptxBuffer: Buffer, format: "pptx" | "pdf"): Promi
 /** "zip" mode: one standalone file per product. */
 async function buildPerProductFiles(
   jobId: string,
-  products: ProductWithDatasheetRelations[],
+  products: DatasheetProductRow[],
   params: BulkJobParams,
   skipped: SkippedEntry[]
 ): Promise<BuiltFile[]> {
   const results = await mapWithConcurrency(products, CONCURRENCY, async (product) => {
     try {
-      const data = await mapProductToDatasheetData(product, params.language ?? "en");
+      const data = await mapProductToDatasheetData(product);
       const pptxBuffer = await buildProductDatasheetPptx(data);
       const buffer = await toOutputBuffer(pptxBuffer, params.format);
       return { name: `${data.productCode}.${params.format}`, buffer } satisfies BuiltFile;
@@ -96,11 +96,11 @@ async function buildPerProductFiles(
  */
 async function buildCombinedFiles(
   jobId: string,
-  products: ProductWithDatasheetRelations[],
+  products: DatasheetProductRow[],
   params: BulkJobParams,
   skipped: SkippedEntry[]
 ): Promise<BuiltFile[]> {
-  const groups = new Map<string, ProductWithDatasheetRelations[]>();
+  const groups = new Map<string, DatasheetProductRow[]>();
   for (const product of products) {
     const key = product.category.name;
     const group = groups.get(key);
@@ -117,7 +117,7 @@ async function buildCombinedFiles(
     // aren't safe to interleave across concurrent calls on one Presentation.
     const mapped = await mapWithConcurrency(groupProducts, CONCURRENCY, async (product) => {
       try {
-        const data = await mapProductToDatasheetData(product, params.language ?? "en");
+        const data = await mapProductToDatasheetData(product);
         return data;
       } catch (err) {
         skipped.push({
@@ -130,14 +130,10 @@ async function buildCombinedFiles(
       }
     });
 
-    const pres = createDatasheetPresentation();
-    let addedAny = false;
-    for (const data of mapped) {
-      if (!data) continue;
-      appendProductDatasheetSlide(pres, data);
-      addedAny = true;
-    }
-    if (!addedAny) continue;
+    const sheets = mapped.filter((data) => data !== null);
+    if (sheets.length === 0) continue;
+    const pres = createDatasheetPresentation({ products: sheets, collection: categoryName });
+    for (const data of sheets) appendProductDatasheetSlide(pres, data);
 
     const pptxBuffer = (await pres.write({ outputType: "nodebuffer" })) as Buffer;
     const buffer = await toOutputBuffer(pptxBuffer, params.format);

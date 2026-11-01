@@ -1,6 +1,6 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
+import { Input } from "@repo/ui/components/input";
 import { cn } from "@/lib/utils";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -35,7 +35,7 @@ export function PasswordInput({
       <Input
         {...props}
         type={visible ? "text" : "password"}
-        className={cn("h-11 rounded-xl ps-10 pe-11", className)}
+        className={cn("h-11 ps-10 pe-11", className)}
       />
       <button
         type="button"
@@ -43,7 +43,7 @@ export function PasswordInput({
         aria-label={label}
         aria-pressed={visible}
         title={label}
-        className="absolute end-1 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground transition-colors duration-[var(--dur-hover)] hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+        className="absolute end-1 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-md text-muted-foreground transition-colors duration-[var(--dur-hover)] hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
       >
         <Icon className="size-4" aria-hidden />
       </button>

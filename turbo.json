@@ -29,7 +29,13 @@
         "CLOUD_API_SECRET",
         "DATASHEET_WORKER_URL",
         "DATASHEET_WORKER_SECRET",
-        "STOREFRONT_BASE_URL"
+        "STOREFRONT_REVALIDATE_SECRET",
+        "NEXT_COMPRESS",
+        "SHARED_CACHE_TAGS",
+        "STOREFRONT_BASE_URL",
+        "RESEND_API_KEY",
+        "EMAIL_FROM",
+        "ORDER_NOTIFY_EMAIL"
       ]
     },
     "lint": {
@@ -59,7 +65,13 @@
         "CLOUD_API_SECRET",
         "DATASHEET_WORKER_URL",
         "DATASHEET_WORKER_SECRET",
-        "STOREFRONT_BASE_URL"
+        "STOREFRONT_REVALIDATE_SECRET",
+        "NEXT_COMPRESS",
+        "SHARED_CACHE_TAGS",
+        "STOREFRONT_BASE_URL",
+        "RESEND_API_KEY",
+        "EMAIL_FROM",
+        "ORDER_NOTIFY_EMAIL"
       ]
     },
     "db:generate": {

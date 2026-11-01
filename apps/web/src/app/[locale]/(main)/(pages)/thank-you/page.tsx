@@ -8,6 +8,10 @@ import { getTranslations } from "next-intl/server"
 import { notFound } from "next/navigation"
 import ThankYou from "./thank-you"
 
+// Everything here is the signed-in customer's own order — nothing is shared
+// between visitors to prefetch, so this page blocks instead.
+export const instant = false
+
 /**
  * After the order. Scoped to the signed-in customer: it found the order by
  * id alone, so any order's address and phone were one URL away.

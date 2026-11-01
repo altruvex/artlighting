@@ -31,11 +31,12 @@ const ORDER: ProductColorTemp[] = ["warm", "white", "cool"];
  * re-rendered on the server to show a choice the browser already knew.
  */
 export default function ColorTempOptions({
-  configId,
+  ensureConfigId,
   productColorTemp,
   onColorTempChange,
 }: {
-  configId?: string;
+  /** The visitor's configuration id, created on first use. */
+  ensureConfigId: () => Promise<string | null>;
   productColorTemp: ProductColorTemp;
   onColorTempChange: (next: ProductColorTemp) => void;
 }) {
@@ -49,7 +50,9 @@ export default function ColorTempOptions({
     onColorTempChange(next);
     // Best-effort: the choice is also carried by the order itself, so a
     // failed save costs nothing the customer would see.
-    if (configId) void chooseColorTemp({ configId, colorTemp: next }).catch(() => {});
+    void ensureConfigId()
+      .then((configId) => (configId ? chooseColorTemp({ configId, colorTemp: next }) : undefined))
+      .catch(() => {});
   };
 
   return (

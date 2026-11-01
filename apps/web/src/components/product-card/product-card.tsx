@@ -1,23 +1,15 @@
-"use client"
-
-import { addToCart } from "@/actions/cart";
-import { notifyCartChanged } from "@/lib/cart-events";
 import { familySlug, type ProductFamily } from "@repo/catalog/families";
 import type { BulbChoice } from "@repo/catalog/bulb-pricing";
 import type { LocalizedSpecGroup } from "@/lib/specs-view";
 import { useProductDescription } from "@/lib/use-product-description";
 import { Link } from "@/i18n/navigation";
-import { cn } from "@/lib/utils";
 import { formatNumber, formatNumberWithConversion, formatPercent } from "@/lib/numbers";
 import { applyRate, money, serializeMoney, subtractMoney } from "@repo/money";
-import { useAuth } from "@/lib/auth-hooks";
 import { useLocale, useTranslations } from "next-intl";
 import { ProductImage as Image } from "@/components/product/product-image";
 import { StarRating } from "@/components/product/star-rating";
 import { PLACEHOLDER_IMAGE } from "@/lib/product-images";
-import { Loader2Icon, ShoppingBagIcon } from "lucide-react";
-import { useMemo, useTransition } from "react";
-import { toast } from "sonner";
+import { AddToCartButton } from "./add-to-cart-button";
 
 interface Product {
   productId: string;
@@ -76,11 +68,8 @@ const LOW_STOCK = 5;
  * weight.
  */
 export default function ProductCard({ product }: ProductCardProps) {
-  const [isPending, startTransition] = useTransition();
-  const { isSignedIn } = useAuth();
   const locale = useLocale();
   const t = useTranslations("product-card");
-  const tToast = useTranslations("toast");
 
   // Generated from this product's own specs — the same generator the
   // product page uses, so a card and the page it links to cannot say
@@ -98,17 +87,14 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   const displayName = product.translations?.name || product.productName;
 
-  const pricing = useMemo(() => {
-    const onSale = money(product.discount).greaterThan(0);
-    const saving = applyRate(product.price, product.discount);
-    return {
-      onSale,
-      current: formatNumberWithConversion(serializeMoney(subtractMoney(product.price, saving)), locale),
-      list: formatNumberWithConversion(product.price, locale),
-      saving: formatNumberWithConversion(serializeMoney(saving), locale),
-      rate: formatPercent(product.discount, locale),
-    };
-  }, [product.price, product.discount, locale]);
+  const saving = applyRate(product.price, product.discount);
+  const pricing = {
+    onSale: money(product.discount).greaterThan(0),
+    current: formatNumberWithConversion(serializeMoney(subtractMoney(product.price, saving)), locale),
+    list: formatNumberWithConversion(product.price, locale),
+    saving: formatNumberWithConversion(serializeMoney(saving), locale),
+    rate: formatPercent(product.discount, locale),
+  };
 
   // The family *slug*, not the enum. `sectionType` is "CHANDELIER" now, and
   // interpolating it built /category/mister-led/CHANDELIER/… — resolved,
@@ -122,75 +108,42 @@ export default function ProductCard({ product }: ProductCardProps) {
   const stock = product.quantity;
   const soldOut = stock === 0;
 
-  const handleAddToCart = () => {
-    if (!isSignedIn) {
-      toast.error(tToast("signInRequired"));
-      return;
-    }
-    startTransition(async () => {
-      try {
-        await addToCart(product.productId);
-        notifyCartChanged();
-        toast.success(tToast("addToCartSuccess", { productName: displayName }));
-      } catch (error) {
-        console.error("Cart addition failed:", error);
-        toast.error(tToast("addToCartError"));
-      }
-    });
-  };
-
   return (
     <article className="group relative flex h-full flex-col">
-      <figure className="relative aspect-square overflow-hidden rounded-xl bg-muted">
-        <Image
-          src={primary}
-          alt={displayName}
-          fill
-          sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 48vw"
-          className={cn(
-            "object-cover transition-[opacity,transform] duration-500 ease-[var(--ease-out)] group-hover:scale-[1.03]",
-            hover && "group-hover:opacity-0",
-          )}
-        />
-        {hover && (
+      <figure className="relative aspect-square overflow-hidden rounded-sm">
+        {/* Both images scale as one layer. Scaling only the first left the
+            two at different sizes mid-fade, so the product ghosted. */}
+        <div className="product-photo absolute inset-0 transform-gpu transition-transform duration-700 ease-[var(--ease-out)] will-change-transform backface-hidden group-hover:scale-[1.03]">
           <Image
-            src={hover}
-            alt=""
-            aria-hidden
+            src={primary}
+            alt={displayName}
             fill
             sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 48vw"
-            className="object-cover opacity-0 transition-opacity duration-500 ease-[var(--ease-out)] group-hover:opacity-100"
+            className="object-cover"
           />
-        )}
+          {hover && (
+            // Only the second image fades, over a first that stays opaque.
+            // Fading both at once let the grey figure show through halfway.
+            <Image
+              src={hover}
+              alt=""
+              aria-hidden
+              fill
+              sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 48vw"
+              className="object-cover opacity-0 transition-opacity duration-500 ease-[var(--ease-in-out)] group-hover:opacity-100"
+            />
+          )}
+        </div>
 
         {pricing.onSale && (
-          <span className="absolute start-3 top-3 rounded-md bg-primary px-2 py-1 text-[length:var(--text-xs)] font-semibold tabular-nums text-primary-foreground shadow-[var(--shadow-e1)]">
+          // A quiet label on the photograph, not a sticker: the solid gold
+          // chip with a shadow was the loudest thing in every grid row.
+          <span className="absolute start-3 top-3 rounded-sm bg-background/90 px-2 py-0.5 text-[length:var(--text-xs)] font-semibold tabular-nums text-primary backdrop-blur-sm">
             {t("off", { rate: pricing.rate })}
           </span>
         )}
 
-        {/* Above the stretched link, so it adds to the bag rather than
-            opening the product. Always visible on touch, where there is no
-            hover to reveal it. */}
-        <button
-          type="button"
-          onClick={handleAddToCart}
-          disabled={isPending || soldOut}
-          aria-label={t("addToCartNamed", { name: displayName })}
-          className={cn(
-            "absolute bottom-3 end-3 z-20 grid size-10 place-items-center rounded-full bg-background/95 text-foreground shadow-[var(--shadow-e2)] backdrop-blur",
-            "transition-[transform,opacity,background-color] duration-[var(--dur-hover)] ease-[var(--ease-out)]",
-            "hover:bg-primary hover:text-primary-foreground active:scale-95",
-            "md:translate-y-2 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 md:focus-visible:translate-y-0 md:focus-visible:opacity-100",
-            "disabled:cursor-not-allowed disabled:opacity-50",
-          )}
-        >
-          {isPending ? (
-            <Loader2Icon className="size-4 animate-spin" aria-hidden />
-          ) : (
-            <ShoppingBagIcon className="size-4" aria-hidden />
-          )}
-        </button>
+        <AddToCartButton productId={product.productId} displayName={displayName} soldOut={soldOut} />
       </figure>
 
       <div className="flex flex-1 flex-col gap-1.5 pt-3">
@@ -199,7 +152,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             href={href}
             prefetch
             // Stretches over the whole card: one target, one tab stop.
-            className="after:absolute after:inset-0 after:z-10 after:rounded-xl focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-ring"
+            className="after:absolute after:inset-0 after:z-10 after:rounded-sm focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-ring"
           >
             {displayName}
           </Link>

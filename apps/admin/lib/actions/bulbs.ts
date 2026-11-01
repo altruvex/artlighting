@@ -4,6 +4,7 @@ import * as catalog from "@repo/catalog";
 import { requirePermission } from "@/lib/auth";
 import { getTranslations } from "next-intl/server";
 import { revalidatePath } from "next/cache";
+import { revalidateStorefront } from "@/lib/storefront";
 import { ActionError, run } from "./result";
 
 /**
@@ -17,7 +18,7 @@ import { ActionError, run } from "./result";
  * list, and changing a number here moves the price of 47 fixtures at once.
  */
 
-const PATH = "/admin/dashboard/bulbs";
+const PATH = "/dashboard/bulbs";
 
 async function asActionError<T>(fn: () => Promise<T>): Promise<T> {
   const t = await getTranslations("Bulbs.errors");
@@ -52,6 +53,7 @@ export async function createBulb(input: catalog.BulbInput) {
   return run(async () => {
     await requirePermission("price:write");
     await asActionError(() => catalog.createBulb(input));
+    revalidateStorefront();
     revalidatePath(PATH);
   });
 }
@@ -60,6 +62,7 @@ export async function updateBulb(id: string, input: catalog.BulbInput) {
   return run(async () => {
     await requirePermission("price:write");
     await asActionError(() => catalog.updateBulb(id, input));
+    revalidateStorefront();
     revalidatePath(PATH);
   });
 }
@@ -68,6 +71,7 @@ export async function setBulbActive(id: string, isActive: boolean) {
   return run(async () => {
     await requirePermission("price:write");
     await asActionError(() => catalog.setBulbActive(id, isActive));
+    revalidateStorefront();
     revalidatePath(PATH);
   });
 }
@@ -76,6 +80,7 @@ export async function deleteBulb(id: string) {
   return run(async () => {
     await requirePermission("price:write");
     await asActionError(() => catalog.deleteBulbIfUnused(id));
+    revalidateStorefront();
     revalidatePath(PATH);
   });
 }
@@ -92,7 +97,8 @@ export async function setProductBulbs(
       throw new ActionError(t("defaultRequired"));
     }
     await asActionError(() => catalog.setProductBulbs(productId, bulbIds, defaultBulbId));
+    revalidateStorefront();
     revalidatePath(PATH);
-    revalidatePath(`/admin/dashboard/products/${productId}`);
+    revalidatePath(`/dashboard/products/${productId}`);
   });
 }

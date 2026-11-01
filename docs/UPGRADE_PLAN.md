@@ -463,6 +463,61 @@ says that rather than leaving it to be remembered.
 - **`mc7021` has no specifications at all**, so its page is a name and a
   price. Not invented here; someone has to enter them.
 
+### Phase 4 progress (2026-09-22): quotations core + datasheet fidelity
+On the Neon `dev` branch; production untouched; nothing committed yet.
+
+**Migration `20260922080000_quotations_and_image_roles`** (additive): `customers`,
+`quotations`, `quotation_lines`, `document_sequences`, and a nullable
+`product_images.role` (PHOTO / DRAWING / APPLICATION; null keeps the old
+"first image is the photo" rule, so no backfill). CHECKs: whole-quotation
+discount shape (as `discounts`), rates within 0–1, line quantity > 0.
+
+**Datasheet** rebuilt on geometry measured from `BO-017-50W.pptx`
+(`packages/datasheet/geometry.ts`), Altruvex-style; Calibri, with Carlito in
+the worker image. Image roles are set per image in the product editor.
+
+**Quotations** (`/admin/dashboard/quotations`): customer picker with inline
+create; products and variants from the catalog or custom lines; per-line
+and whole-quotation discount; VAT; live totals from `@repo/pricing`
+(`computeQuotationTotals`, recomputed and stored server-side). DRAFT → SENT
+→ ACCEPTED / REJECTED, EXPIRED applied on read (Cairo day). A sent quotation
+is read-only; "Revise" makes a linked new draft. Documents: PPTX (paginated,
+datasheet brand chrome), PDF via the worker, XLSX with live formulas.
+
+#### Datasheet studio + fidelity (2026-09-22, later)
+- **The datasheet read the wrong specs.** It still used the legacy
+  `ProductSpecification` columns; the product page reads `SpecGroup`s. On
+  116 of 117 products at least one value differed (units missing, the
+  internal/external driver mix-up the Phase 2 split fixed). The sheet now
+  reads `SpecGroup`s, and its description is the product page's own
+  (`describeProduct` through the storefront's English messages).
+- **Studio** at `/admin/dashboard/products/[id]/datasheet`: every printed
+  word, row, section and picture is editable with a live preview drawn
+  from the same drawing routine as the PPTX (`@repo/datasheet/preview`).
+  Export refuses a page that would overflow. The export dialog lists each
+  change and asks whether to save it to the product; "no" keeps it in the
+  file only. Saving goes through `@repo/catalog` `applySpecEdits`: values
+  are re-parsed into structured specs, new rows land in the matching group,
+  and anything whose Arabic now reads as English is reported.
+- **Product editor writes SpecGroups (2026-09-22).** The editor's
+  specifications section used to write the legacy `ProductSpecification`
+  columns, which nothing on the storefront reads for a product with spec
+  groups, so its edits never reached the product page. It now reads and
+  writes `SpecGroup`s, laid out from `@repo/catalog/spec-layout` (the
+  backfill's own layout), through `applySpecChanges`: values are typed once
+  in English and re-parsed; a free-text value or a new vocabulary entry
+  asks for its Arabic in the form, so nothing is copied from English
+  unless the datasheet (English only) wrote it. Rows can be added, cleared
+  or removed; an emptied group goes with its last row. Every one of the
+  1,306 dev specs round-trips display text → parser → identical structure.
+- **Legacy `ProductSpecification`**: off the storefront; see the next
+  section.
+
+Not yet done from §4 Phase 4: Cloudinary `GeneratedFile` storage, PNG
+preview, per-line write-back drawer, email sending, convert-to-order
+(needs Phase 5), `CompanySettings`/terms templates (company details are
+still constants in `packages/datasheet/sections/footer.ts`).
+
 ### Legacy `ProductSpecification` off the storefront (2026-09-22)
 Nothing on the storefront reads the table any more. `toCard`,
 `ProductService` (its scalars and `localizedSpecs`), the product page's meta

@@ -1,8 +1,10 @@
 "use server";
 
 import { prisma } from "@repo/database";
-import { requireAdmin, requirePermission } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
+import { revalidateStorefront } from "@/lib/storefront";
 import { getTranslations } from "next-intl/server";
 import type { ProductColorTemp, ProductIP, ProductChandLamp } from "@repo/database";
 import { cloudinary } from "@/lib/cloudinary";
@@ -15,14 +17,16 @@ import {
 import { ActionError, run } from "./result";
 import * as catalog from "@repo/catalog";
 import { serializeMoney } from "@repo/money";
+import { z } from "zod";
 
 // ─── Product CRUD ──────────────────────────────────────────────
 
 export async function createProduct(data: catalog.CreateProductInput) {
   return run(async () => {
-    await requireAdmin();
+    await requirePermission("product:write");
     const product = await catalog.createProduct(data);
-    revalidatePath("/admin/dashboard/products");
+    revalidateStorefront();
+    revalidatePath("/dashboard/products");
     return product;
   });
 }
@@ -47,20 +51,20 @@ export async function updateProductGeneral(
   }
 ) {
   return run(async () => {
-    await requireAdmin();
+    await requirePermission("product:write");
 
     const product = await prisma.product.update({ where: { id: productId }, data });
-    revalidatePath("/admin/dashboard/products");
-    revalidatePath(`/admin/dashboard/products/${productId}`);
+    revalidateStorefront();
+    revalidatePath("/dashboard/products");
+    revalidatePath(`/dashboard/products/${productId}`);
     return product;
   });
 }
 
 // ─── Translations ───────────────────────────────────────────────
-// ProductTranslation and ProductSpecification are keyed on Product.id like
-// every other relation here. They used to point at the SKU string, which
-// made a SKU unrenameable; the second `productSku` argument these functions
-// took is gone with it.
+// ProductTranslation is keyed on Product.id like every other relation
+// here. It used to point at the SKU string, which made a SKU unrenameable;
+// the second `productSku` argument this function took is gone with it.
 
 export async function upsertProductTranslation(
   productId: string,
@@ -68,7 +72,7 @@ export async function upsertProductTranslation(
   data: { name: string; description?: string | null }
 ) {
   return run(async () => {
-    await requireAdmin();
+    await requirePermission("product:write");
 
     const translation = await prisma.productTranslation.upsert({
       where: { productId_language: { productId, language } },
@@ -76,50 +80,70 @@ export async function upsertProductTranslation(
       create: { productId, language, ...data },
     });
 
-    revalidatePath(`/admin/dashboard/products/${productId}`);
+    revalidateStorefront();
+    revalidatePath(`/dashboard/products/${productId}`);
     return translation;
   });
 }
 
 // ─── Specifications ─────────────────────────────────────────────
+// Specs live in SpecGroup / SpecItem — the tables the product page and the
+// datasheet read — and are written through @repo/catalog, which parses the
+// English text into numbers and vocabulary entries the same way the
+// backfill did. The legacy ProductSpecification columns are no longer
+// written from here: nothing on the storefront reads them for a product
+// that has spec groups, so edits made there never reached the product page.
 
-export interface ProductSpecificationInput {
-  input?: string | null;
-  maximumWattage?: string | null;
-  brandOfLed?: string | null;
-  luminousFlux?: string | null;
-  mainMaterial?: string | null;
-  cri?: string | null;
-  beamAngle?: string | null;
-  workingTemperature?: string | null;
-  fixtureDimmable?: string | null;
-  electrical?: string | null;
-  powerFactor?: string | null;
-  colorTemperature?: string | null;
-  ip?: string | null;
-  energySaving?: string | null;
-  lifeTime?: string | null;
-  finish?: string | null;
-  lampBase?: string | null;
-  bulb?: string | null;
-}
+const specText = (max: number) => z.string().trim().max(max);
 
-export async function upsertProductSpecification(
-  productId: string,
-  language: "en" | "ar",
-  data: ProductSpecificationInput
-) {
+const productSpecChangesSchema = z.object({
+  edits: z
+    .array(
+      z.object({
+        itemId: z.string().min(1).max(64),
+        value: specText(160).optional(),
+        valueAr: specText(160).optional(),
+        label: specText(80).optional(),
+        labelAr: specText(80).optional(),
+      })
+    )
+    .max(200),
+  additions: z
+    .array(
+      z.object({
+        groupName: specText(40).min(1),
+        key: specText(40).optional(),
+        label: specText(80).optional(),
+        labelAr: specText(80).optional(),
+        value: specText(160).min(1),
+        valueAr: specText(160).optional(),
+      })
+    )
+    .max(100),
+  removals: z.array(z.string().min(1).max(64)).max(200),
+});
+
+export type ProductSpecChanges = z.infer<typeof productSpecChangesSchema>;
+
+export async function saveProductSpecs(productId: string, input: ProductSpecChanges) {
   return run(async () => {
-    await requireAdmin();
+    await requirePermission("product:write");
+    const t = await getTranslations("ProductEditor.specifications");
+    const parsed = productSpecChangesSchema.safeParse(input);
+    if (!parsed.success) throw new ActionError(t("invalid"));
 
-    const spec = await prisma.productSpecification.upsert({
-      where: { productId_language: { productId, language } },
-      update: data,
-      create: { productId, language, ...data },
-    });
+    let written: Awaited<ReturnType<typeof catalog.applySpecChanges>>;
+    try {
+      written = await catalog.applySpecChanges(productId, parsed.data);
+    } catch (error) {
+      console.error("product spec save failed", error);
+      throw new ActionError(t("saveFailed"));
+    }
 
-    revalidatePath(`/admin/dashboard/products/${productId}`);
-    return spec;
+    revalidateStorefront();
+    revalidatePath(`/dashboard/products/${productId}`);
+    revalidatePath(`/dashboard/products/${productId}/datasheet`);
+    return { arabicToReview: [...new Set(written.warnings.map((w) => w.label))] };
   });
 }
 
@@ -129,38 +153,41 @@ export async function updateProductPrice(productId: string, newPrice: string) {
     const admin = await requirePermission("price:write");
     const price = catalog.moneySchema.parse(newPrice);
     const updated = await catalog.setProductPrice(productId, price, admin.id);
-    revalidatePath(`/admin/dashboard/products/${productId}`);
+    revalidateStorefront();
+    revalidatePath(`/dashboard/products/${productId}`);
     return updated;
   });
 }
 
 export async function softDeleteProduct(productId: string) {
   return run(async () => {
-    await requireAdmin();
+    await requirePermission("product:write");
     const product = await prisma.product.update({
       where: { id: productId },
       data: { deletedAt: new Date(), isActive: false },
     });
-    revalidatePath("/admin/dashboard/products");
+    revalidateStorefront();
+    revalidatePath("/dashboard/products");
     return product;
   });
 }
 
 export async function restoreProduct(productId: string) {
   return run(async () => {
-    await requireAdmin();
+    await requirePermission("product:write");
     const product = await prisma.product.update({
       where: { id: productId },
       data: { deletedAt: null },
     });
-    revalidatePath("/admin/dashboard/products");
+    revalidateStorefront();
+    revalidatePath("/dashboard/products");
     return product;
   });
 }
 
 export async function duplicateProduct(productId: string) {
   return run(async () => {
-    await requireAdmin();
+    await requirePermission("product:write");
 
     // One transaction: a copy that failed half-way would be a product with
     // images but no specs, which is the bug this copy exists to prevent.
@@ -201,6 +228,7 @@ export async function duplicateProduct(productId: string) {
                 altText: img.altText,
                 order: img.order,
                 isPrimary: img.isPrimary,
+                role: img.role,
               })),
             },
             variants: {
@@ -243,7 +271,8 @@ export async function duplicateProduct(productId: string) {
       { timeout: 20_000 }
     );
 
-    revalidatePath("/admin/dashboard/products");
+    revalidateStorefront();
+    revalidatePath("/dashboard/products");
     // Ids only: the row carries Decimal money, which cannot cross to the client.
     return { id: copy.id, productId: copy.productId };
   });
@@ -257,12 +286,13 @@ export async function duplicateProduct(productId: string) {
 
 export async function addProductImage(productId: string, url: string, altText?: string) {
   return run(async () => {
-    await requireAdmin();
+    await requirePermission("product:write");
     const count = await prisma.productImage.count({ where: { productId } });
     const image = await prisma.productImage.create({
       data: { productId, url, altText, order: count, isPrimary: count === 0 },
     });
-    revalidatePath(`/admin/dashboard/products/${productId}`);
+    revalidateStorefront();
+    revalidatePath(`/dashboard/products/${productId}`);
     return image;
   });
 }
@@ -313,7 +343,8 @@ export async function registerUploadedImage(
       },
     });
 
-    revalidatePath(`/admin/dashboard/products/${productId}`);
+    revalidateStorefront();
+    revalidatePath(`/dashboard/products/${productId}`);
     return image;
   });
 }
@@ -325,7 +356,7 @@ export async function registerUploadedImage(
  */
 export async function uploadProductImage(productId: string, sku: string, formData: FormData) {
   return run(async () => {
-    await requireAdmin();
+    await requirePermission("product:write");
     const t = await getTranslations("ProductActions");
 
     const file = formData.get("file");
@@ -362,16 +393,19 @@ export async function uploadProductImage(productId: string, sku: string, formDat
       },
     });
 
-    revalidatePath(`/admin/dashboard/products/${productId}`);
+    revalidateStorefront();
+    revalidatePath(`/dashboard/products/${productId}`);
     return image;
   });
 }
 
 export async function removeProductImage(imageId: string, productId: string) {
   return run(async () => {
-    await requireAdmin();
+    await requirePermission("product:write");
 
-    const image = await prisma.productImage.findUniqueOrThrow({ where: { id: imageId } });
+    // Scoped to the product: an id from another product's page must not
+    // delete this one's image and then revalidate the wrong page.
+    const image = await prisma.productImage.findFirstOrThrow({ where: { id: imageId, productId } });
 
     if (image.providerId) {
       try {
@@ -388,30 +422,70 @@ export async function removeProductImage(imageId: string, productId: string) {
     }
 
     await prisma.productImage.delete({ where: { id: imageId } });
-    revalidatePath(`/admin/dashboard/products/${productId}`);
+    revalidateStorefront();
+    revalidatePath(`/dashboard/products/${productId}`);
   });
 }
 
 export async function setPrimaryImage(imageId: string, productId: string) {
   return run(async () => {
-    await requireAdmin();
+    await requirePermission("product:write");
     await prisma.$transaction([
       prisma.productImage.updateMany({ where: { productId }, data: { isPrimary: false } }),
-      prisma.productImage.update({ where: { id: imageId }, data: { isPrimary: true } }),
+      // updateMany so an image of another product matches nothing, instead
+      // of becoming primary while this product is left with none.
+      prisma.productImage.updateMany({ where: { id: imageId, productId }, data: { isPrimary: true } }),
     ]);
-    revalidatePath(`/admin/dashboard/products/${productId}`);
+    revalidateStorefront();
+    revalidatePath(`/dashboard/products/${productId}`);
   });
 }
 
 export async function reorderProductImages(productId: string, orderedImageIds: string[]) {
   return run(async () => {
-    await requireAdmin();
+    await requirePermission("product:write");
     await prisma.$transaction(
       orderedImageIds.map((id, index) =>
-        prisma.productImage.update({ where: { id }, data: { order: index } })
+        prisma.productImage.updateMany({ where: { id, productId }, data: { order: index } })
       )
     );
-    revalidatePath(`/admin/dashboard/products/${productId}`);
+    revalidateStorefront();
+    revalidatePath(`/dashboard/products/${productId}`);
+  });
+}
+
+/**
+ * What a picture shows, for the datasheet: the product photo, a dimensioned
+ * drawing, or the installed shot. Null clears it back to the position rule.
+ */
+export async function setProductImageRole(
+  imageId: string,
+  productId: string,
+  role: "PHOTO" | "DRAWING" | "APPLICATION" | null
+) {
+  return run(async () => {
+    await requirePermission("product:write");
+    const t = await getTranslations("ProductEditor.images.errors");
+    if (role !== null && !["PHOTO", "DRAWING", "APPLICATION"].includes(role)) {
+      throw new ActionError(t("roleInvalid"));
+    }
+    await prisma.$transaction(async (tx) => {
+      // One photo and one installed shot per product: marking a second one
+      // moves the role rather than leaving the sheet to pick between two.
+      if (role === "PHOTO" || role === "APPLICATION") {
+        await tx.productImage.updateMany({
+          where: { productId, role, NOT: { id: imageId } },
+          data: { role: null },
+        });
+      }
+      const { count } = await tx.productImage.updateMany({
+        where: { id: imageId, productId },
+        data: { role },
+      });
+      if (count === 0) throw new ActionError(t("notFound"));
+    });
+    revalidateStorefront();
+    revalidatePath(`/dashboard/products/${productId}`);
   });
 }
 
@@ -423,13 +497,19 @@ export async function updateVariant(
   data: catalog.UpdateVariantInput
 ) {
   return run(async () => {
-    await requireAdmin();
+    const admin = await requirePermission("product:write");
+    // A variant row carries a price override and a stock count as well as
+    // its descriptive fields; each is gated by its own permission, as the
+    // product's own price and the inventory page are.
+    if (data.priceOverride !== undefined && !can(admin.role, "price:write")) await requirePermission("price:write");
+    if (data.stock !== undefined && !can(admin.role, "stock:write")) await requirePermission("stock:write");
     // The Product.quantity mirror is kept in step inside the service's
     // transaction — see @repo/catalog's stock module — so it can no longer
     // drift depending on which action touched stock.
-    const variant = await catalog.updateVariant(variantId, data);
+    const variant = await catalog.updateVariant(variantId, data, admin.id);
 
-    revalidatePath(`/admin/dashboard/products/${productId}`);
+    revalidateStorefront();
+    revalidatePath(`/dashboard/products/${productId}`);
     return variant;
   });
 }
@@ -451,7 +531,8 @@ export async function applyBulkPrice(productIds: string[], operation: catalog.Bu
   return run(async () => {
     const admin = await requirePermission("price:write");
     const result = await catalog.applyBulkPrice(productIds, operation, admin.id);
-    revalidatePath("/admin/dashboard/products");
+    revalidateStorefront();
+    revalidatePath("/dashboard/products");
     return result;
   });
 }
@@ -469,8 +550,9 @@ export async function setProductsTrackInventory(ids: string[], track: boolean) {
       where: { id: { in: ids } },
       data: { trackInventory: track },
     });
-    revalidatePath("/admin/dashboard/products");
-    revalidatePath("/admin/dashboard/inventory");
+    revalidateStorefront();
+    revalidatePath("/dashboard/products");
+    revalidatePath("/dashboard/inventory");
     return { updated: count };
   });
 }

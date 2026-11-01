@@ -1,0 +1,12 @@
+{
+  "ui": {
+    "close": "إغلاق",
+    "navigation": "التنقل",
+    "navigationDescription": "القائمة الرئيسية للوحة التحكم.",
+    "toggleSidebar": "إظهار أو إخفاء القائمة الجانبية",
+    "more": "المزيد",
+    "previousSlide": "الشريحة السابقة",
+    "nextSlide": "الشريحة التالية",
+    "breadcrumb": "مسار التنقل"
+  }
+}

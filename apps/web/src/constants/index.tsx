@@ -131,6 +131,11 @@ export const OutdoorItems = [
     href: "/category/balcom/outdoor/flood-light",
   },
   {
+    id: "pole",
+    spotlightType: "Pole",
+    href: "/category/balcom/outdoor/pole",
+  },
+  {
     id: "bollard",
     spotlightType: "Bollard",
     href: "/category/balcom/outdoor/bollard",

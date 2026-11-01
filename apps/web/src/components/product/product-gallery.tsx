@@ -60,7 +60,7 @@ export default function ProductGallery({ images: given, name }: { images: string
 
   return (
     <div className="space-y-3">
-      <div className="group relative overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="group relative overflow-hidden rounded-sm bg-muted">
         <div
           ref={stripRef}
           dir="ltr"
@@ -83,7 +83,7 @@ export default function ProductGallery({ images: given, name }: { images: string
                 sizes="(min-width: 1024px) 55vw, 100vw"
                 priority={index === 0}
                 loading={index === 0 ? undefined : "lazy"}
-                className="object-cover"
+                className="product-photo object-cover"
               />
             </div>
           ))}
@@ -125,12 +125,12 @@ export default function ProductGallery({ images: given, name }: { images: string
                 aria-label={label(index)}
                 aria-current={active === index ? "true" : undefined}
                 className={cn(
-                  "relative block size-16 overflow-hidden rounded-lg border bg-card transition-[border-color,opacity] duration-[var(--dur-hover)] ease-[var(--ease-out)] sm:size-18",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  "relative block size-16 overflow-hidden rounded-sm border bg-muted transition-[border-color,opacity] duration-[var(--dur-hover)] ease-[var(--ease-out)] sm:size-18",
+                  "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
                   active === index ? "border-primary" : "border-border opacity-70 hover:opacity-100",
                 )}
               >
-                <ProductImage src={src} alt="" fill sizes="72px" className="object-cover" />
+                <ProductImage src={src} alt="" fill sizes="72px" className="product-photo object-cover" />
               </button>
             </li>
           ))}
@@ -159,7 +159,7 @@ function GalleryArrow({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="pointer-events-auto grid size-10 place-items-center rounded-full border border-border bg-background/85 opacity-0 shadow-sm backdrop-blur transition-[opacity,transform] duration-[var(--dur-hover)] ease-[var(--ease-out)] group-hover:opacity-100 focus-visible:opacity-100 active:scale-95 disabled:invisible"
+      className="pointer-events-auto grid size-10 place-items-center rounded-full border border-border bg-background/85 opacity-0 shadow-e1 backdrop-blur transition-[opacity,transform,background-color] duration-[var(--dur-hover)] ease-[var(--ease-out)] hover:bg-background group-hover:opacity-100 focus-visible:opacity-100 active:scale-95 disabled:invisible"
     >
       <Icon className="size-5" aria-hidden />
     </button>

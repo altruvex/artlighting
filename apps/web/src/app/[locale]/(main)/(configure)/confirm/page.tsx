@@ -9,6 +9,10 @@ import { getTranslations } from "next-intl/server"
 import { notFound } from "next/navigation"
 import Confirm from "./confirm"
 
+// Everything here is the signed-in customer's own order — nothing is shared
+// between visitors to prefetch, so this page blocks instead.
+export const instant = false
+
 /**
  * The address step.
  *

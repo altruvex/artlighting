@@ -1,22 +1,21 @@
 // apps/web/src/app/[locale]/(main)/(configure)/preview/[ProductId]/preview.tsx
 "use client";
 
-import { Container } from "@/components/container";
+import { CHECKOUT_GRID, CheckoutHeader } from "@/components/order/checkout-header";
+import { Onward } from "@/components/editorial/arrow";
 import type { ProductFamily } from "@repo/catalog/families";
 import type { MoneyInput } from "@repo/money";
 import LoginModal from "@/components/login-model";
 import NormalPrice from "@/components/price/normal-price";
 import ProductGallery from "@/components/product/product-gallery";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@repo/ui/components/button";
 import { useRouter } from "@/i18n/navigation";
 import { useUser } from "@/lib/auth-hooks";
 // The serialized view model, not Prisma's row type: money reaches a
 // Client Component as a string (see @repo/money).
 import type { Configuration } from "@/types/products";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import { ArrowRight, Check, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -24,6 +23,7 @@ import { toast } from "sonner";
 import { createOrder } from "./action";
 import { orderErrorText } from "@/components/order/order-error";
 import { PricingService } from "@/lib/pricing.server";
+import { applyRate, serializeMoney, subtractMoney } from "@repo/money";
 
 export interface ProductWithSpecs {
   id: string;
@@ -96,17 +96,6 @@ interface PreviewProps {
   locale: string;
 }
 
-const pageVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.6,
-      ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number]
-    },
-  },
-} as const;
 
 export default function Preview({
   configuration: initialConfiguration,
@@ -122,6 +111,7 @@ export default function Preview({
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const locale = useLocale();
   const t = useTranslations('preview');
+  const tColor = useTranslations('colorTemperature');
   const tOrder = useTranslations('order');
 
   const [authState, setAuthState] = useState({
@@ -245,151 +235,151 @@ export default function Preview({
 
   if (isLoading) {
     return (
-      <div className="w-full h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <h3 className="font-semibold text-2xl">{t('loadingTitle')}</h3>
-          <p>{t('loadingSubtitle')}</p>
-        </div>
+      <div role="status" className="flex min-h-[50dvh] items-center justify-center gap-3 text-muted-foreground">
+        <Loader2 className="size-5 animate-spin" aria-hidden />
+        {t('loadingTitle')}
       </div>
     );
   }
 
   if (isProductError || isConfigError || !finalProduct || !finalConfiguration) {
     return (
-      <div className="w-full h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <h3 className="font-semibold text-2xl">{t('errorTitle')}</h3>
-          <p>{t('errorSubtitle')}</p>
-          <div className="flex gap-2">
-            <Button onClick={handleRetry} variant="outline">{t('retryButton')}</Button>
-            <Button onClick={() => window.location.reload()}>{t('refreshButton')}</Button>
-          </div>
+      <div className="mx-auto flex min-h-[50dvh] max-w-md flex-col items-start justify-center gap-4 px-4">
+        <h1 className="text-[length:var(--text-2xl)] font-medium">{t('errorTitle')}</h1>
+        <p className="text-muted-foreground">{t('errorSubtitle')}</p>
+        <div className="flex gap-2">
+          <Button onClick={handleRetry} variant="outline">{t('retryButton')}</Button>
+          <Button onClick={() => window.location.reload()}>{t('refreshButton')}</Button>
         </div>
       </div>
     );
   }
 
+  // The configuration's stored total is the undiscounted price — dividing
+  // it by the quantity showed a "discounted" unit price equal to the full
+  // one. What the order will charge is the price less the discount.
+  const unitAfterDiscount = serializeMoney(
+    subtractMoney(priceCalculations.configPrice, applyRate(priceCalculations.configPrice, priceCalculations.discount)),
+  );
+  const totalAfterDiscount = serializeMoney(subtractMoney(priceCalculations.subtotal, priceCalculations.discountAmount));
+
+  // The figures the product page leads with, from the catalogue — in place
+  // of three marketing sentences with a spec value dropped into each.
+  const figures = [
+    { key: "luminousFlux", value: finalProduct.luminousFlux },
+    { key: "colorTemperature", value: finalProduct.colorTemperature },
+    { key: "beamAngle", value: finalProduct.beamAngle },
+    { key: "cri", value: finalProduct.cri },
+    { key: "mainMaterial", value: finalProduct.mainMaterial },
+    { key: "lifeTime", value: finalProduct.lifeTime },
+  ].filter((figure): figure is { key: string; value: string } => Boolean(figure.value?.trim()));
+
+  const choices = [
+    finalConfiguration.colorTemp ? { label: t('choiceColor'), value: tColor(`${finalConfiguration.colorTemp}.title`) } : null,
+    finalConfiguration.productIp ? { label: t('choiceIp'), value: finalConfiguration.productIp.replace(/^IP/, "IP ") } : null,
+  ].filter((choice): choice is { label: string; value: string } => choice !== null);
+
   return (
-    <div className="min-h-screen">
-      <Container>
-        <motion.div initial="hidden" animate="visible" variants={pageVariants} className="py-12">
-          <h1 className="lg:text-3xl md:text-2xl text-xl font-bold sm:mb-8">
-            {t('title')}
-          </h1>
-          <LoginModal isOpen={isLoginModalOpen} setIsOpen={setIsLoginModalOpen} />
-          <div className="flex flex-col lg:flex-row lg:gap-x-12 gap-x-0">
-            <div className="lg:w-[40%] md:w-[50%] mb-0">
-              {finalProduct.productImages && finalProduct.productImages.length > 0 ? (
-                <ProductGallery images={finalProduct.productImages} name={finalProduct.productName} />
-              ) : (
-                <div className="w-full h-[450px] flex items-center justify-center bg-muted rounded-lg">
-                  <p>{t('noImagesAvailable')}</p>
-                </div>
-              )}
-            </div>
-            <div>
-              <div className="h-150 w-full col-span-full lg:col-span-1 flex flex-col">
-                <ScrollArea className="relative flex-1 overflow-auto" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
-                  <div className="p-[18px]" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
-                    <div className="-ml-4">
-                      <h2 className="md:text-2xl text-xl mt-6 font-bold text-primary">
-                        {finalProduct.productName}
-                      </h2>
-                      <div className="mt-3 flex items-center gap-1.5 text-base">
-                        <Check className="h-4 w-4 text-primary" />
-                        {t('inStock')}
-                      </div>
-                    </div>
-                    <div className="sm:col-span-12 md:col-span-9 text-base mb-6">
-                      <div className="grid grid-cols-1 border-b border-border py-4 sm:py-2 md:py-4">
-                        <p className="font-bold md:text-xl text-lg -ml-4">{t('highlights')}</p>
-                        <ol className="mt-3 list-disc space-y-1">
-                          <li className="md:text-lg text-base">
-                            <p className="inline tracking-wide">
-                              <strong>{t('highlights-preview.ledsTitle')}</strong>{" "}
-                              {t('highlights-preview.ledsDescription', { luminousFlux: finalProduct.luminousFlux || t('highlights-preview.ledsDescriptionDefault') })}
-                            </p>
-                          </li>
-                          <li className="md:text-lg text-base">
-                            <p className="inline tracking-wide">
-                              <strong>{t('highlights-preview.durableTitle')}</strong>{" "}
-                              {t('highlights-preview.durableDescription', { material: finalProduct.mainMaterial || t('highlights-preview.durableDescriptionDefault') })}
-                            </p>
-                          </li>
-                          <li className="md:text-lg text-base">
-                            <p className="inline tracking-wide">
-                              <strong>{t('highlights-preview.adaptableTitle')}</strong>{" "}
-                              {t('highlights-preview.adaptableDescription')}
-                            </p>
-                          </li>
-                        </ol>
-                      </div>
-                    </div>
-                    <div className="mt-8">
-                      <div className="py-4 sm:py-6 sm:rounded-lg">
-                        <div className="flow-root text-lg">
-                          {priceCalculations.hasDiscount ? (
-                            <>
-                              <div className="flex items-center justify-between py-1 mt-2">
-                                <p className="md:text-lg text-base">{t('pricePerItem')}</p>
-                                <s className="text-muted-foreground md:text-lg text-base">
-                                  <NormalPrice price={priceCalculations.configPrice} />
-                                </s>
-                              </div>
-                              <div className="flex items-center justify-between py-1 mt-2">
-                                <p className="md:text-lg text-base text-center">{t('quantity')}</p>
-                                <p className="md:text-lg text-base">{priceCalculations.quantity}</p>
-                              </div>
-                              <div className="flex items-center justify-between py-1 mt-2">
-                                <p className="md:text-lg text-base">{t('discountAmount')}</p>
-                                <span className="text-primary font-semibold md:text-lg text-base">
-                                  {priceCalculations.discountPercentage}%
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between py-1 mt-2">
-                                <p className="md:text-lg text-base">{t('priceAfterDiscount')}</p>
-                                <span className="md:text-lg text-base text-destructive font-semibold">
-                                  <NormalPrice price={priceCalculations.totalPrice} />
-                                </span>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <div className="flex items-center justify-between py-1 mt-2">
-                                <p>{t('pricePerItem')}</p>
-                                <p><NormalPrice price={priceCalculations.unitPriceAfterDiscount} /></p>
-                              </div>
-                              <div className="flex items-center justify-between py-1 mt-2">
-                                <p>{t('quantity')}</p>
-                                <p>{priceCalculations.quantity}</p>
-                              </div>
-                              <div className="flex items-center justify-between py-1 mt-2">
-                                <p>{t('totalPrice')}</p>
-                                <p><NormalPrice price={priceCalculations.totalPrice} /></p>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </ScrollArea>
+    <>
+      <LoginModal isOpen={isLoginModalOpen} setIsOpen={setIsLoginModalOpen} />
+      <CheckoutHeader eyebrow={t('eyebrow')} title={t('title')} lede={<p>{t('lede')}</p>} />
+      <div className={CHECKOUT_GRID}>
+        <div className="grid gap-10 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+          <div>
+            {finalProduct.productImages && finalProduct.productImages.length > 0 ? (
+              <ProductGallery images={finalProduct.productImages} name={finalProduct.productName} />
+            ) : (
+              <div className="grid aspect-square place-items-center rounded-sm bg-muted text-muted-foreground">
+                {t('noImagesAvailable')}
               </div>
-              <div className="mt-8 flex md:justify-end justify-center pb-12">
-                <Button
-                  onClick={handleConfirm}
-                  disabled={isPending || !authState.isAuthChecked}
-                  className="sm:h-[52px] h-10 sm:px-10 px-8 bg-primary text-primary-foreground sm:text-lg text-base"
-                >
-                  {isPending ? t('confirmingOrder') : t('confirmOrder')}
-                  <ArrowRight className="sm:h-[18px] sm:w-[18px] h-4 w-4 ml-1.5 inline" />
-                </Button>
-              </div>
-            </div>
+            )}
           </div>
-        </motion.div>
-      </Container>
-    </div>
+          <div className="min-w-0 space-y-8">
+            <div>
+              {finalProduct.lightingTypeName && <p className="eyebrow">{finalProduct.lightingTypeName}</p>}
+              <h2 className="mt-2 text-[length:var(--text-2xl)] font-medium ltr:tracking-tight">{finalProduct.productName}</h2>
+              {finalProduct.categoryName && <p className="mt-1 text-muted-foreground">{finalProduct.categoryName}</p>}
+            </div>
+
+            {choices.length > 0 && (
+              <section aria-labelledby="choices-heading">
+                <h3 id="choices-heading" className="eyebrow pb-3">{t('choices')}</h3>
+                <dl className="divide-y divide-border border-y border-border text-[length:var(--text-sm)]">
+                  {choices.map((choice) => (
+                    <div key={choice.label} className="flex justify-between gap-4 py-3">
+                      <dt className="text-muted-foreground">{choice.label}</dt>
+                      <dd className="text-end font-medium" dir="auto">{choice.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            )}
+
+            {figures.length > 0 && (
+              <section aria-labelledby="figures-heading">
+                <h3 id="figures-heading" className="eyebrow pb-3">{t('figures')}</h3>
+                <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-sm border border-border bg-border sm:grid-cols-3">
+                  {figures.map((figure) => (
+                    <div key={figure.key} className="bg-background p-4">
+                      <dt className="text-[length:var(--text-xs)] text-muted-foreground">{t(`spec.${figure.key}`)}</dt>
+                      <dd className="mt-1.5 font-semibold tabular-nums" dir="auto">{figure.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            )}
+          </div>
+        </div>
+
+        <section aria-labelledby="preview-summary" className="rounded-md border border-border bg-card/40 p-5 sm:p-6 lg:sticky lg:top-24">
+          <h2 id="preview-summary" className="eyebrow mb-4">{t('summary')}</h2>
+          <dl className="space-y-3 text-[length:var(--text-sm)]">
+            <div className="flex items-baseline justify-between gap-4">
+              <dt className="text-muted-foreground">{t('pricePerItem')}</dt>
+              <dd className="text-end tabular-nums">
+                {priceCalculations.hasDiscount && (
+                  <s className="me-2 text-muted-foreground"><NormalPrice price={priceCalculations.configPrice} /></s>
+                )}
+                <NormalPrice price={unitAfterDiscount} />
+              </dd>
+            </div>
+            {priceCalculations.hasDiscount && (
+              <div className="flex items-baseline justify-between gap-4">
+                <dt className="text-muted-foreground">{t('discountAmount')}</dt>
+                <dd className="font-medium tabular-nums text-primary" dir="ltr">−{priceCalculations.discountPercentage}%</dd>
+              </div>
+            )}
+            <div className="flex items-baseline justify-between gap-4">
+              <dt className="text-muted-foreground">{t('quantity')}</dt>
+              <dd className="text-end tabular-nums">{priceCalculations.quantity}</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-4 border-t border-border pt-4">
+              <dt className="text-[length:var(--text-base)] font-semibold">{t('totalPrice')}</dt>
+              <dd className="text-end font-[family-name:var(--font-display-face)] text-[length:var(--text-xl)] font-semibold tabular-nums">
+                <NormalPrice price={totalAfterDiscount} />
+              </dd>
+            </div>
+          </dl>
+          <p className="mt-3 text-[length:var(--text-xs)] text-muted-foreground">{t('deliveryNote')}</p>
+          <Button
+            onClick={handleConfirm}
+            disabled={isPending || !authState.isAuthChecked}
+            className="mt-6 h-12 w-full text-base font-semibold"
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="size-5 animate-spin" aria-hidden />
+                {t('confirmingOrder')}
+              </>
+            ) : (
+              <>
+                {t('confirmOrder')}
+                <Onward />
+              </>
+            )}
+          </Button>
+        </section>
+      </div>
+    </>
   );
 }

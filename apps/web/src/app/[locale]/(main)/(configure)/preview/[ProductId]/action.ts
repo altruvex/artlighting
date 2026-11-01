@@ -2,7 +2,9 @@
 
 import { auth } from "@/lib/auth-server"
 import { CheckoutError, placeOrder } from "@/lib/checkout.server"
+import { CATALOGUE_TAG } from "@/lib/cache.server"
 import { getLocale } from "next-intl/server"
+import { revalidateTag } from "next/cache"
 
 /**
  * "Order now" on one product: an order with a single line, placed through
@@ -32,6 +34,8 @@ export async function createOrder({
       { kind: "configuration", configurationId: configId, quantity },
       { coupon: coupon ?? null, customerLanguage: (await getLocale()) === "en" ? "en" : "ar" },
     )
+    // A coupon redemption can use up a promotion the promo bar still shows.
+    revalidateTag(CATALOGUE_TAG, "max")
     return { ok: true as const, userId, orderId }
   } catch (error) {
     // Returned, not thrown: a production build replaces a thrown message

@@ -1,5 +1,20 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
+
+const { upstashRest } = createRequire(import.meta.url)("./upstash-rest.cjs") as typeof import("./upstash-rest.cjs");
+
+/**
+ * Shared cache invalidation across instances (see cache-handler.cjs). Only
+ * self-hosted with Redis configured: on Vercel the platform propagates
+ * revalidateTag itself, and with one instance there is nothing to share.
+ * SHARED_CACHE_TAGS=off opts out.
+ */
+const sharedCacheTags =
+  upstashRest() !== null &&
+  !process.env.VERCEL &&
+  process.env.SHARED_CACHE_TAGS !== "off";
 
 const allowedOrigins = [
   process.env.NEXT_PUBLIC_APP_URL,
@@ -16,11 +31,40 @@ function getCorsOriginHeader() {
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  compress: true,
+  // Gzip in Node costs CPU on every response — under load it was the main
+  // cost of serving a cached page. Behind a CDN or nginx that compresses,
+  // set NEXT_COMPRESS=off and let them do it; Vercel ignores this setting.
+  compress: process.env.NEXT_COMPRESS !== "off",
+  // Enables `"use cache"`. Catalogue reads are cached per locale and
+  // dropped by tag when the admin or an order changes them (see
+  // src/lib/cache.server.ts and src/app/api/revalidate).
+  cacheComponents: true,
+  // A product added after the build has no prerendered page yet: its first
+  // visitor gets the page's shell at once and the full page is prerendered
+  // in the background for everyone after (see generateStaticParams on the
+  // product routes).
+  partialPrefetching: true,
+  ...(sharedCacheTags && {
+    cacheHandlers: { default: fileURLToPath(new URL("./cache-handler.cjs", import.meta.url)) },
+  }),
+  cacheLife: {
+    // Products, prices, stock and promotions: fresh within 5 minutes even
+    // if an invalidation is missed, served stale for at most an hour.
+    catalogue: { stale: 60, revalidate: 300, expire: 3600 },
+  },
   experimental: {
-    optimizePackageImports: ["lucide-react", "@/components/ui"],
+    // Every product page is prerendered at build (~480 pages). At the
+    // default concurrency the Neon driver's websockets failed under the
+    // burst of parallel queries and took the build down; retry what fails
+    // and keep each worker to a few pages at a time.
+    staticGenerationMaxConcurrency: 4,
+    staticGenerationRetryCount: 3,
+    optimizePackageImports: ["lucide-react"],
   },
   images: {
+    // What the landing imagery asks for; unlisted qualities are
+    // coerced to 75 and warned about on every render.
+    qualities: [60, 70, 75],
     remotePatterns: [
       {
         protocol: "https",

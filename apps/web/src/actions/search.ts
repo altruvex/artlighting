@@ -1,61 +1,35 @@
-"use server";  
-import { prisma } from "@repo/database";
-import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { serializeRowMoney } from "@/lib/serialize-money";
-import { familiesMatching, productBulbSelect, productDiscountRates } from "@repo/catalog";
-import { bulbChoices } from "@repo/catalog/bulb-pricing";
-import { localizeSpecGroups, specGroupSelect } from "@/lib/spec-groups";
+"use server";
+
+import { familiesMatching } from "@repo/catalog";
+import { catalogueCards } from "@/lib/shop.server";
 
 /**
- * A result is rendered as a product card, and a card generates its own
- * description — so the locale comes in: the specs have to be localized on
- * the way out, or every search result opens with a generic noun.
+ * The header's search-as-you-type.
+ *
+ * Filters the cached catalogue in memory rather than querying on every
+ * keystroke (the field fires one call per pause in typing, per visitor).
+ * It also means a result is always an active product, priced and
+ * described exactly as its card is: the query this replaced had no
+ * isActive filter, so retired products turned up in search.
  */
 export async function searchProducts(searchItem: string, locale = "en") {
-  // sectionType is an enum: it is matched against whole families whose slug
-  // contains the term, not with a `contains` the column cannot take.
-  const families = familiesMatching(searchItem);
+  const needle = searchItem.trim().toLocaleLowerCase(locale).slice(0, 80);
+  if (!needle) return [];
+  // sectionType is matched against whole families whose slug contains the
+  // term, as before.
+  const families = new Set<string>(familiesMatching(needle));
 
-  const products = await prisma.product.findMany({
-    where: {
-      OR: [
-        { productName: { contains: searchItem, mode: "insensitive" } },
-        { brand: { contains: searchItem, mode: "insensitive" } },
-        ...(families.length ? [{ sectionType: { in: families } }] : []),
-      ],
-    },
-    select: {
-      id: true,
-      productId: true,
-      productName: true,
-      price: true,
-      brand: true,
-      sectionType: true,
-      spotlightType: true,
-      images: productImageSelect(),
-      categoryId: true,
-      lightingtypeId: true,
-      hNumber: true,
-      specGroups: specGroupSelect(locale),
-      bulbs: productBulbSelect(),
-      lightingtype: { include: { translations: { where: { language: locale }, take: 1 } } },
-    },
-    take: 10,
-  });
-  const rates = await productDiscountRates(products, prisma);
-
-  // Money leaves the server as strings: a Prisma.Decimal cannot be passed
-  // to a Client Component (see @repo/money).
-  return products.map((product) => ({
-    ...serializeRowMoney(product),
-    // The ProductImage table, not the legacy array — see lib/product-images.
-    productImages: imageUrls(product),
-    // From the engine, so search results agree with the product page.
-    discount: rates[product.id] ?? "0.0000",
-    // What the card's description is built from; see @repo/catalog/describe.
-    specGroups: localizeSpecGroups(product.specGroups ?? [], locale),
-    bulbChoices: bulbChoices(product.bulbs, product.hNumber, locale),
-    lightingTypeName:
-      product.lightingtype?.translations?.[0]?.name ?? product.lightingtype?.name ?? undefined,
-  }));
+  const cards = await catalogueCards(locale === "ar" ? "ar" : "en");
+  return cards
+    .filter(
+      (card) =>
+        card.productName.toLocaleLowerCase(locale).includes(needle) ||
+        card.productId.toLowerCase().includes(needle) ||
+        card.brand.toLowerCase().includes(needle) ||
+        // The lighting type in this locale — what the shop's own search
+        // matches too, and the only Arabic word most products carry.
+        (card.lightingTypeName ?? "").toLocaleLowerCase(locale).includes(needle) ||
+        families.has(card.sectionType),
+    )
+    .slice(0, 10);
 }

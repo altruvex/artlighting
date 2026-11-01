@@ -1,46 +1,54 @@
+import { absoluteUrl, assetUrl, SITE_URL } from "@/lib/site";
 import { SupportedLanguage } from "@/types/products";
 import { Metadata } from "next";
 
+/**
+ * Page metadata.
+ *
+ * `path` is the page's own path without the locale ("/about-us"). It gives
+ * each page its own canonical and its language alternates — before, every
+ * page declared the home page as its canonical, which told search engines
+ * the whole site was one page.
+ */
 export function constructMetadata({
     title,
     description,
     locale = "en",
-    image = locale === "ar" ? "/Logo-ar.png" : "/Logo-en.png",
+    path = "",
+    image = locale === "ar" ? "/logo-ar.png" : "/logo-en.png",
     icons = "/favicon.ico",
     openGraph,
     twitter,
+    noIndex = false,
 }: {
     title?: string;
     description?: string;
     image?: string;
     icons?: string;
+    path?: string;
     openGraph?: Metadata["openGraph"];
     twitter?: Metadata["twitter"];
     locale?: SupportedLanguage;
+    noIndex?: boolean;
 } = {}): Metadata {
     const defaultTitles: Record<SupportedLanguage, string> = {
-        en: "Art Lighting Company - Professional lighting: Shop Spotlights, Light Poles, and LED Lights",
-        ar: "شركة ارت لايتنج - حلول إضاءة احترافية: كشافات، أعمدة إنارة، ولمبات ليد",
+        en: "Art Lighting | LED Spotlights, Chandeliers & Outdoor Lighting, Egypt",
+        ar: "آرت لايتنج Art Lighting | كشافات ليد ونجف وإضاءة خارجية في مصر",
     };
 
     const defaultDescriptions: Record<SupportedLanguage, string> = {
-        en:
-            "Art Lighting Company: Elevate your spaces with exquisite Indoor and outdoor lighting solutions. Explore our curated selection of spotlights, light poles, LED fixtures, chandeliers, linear lighting, and bollards, meticulously crafted for enduring brilliance and energy efficiency. Experience the Art Lighting difference – exceptional illumination at exceptional value.",
-        ar:
-            "شركة أرت لايتنج: ارتقِ بمساحاتك مع حلول الإضاءة الداخلية والخارجية الراقية. استكشف تشكيلتنا المختارة من الكشافات، أعمدة الإنارة، تجهيزات ليد، الثريات، الإضاءات الخطية، والبولارد — مصممة بعناية للحصول على سطوع دائم وكفاءة في استهلاك الطاقة. اكتشف فرق أرت لايتنج — إضاءة استثنائية بقيمة استثنائية.",
+        en: "Sole authorised Balcom agent in Egypt since 2010. LED spotlights, linear and panel lights, outdoor lighting and Mister LED chandeliers — Cairo showroom.",
+        ar: "الوكيل الوحيد المعتمد لبالكوم في مصر منذ ٢٠١٠. كشافات ليد وسبوت لايت وإضاءة لينير وبانل وإضاءة خارجية ونجف مستر ليد — معرض في القاهرة.",
     };
 
     const ogLocale = locale === "ar" ? "ar_EG" : "en_US";
-    const baseUrl = "https://eg-artlighting.vercel.app";
-    const siteUrl = `${baseUrl}/${locale}/`;
-    const siteName = "Art Lighting Company";
+    const url = absoluteUrl(locale, path);
+    const siteName = locale === "ar" ? "آرت لايتنج" : "Art Lighting";
 
     const resolvedTitle = title ?? defaultTitles[locale];
     const resolvedDescription = description ?? defaultDescriptions[locale];
-
-    const resolvedImage = image.startsWith("http") ? image : `${baseUrl}${image}`;
-
-    const imageAlt = locale === "ar" ? "شعار شركة آرت لايتنغ" : "Art Lighting Company Logo";
+    const resolvedImage = assetUrl(image);
+    const imageAlt = locale === "ar" ? "آرت لايتنج" : "Art Lighting";
 
     return {
         title: resolvedTitle,
@@ -48,106 +56,34 @@ export function constructMetadata({
         openGraph: openGraph ?? {
             type: "website",
             locale: ogLocale,
-            url: siteUrl,
+            url,
             siteName,
             title: resolvedTitle,
             description: resolvedDescription,
-            images: [
-                {
-                    url: resolvedImage,
-                    width: 1200,
-                    height: 630,
-                    alt: imageAlt,
-                    type: "image/png"
-                },
-            ],
+            images: [{ url: resolvedImage, alt: imageAlt }],
         },
         twitter: twitter ?? {
             card: "summary_large_image",
-            site: "@ArtLightingEG",
-            creator: "@ArtLightingEG",
             title: resolvedTitle,
             description: resolvedDescription,
-            images: {
-                url: resolvedImage,
-                alt: imageAlt,
-            },
+            images: { url: resolvedImage, alt: imageAlt },
         },
-        other: {
-            "application-name": siteName,
-            "og:image": resolvedImage,
-            "og:image:width": "1200",
-            "og:image:height": "630",
-            "og:image:alt": imageAlt,
-            "twitter:image": resolvedImage,
-            "twitter:image:alt": imageAlt,
-        },
-
+        applicationName: siteName,
         icons,
-        keywords: [
-            "Lighting",
-            "LED",
-            "Spotlight",
-            "Flood Light",
-            "Spikes",
-            "Balcom",
-            "Jetra",
-            "mister-led",
-            "Bollard",
-            "Poles",
-            "إضاءة عامة",
-            "إضاءة وظيفية",
-            "إضاءة زخرفية",
-            "إضاءة طوارئ",
-            "إضاءة غرفة نوم",
-            "إضاءة معيشة",
-            "إضاءة مطبخ",
-            "إضاءة حمام",
-            "إضاءة مدخل",
-            "إضاءة متاجر",
-            "إضاءة مكاتب",
-            "إضاءة مطاعم",
-            "إضاءة فنادق",
-            "إضاءة مصانع",
-            "إضاءة مخازن",
-            "إضاءة ورش عمل",
-            "إضاءة حدائق",
-            "إضاءة واجهات",
-            "إضاءة ملاعب",
-            "إضاءة شوارع",
-            "لمبات LED",
-            "لمبات فلورسنت",
-            "لمبات هالوجين",
-            "لمبات زئبق",
-            "لمبات صوديوم",
-            "إضاءة مباشرة",
-            "إضاءة غير مباشرة",
-            "إضاءة موجهة",
-            "ثريات حديد",
-            "ثريات نحاس",
-            "ديمر",
-            "فلتر",
-            "رفلكتور",
-            "تصميم الإضاءة",
-            "تركيب الإضاءة",
-        ],
-        metadataBase: new URL(baseUrl),
-        robots: {
-            index: true,
-            follow: true,
-            googleBot: {
-                index: true,
-                follow: true,
-                "max-video-preview": -1,
-                "max-image-preview": "large",
-                "max-snippet": -1,
-            },
-        },
+        metadataBase: new URL(SITE_URL),
+        robots: noIndex
+            ? { index: false, follow: true }
+            : {
+                  index: true,
+                  follow: true,
+                  googleBot: { index: true, follow: true, "max-video-preview": -1, "max-image-preview": "large", "max-snippet": -1 },
+              },
         alternates: {
-            canonical: siteUrl,
+            canonical: url,
             languages: {
-                en: `${baseUrl}/en/`,
-                ar: `${baseUrl}/ar/`,
+                en: absoluteUrl("en", path),
+                ar: absoluteUrl("ar", path),
+                "x-default": absoluteUrl("en", path),
             },
         },
     };

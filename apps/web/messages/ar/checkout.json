@@ -1,0 +1,301 @@
+{
+    "preview": {
+        "title": "راجع طلبك",
+        "loadingTitle": "جاري تحميل طلبك...",
+        "loadingSubtitle": "لن يستغرق هذا وقتاً طويلاً.",
+        "errorTitle": "خطأ في تحميل المنتج",
+        "errorSubtitle": "حدث خطأ أثناء جلب تفاصيل المنتج.",
+        "retryButton": "إعادة المحاولة",
+        "refreshButton": "تحديث الصفحة",
+        "noImagesAvailable": "لا توجد صور متاحة",
+        "inStock": "متوفر ومستعد للشحن",
+        "pricePerItem": "سعر القطعة",
+        "quantity": "الكمية",
+        "discountAmount": "الخصم",
+        "priceAfterDiscount": "السعر بعد الخصم",
+        "totalPrice": "الإجمالي",
+        "confirmingOrder": "جاري التأكيد...",
+        "confirmOrder": "متابعة إلى التوصيل",
+        "authError": "يرجى تسجيل الدخول للمتابعة مع طلبك.",
+        "generalError": "حدث خطأ في إنشاء طلبك. يرجى المحاولة مرة أخرى.",
+        "waitAuth": "يرجى الانتظار بينما نتحقق من حالة المصادقة الخاصة بك.",
+        "configMissing": "بيانات التكوين مفقودة. يرجى تحديث الصفحة.",
+        "eyebrow": "الخطوة ١ من ٣",
+        "lede": "تأكد من المنتج والخيارات التي اخترتها. بيانات التوصيل في الخطوة التالية.",
+        "choices": "اختياراتك",
+        "choiceColor": "درجة اللون",
+        "choiceIp": "درجة الحماية",
+        "figures": "أهم الأرقام",
+        "summary": "السعر",
+        "deliveryNote": "تُضاف رسوم التوصيل في الخطوة التالية: ٦٩ جنيهًا للطلب داخل القاهرة.",
+        "spec": {
+            "luminousFlux": "شدة الإضاءة",
+            "colorTemperature": "درجة اللون",
+            "beamAngle": "زاوية الإضاءة",
+            "cri": "مؤشر CRI",
+            "mainMaterial": "الخامة",
+            "lifeTime": "العمر الافتراضي"
+        }
+    },
+    "confirm": {
+        "title": "أين نوصّل طلبك؟",
+        "subtitle": "قد يتصل المعرض بهذا الرقم لتأكيد الطلب قبل إرساله.",
+        "orderSummary": {
+            "title": "ملخص الطلب",
+            "subtotal": "المجموع الفرعي",
+            "item": "عنصر",
+            "items": "عناصر",
+            "discount": "خصم",
+            "shipping": "الشحن",
+            "total": "المجموع",
+            "youSave": "توفر",
+            "off": "خصم",
+            "subtotalAfterDiscount": "المجموع الفرعي بعد الخصم"
+        },
+        "productDetails": {
+            "pricePerItem": "السعر لكل عنصر",
+            "quantity": "الكمية"
+        },
+        "shippingInfo": {
+            "title": "معلومات الشحن",
+            "fullName": {
+                "label": "الاسم الكامل",
+                "placeholder": "أدخل اسمك الكامل"
+            },
+            "phoneNumber": {
+                "label": "رقم الهاتف",
+                "placeholder": "أدخل رقم هاتفك"
+            },
+            "address": {
+                "label": "العنوان",
+                "placeholder": "أدخل عنوان الشارع"
+            },
+            "city": {
+                "label": "المدينة",
+                "placeholder": "أدخل مدينتك"
+            },
+            "state": {
+                "label": "الولاية / المحافظة",
+                "placeholder": "أدخل ولايتك"
+            },
+            "zipCode": {
+                "label": "الرمز البريدي",
+                "placeholder": "أدخل الرمز البريدي (اختياري)"
+            },
+            "country": {
+                "label": "البلد",
+                "placeholder": "أدخل بلدك"
+            }
+        },
+        "buttons": {
+            "tryAgain": "حاول مرة أخرى",
+            "goHome": "الذهاب للرئيسية",
+            "returnHome": "العودة للرئيسية",
+            "processingOrder": "جاري معالجة الطلب...",
+            "completeOrder": "إكمال الطلب"
+        },
+        "errors": {
+            "unableToLoad": "غير قادر على تحميل الطلب",
+            "orderNotFound": "الطلب غير موجود",
+            "somethingWentWrong": "حدث خطأ أثناء تحميل تفاصيل طلبك.",
+            "orderNotFoundDesc": "لم نتمكن من العثور على الطلب الذي تبحث عنه.",
+            "authenticationError": "خطأ في المصادقة",
+            "authorizationFailed": "فشل التخويل لهذا الطلب.",
+            "dataError": "خطأ في البيانات",
+            "orderInfoNotAvailable": "معلومات الطلب غير متوفرة. يرجى تحديث الصفحة.",
+            "orderProcessingFailed": "فشل في معالجة الطلب",
+            "unexpectedError": "حدث خطأ غير متوقع أثناء معالجة الطلب.",
+            "invalidResponse": "استجابة غير صالحة من الخادم"
+        },
+        "success": {
+            "orderProcessed": "تم معالجة طلبك. جاري التوجيه إلى صفحة الإكمال..."
+        },
+        "eyebrow": "الخطوة ٢ من ٣"
+    },
+    "complete": {
+        "title": "راجع طلبك وأكّده",
+        "description": "تأكد من المنتجات والعنوان والإجمالي. لن يُحصَّل أي مبلغ الآن — تدفع نقدًا عند وصول الطلب.",
+        "orderProcessing": "جاري معالجة الطلب",
+        "readyForShipping": "جاهز للشحن",
+        "orderComplete": "الطلب مكتمل",
+        "orderedProducts": "المنتجات المطلوبة",
+        "product": "المنتج",
+        "qty": "الكمية",
+        "colorTemp": "درجة حرارة اللون",
+        "wattage": "القدرة الكهربائية",
+        "lamp": "اللمبة",
+        "ipRating": "درجة الحماية",
+        "discount": "الخصم",
+        "price": "السعر",
+        "total": "الإجمالي",
+        "modernDesign": "تصميم عصري وبسيط",
+        "shippingInformation": "معلومات الشحن",
+        "shippingAddress": "عنوان الشحن",
+        "estimatedDeliveryDate": "التسليم المتوقع:",
+        "customerDetails": "تفاصيل العميل",
+        "name": "الاسم",
+        "phoneNumber": "رقم الهاتف",
+        "billingAddress": "عنوان الفاتورة",
+        "deliveryDetails": "تفاصيل التسليم",
+        "cairoDelivery": "سيتم توصيل طلبك إلى القاهرة",
+        "outsideCairoShipping": "الشحن إلى مواقع خارج القاهرة",
+        "shippingCost": "تكلفة الشحن",
+        "fixedRateForCairo": "سعر ثابت للقاهرة",
+        "toBeDetermined": "سيتم تحديدها",
+        "willContactForShippingPrice": "سنتواصل معك لتحديد سعر الشحن.",
+        "estimatedDeliveryTime": "وقت التسليم المقدر",
+        "businessDays": "٣-٥ أيام عمل",
+        "striveForQuickDelivery": "نسعى لتوصيل طلبك في أسرع وقت ممكن.",
+        "deliveryTimeWillBeProvided": "سيتم توفير وقت التسليم عندما نتواصل معك بسعر الشحن.",
+        "whyChooseOurProducts": "لماذا تختار منتجاتنا؟",
+        "energyEfficient": "موفر للطاقة",
+        "energyEfficientDesc": "منتجات الإضاءة لدينا مصممة لتوفير الطاقة، مما يساعدك في توفير فواتير الكهرباء وتقليل البصمة الكربونية.",
+        "adjustableBrightness": "سطوع قابل للتعديل",
+        "adjustableBrightnessDesc": "العديد من خيارات الإضاءة لدينا تتميز بإعدادات سطوع قابلة للتعديل، مما يتيح لك إنشاء الجو المثالي لأي مناسبة.",
+        "durableConstruction": "بناء متين",
+        "durableConstructionDesc": "منتجات الإضاءة لدينا مبنية لتدوم، بمواد عالية الجودة وبناء يضمن الأداء طويل الأمد.",
+        "completeYourOrder": "تأكيد الطلب",
+        "LoadingCompleteYourOrder": "جاري إكمال طلبك...",
+        "loadingOrderDetails": "جاري تحميل تفاصيل الطلب...",
+        "errorLoadingOrderDetails": "خطأ في تحميل تفاصيل الطلب",
+        "noOrderFound": "لم يتم العثور على طلب",
+        "noShippingAddressAvailable": "لا يوجد عنوان شحن متاح",
+        "noBillingAddressAvailable": "لا يوجد عنوان فاتورة متاح",
+        "unknownLamp": "مصباح غير معروف",
+        "na": "غير متاح",
+        "off": "خصم",
+        "complete-notifications": {
+            "success": "تم إكمال الطلب بنجاح. جاري تحويلك إلى صفحة الشكر",
+            "error": {
+                "title": "مشكلة في إتمام الطلب",
+                "description": "حدثت مشكلة أثناء إتمام طلبك. يرجى المحاولة مرة أخرى أو التواصل مع الدعم."
+            },
+            "error-unknown": "حدث خطأ أثناء إتمام طلبك. يرجى المحاولة مرة أخرى."
+        },
+        "eyebrow": "الخطوة ٣ من ٣",
+        "payment": "الدفع: نقدًا عند الاستلام."
+    },
+    "thankYou": {
+        "pageTitle": "شكرًا لك — تم تقديم طلبك.",
+        "orderReceived": "استلمنا طلبك ويقوم المعرض بتجهيزه. رسالة التأكيد في طريقها إلى بريدك الإلكتروني.",
+        "orderSummary": "ملخص الطلب",
+        "orderNumber": "رقم الطلب",
+        "shippingAddress": "عنوان التوصيل",
+        "estimatedDeliveryDate": "موعد التسليم المتوقع",
+        "shippingFee": "رسوم الشحن:",
+        "item": "المنتج",
+        "qty": "الكمية",
+        "colorTemp": "درجة حرارة اللون",
+        "wattage": "القوة الكهربائية",
+        "lamp": "اللمبة",
+        "ipRating": "تصنيف IP",
+        "subtotal": "المجموع الفرعي قبل الخصم:",
+        "discount": "الخصم:",
+        "afterDiscount": "بعد الخصم:",
+        "price": "سعر المنتج:",
+        "total": "الإجمالي:",
+        "continueShopping": "متابعة التسوق",
+        "spotlight": "كشاف بقوة كهربائية قصوى",
+        "chandelier": "ثريا مع",
+        "unknownLamp": "مصباح غير معروف",
+        "loadingOrderDetails": "جاري تحميل تفاصيل الطلب...",
+        "errorLoadingOrderDetails": "خطأ في تحميل تفاصيل الطلب",
+        "noOrderFound": "لم يتم العثور على طلب.",
+        "checkOrderId": "يرجى التحقق من رقم الطلب.",
+        "orderNotCompleted": "لم يتم إكمال هذا الطلب.",
+        "completeOrderFirst": "يرجى إكمال طلبك أولاً.",
+        "outsideCairoShipping": "سنقوم بإعلامك بتكلفة الشحن حيث أن موقعك خارج القاهرة، وسيتم إكمال طلبك بمجرد تأكيد رسوم الشحن",
+        "eyebrow": "تم تأكيد الطلب",
+        "payment": "الدفع",
+        "cod": "عند الاستلام",
+        "nextTitle": "ما الذي سيحدث بعد ذلك",
+        "next1": "قد يتصل بك المعرض لتأكيد الطلب وعنوان التوصيل.",
+        "next2": "يتم توصيل الطلبات خلال أربعة أيام عمل. وللعناوين خارج القاهرة نؤكد معك تكلفة التوصيل قبل الإرسال.",
+        "next3": "تدفع نقدًا عند وصول الطلب.",
+        "emailNote": "احتفظ برسالة التأكيد — فيها رقم الطلب وكل محتوياته.",
+        "questions": "لديك سؤال عن هذا الطلب؟ اتصل على"
+    },
+    "cart": {
+        "title": "سلة التسوق",
+        "items": "عناصر",
+        "item": "عنصر",
+        "loading": "جارٍ تحميل السلة…",
+        "emptyCart": {
+            "title": "سلة التسوق فارغة",
+            "description": "أضف بعض العناصر إلى سلتك للبدء",
+            "continueShopping": "متابعة التسوق"
+        },
+        "signInRequired": {
+            "title": "قم بتسجيل الدخول لعرض سلتك",
+            "description": "يرجى تسجيل الدخول للوصول إلى سلتك وبدء التسوق",
+            "signUp": "إنشاء حساب"
+        },
+        "actions": {
+            "viewDetails": "عرض التفاصيل",
+            "orderNow": "اطلب الآن",
+            "remove": "إزالة",
+            "openCart": "فتح السلة",
+            "increase": "زوّد الكمية",
+            "decrease": "قلّل الكمية"
+        },
+        "messages": {
+            "quantityUpdated": "تم تحديث الكمية",
+            "itemRemoved": "تمت إزالة المنتج من السلة.",
+            "failedToLoad": "فشل في تحميل عناصر السلة",
+            "errorLoading": "خطأ في تحميل السلة",
+            "failedToUpdate": "فشل في تحديث الكمية",
+            "failedToRemove": "فشل في حذف العنصر. يرجى المحاولة مرة أخرى"
+        },
+        "discount": "خصم",
+        "viewProduct": "عرض المنتج",
+        "orderNow": "اطلب الآن",
+        "count": "{count, plural, zero {لا عناصر} one {عنصر واحد} two {عنصران} few {{formatted} عناصر} many {{formatted} عنصرًا} other {{formatted} عنصر}}",
+        "subtotal": "الإجمالي",
+        "saved": "وفّرت",
+        "perItemNote": "يُطلب كل منتج على حدة — اضغط «اطلب الآن» على المنتج الذي تريده.",
+        "continueShopping": "كمّل تسوّق"
+    },
+    "steps": {
+        "preview": {
+            "name": "طلبك",
+            "description": "المنتج واختياراتك"
+        },
+        "confirm": {
+            "name": "التوصيل",
+            "description": "عنوان التسليم"
+        },
+        "complete": {
+            "name": "المراجعة والتأكيد",
+            "description": "راجع كل شيء ثم أكّد الطلب"
+        },
+        "label": "خطوات الطلب",
+        "current": "الخطوة الحالية",
+        "done": "تمّت"
+    },
+    "order": {
+        "products": "المنتجات",
+        "quantity": "الكمية",
+        "each": "للقطعة",
+        "lineOf": "{quantity} × {unit}",
+        "bulb": "اللمبة",
+        "protection": "الحماية",
+        "discount": "خصم",
+        "summary": "ملخص الطلب",
+        "subtotal": "المجموع قبل الخصم",
+        "discounts": "الخصومات",
+        "shipping": "الشحن",
+        "total": "الإجمالي",
+        "count": "{count, plural, zero {لا منتجات} one {منتج واحد} two {منتجان} few {{formatted} منتجات} many {{formatted} منتجًا} other {{formatted} منتج}}",
+        "checkout": "إتمام الطلب",
+        "checkingOut": "جاري تجهيز الطلب...",
+        "errors": {
+            "signed_out": "سجّل دخولك الأول عشان تكمل الطلب",
+            "empty": "السلة فاضية",
+            "unavailable": "فيه منتج في السلة مبقاش متاح — شيله وجرّب تاني",
+            "not_found": "هذا الطلب غير موجود",
+            "invalid": "راجع البيانات اللي كتبتها",
+            "failed": "حصلت مشكلة. جرّب تاني",
+            "out_of_stock": "الكمية المطلوبة من {product} غير متاحة — المتاح حاليًا {available}"
+        }
+    }
+}

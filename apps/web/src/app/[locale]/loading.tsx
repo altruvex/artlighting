@@ -1,20 +1,19 @@
-import { useTranslations } from 'next-intl';
+import { useTranslations } from "next-intl";
 
+/**
+ * The wait between pages: a single line of light drawn across the top,
+ * the way a room comes on — not a pulsing, pinging gold orb in the middle
+ * of an empty screen.
+ */
 export default function Loading() {
-  const t = useTranslations('loading');
+  const t = useTranslations("loading");
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-background">
-      <div className="flex flex-col items-center mt-14 space-y-4">
-        <div className="relative h-12 w-12 animate-pulse">
-          <div className="absolute inset-0 rounded-full bg-linear-to-r from-primary to-primary-foreground opacity-50 blur-xl" />
-          <div className="absolute inset-0 rounded-full bg-primary animate-ping" />
-          <div className="absolute inset-0 rounded-full bg-primary" />
-        </div>
-        <p className="text-lg font-medium text-foreground">
-          {t('title')}
-        </p>
+    <div role="status" aria-live="polite" className="min-h-[60dvh]">
+      <div className="fixed inset-x-0 top-0 z-[60] h-0.5 overflow-hidden bg-transparent">
+        <div className="h-full w-1/3 animate-[loading-sweep_1.1s_var(--ease-in-out)_infinite] bg-primary" />
       </div>
+      <span className="sr-only">{t("title")}</span>
     </div>
   );
 }

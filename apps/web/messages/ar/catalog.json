@@ -1,0 +1,300 @@
+{
+    "products": {
+        "indoor": {
+            "title": "اضاءة داخلية",
+            "strip": "شريط ليد",
+            "linear": "الإضاءة الخطية",
+            "track-light": "تراك لايت",
+            "cob": "COB",
+            "panel-light": "بانل لايت",
+            "double-spotlight": "الكشاف المزدوج"
+        },
+        "outdoor": {
+            "title": "اضاءة خارجية",
+            "spikes": "الحربات",
+            "uplight": "الإضاءة العلوية",
+            "flood-light": "كشاف الوجهات و الملاعب",
+            "bollard": "العمود الضوئي",
+            "pole": "أعمدة الإنارة",
+            "wall-washer": "اضاءه جدارية"
+        },
+        "chandelier": {
+            "title": "نجف",
+            "MC15C": "MC15C",
+            "MC15E": "MC15E",
+            "MC15F": "MC15F",
+            "MC15W": "MC15W",
+            "MC15P": "MC15P",
+            "MC1608": "MC1608",
+            "MC6014": "MC6014",
+            "MC6015": "MC6015",
+            "MC6031": "MC6031",
+            "MC6038": "MC6038",
+            "MC6041": "MC6041",
+            "MC6051": "MC6051",
+            "MC6091": "MC6091",
+            "MC6094": "MC6094",
+            "MC6097": "MC6097",
+            "MC7021": "MC7021",
+            "MC7023": "MC7023",
+            "MC7091": "MC7091",
+            "MC7104": "MC7104",
+            "MC7105": "MC7105",
+            "OH0109": "OH0109",
+            "OH1109": "OH1109",
+            "OH1203": "OH1203",
+            "OH1207": "OH1207",
+            "OH1209": "OH1209",
+            "OH1309": "OH1309",
+            "OH1601": "OH1601"
+        }
+    },
+    "product-card": {
+        "moreDetails": "تفاصيل أكثر",
+        "addToCart": "أضف للسلة",
+        "off": "−{rate}",
+        "save": "وفّر {amount}",
+        "was": "كان",
+        "soldOut": "نفدت الكمية",
+        "fewLeft": "{count, plural, one{متبقّي قطعة واحدة} two{متبقّي قطعتان} few{متبقّي # قطع} other{متبقّي # قطعة}}",
+        "addToCartNamed": "أضف {name} إلى السلة"
+    },
+    "product-main-info": {
+        "title": "معلومات المنتج الرئيسية",
+        "inStock": "متوفر",
+        "checkAvailability": "تحقق من توفر المتجر",
+        "availableOnlyIP20": "(متوفر فقط في IP20)",
+        "availableOnlyIP20IP44IP54": "(متوفر فقط في IP20, IP44, IP54)",
+        "availableOnlyIP65IP68": "(متوفر فقط في IP65, IP68)",
+        "description": "الوصف",
+        "addToCart": "أضف إلى السلة",
+        "adding": "جاري الإضافة...",
+        "orderNow": "اطلب الآن",
+        "processingOrder": "جاري معالجة الطلب...",
+        "off": "خصم",
+        "save": "وفّر",
+        "delivery": "التوصيل خلال ٤ أيام عمل",
+        "cod": "الدفع عند الاستلام"
+    },
+    "product-description": {
+        "fixture": "وحدة إضاءة",
+        "join": "، ",
+        "end": ".",
+        "opening": {
+            "INDOOR": "{type} للإضاءة الداخلية",
+            "OUTDOOR": "{type} للإضاءة الخارجية",
+            "CHANDELIER": "{type}"
+        },
+        "openingWithWattage": {
+            "INDOOR": "{type} للإضاءة الداخلية بقدرة {wattage}",
+            "OUTDOOR": "{type} للإضاءة الخارجية بقدرة {wattage}",
+            "CHANDELIER": "{type} بقدرة {wattage}"
+        },
+        "clause": {
+            "material": "من {material}",
+            "arms": "{count, plural, one{بذراع واحد} two{بذراعين} few{بـ{countText} أذرع} many{بـ{countText} ذراعًا} other{بـ{countText} ذراع}}",
+            "armsWithBulb": "{count, plural, one{بذراع واحد} two{بذراعين} few{بـ{countText} أذرع} many{بـ{countText} ذراعًا} other{بـ{countText} ذراع}} تركّب فيها لمبات {bulb} {wattageText} وات",
+            "lampBase": "بقواعد {base}",
+            "finish": "بتشطيب {finish}",
+            "luminousFlux": "بتدفق ضوئي {flux}",
+            "beamAngle": "بزاوية شعاع {angle}",
+            "colorTemperature": "عند {temperature}",
+            "cri": "بمعامل تجسيد ألوان {cri}",
+            "ip": "بتصنيف حماية IP{ip}",
+            "lifeTime": "بعمر تشغيلي {hours}",
+            "input": "بمدخل {input}",
+            "energySaving": "بتوفير {saving} من الطاقة"
+        }
+    },
+    "product-notifications": {
+        "signInRequired": "يرجى تسجيل الدخول لإضافة عناصر إلى سلة التسوق.",
+        "addedToCart": "{productName} تم إضافته إلى سلة التسوق",
+        "failedToAdd": "فشل في إضافة العنصر إلى السلة. يرجى المحاولة مرة أخرى.",
+        "orderError": "حدث خطأ في طلبك. يرجى تحديث الصفحة والمحاولة مرة أخرى.",
+        "configSaved": "تم حفظ تكوين المنتج بنجاح.",
+        "updateError": "فشل في تحديث الإعدادات. يرجى المحاولة مرة أخرى.",
+        "configError": "لم يتم العثور على الإعدادات. يرجى تحديث الصفحة.",
+        "productError": "بيانات المنتج غير مكتملة. يرجى تحديث الصفحة.",
+        "quantityError": "يرجى اختيار كمية صحيحة."
+    },
+    "product-dialog": {
+        "bulkOrderTitle": "إشعار طلب بالجملة",
+        "bulkOrderDescription": "لاحظنا أنك تطلب ١٠ أو أكثر من هذا المنتج. للحصول على أفضل عرض، يرجى الاتصال بفريق المبيعات لدينا.",
+        "close": "إغلاق",
+        "contactSalesTeam": "اتصل بفريق المبيعات"
+    },
+    "product-ip": {
+        "title": "الحماية من الماء والغبار (IP)",
+        "onlyAvailableRating": "التصنيف الوحيد المتاح لهذا المنتج",
+        "maxIPInfo": "أعلى تصنيف IP متاح: {{maxIP}}",
+        "priceIncrease": "زيادة السعر: +{{price}} ج.م",
+        "change-error": "حدث خطأ أثناء تحديث عنوان الـ IP الخاص بالكشاف، يرجى المحاولة مرة أخرى.",
+        "change-success": "تم تحديث عنوان الـ IP الخاص بالكشاف بنجاح.",
+        "saving-success": "تم حفظ إعدادات الكشاف بنجاح.",
+        "saving-error": "حدث خطأ أثناء حفظ إعدادات الكشاف، يرجى المحاولة مرة أخرى.",
+        "ratings": {
+            "IP20": {
+                "label": "IP 20",
+                "description": "محمي ضد الأجسام الصلبة التي يزيد قطرها عن 12 ملم"
+            },
+            "IP44": {
+                "label": "IP 44",
+                "description": "محمي ضد رذاذ الماء من جميع الاتجاهات"
+            },
+            "IP54": {
+                "label": "IP 54",
+                "description": "محمي ضد الغبار ورذاذ الماء"
+            },
+            "IP65": {
+                "label": "IP 65",
+                "description": "محكم ضد الغبار ومحمي ضد تدفقات المياه"
+            },
+            "IP68": {
+                "label": "IP 68",
+                "description": "محكم ضد الغبار ومحمي ضد الغمر لفترات طويلة"
+            }
+        }
+    },
+    "colorTemperature": {
+        "warm": {
+            "title": "إضاءة دافئة",
+            "notRecommended": "غير موصى بها للمكاتب",
+            "notRecommendedDesc": "التوهج الدافئ والناعم لمصابيح السقف ليد قد يكون مريحًا للغاية وغير مناسب لبيئات العمل.",
+            "desc": "الإضاءة الدافئة مثالية لغرف النوم وغرف المعيشة والمطابخ، حيث تمنح أجواءً مريحة ودافئة تساعد على الاسترخاء وتحسين النوم."
+        },
+        "cool": {
+            "title": "إضاءة باردة",
+            "boost": "تعزز الانتباه والإنتاجية في أماكن العمل والدراسة.",
+            "decor": "تنعش الديكورات الحديثة والفاتحة.",
+            "energy": "تخلق أجواءً نابضة بالحيوية والنشاط."
+        },
+        "white": {
+            "title": "إضاءة بيضاء",
+            "recommended": "موصى بها لـ",
+            "recommendedDesc": "أماكن الدراسة والمكاتب لأنها تساعد على التركيز أثناء العمل.",
+            "desc": "تمنح أجواءً راقية وعصرية مثالية لخلق بيئة محايدة ومعاصرة، وتعمل على تعزيز المساحات بفضل درجة حرارتها البيضاء."
+        }
+    },
+    "ProductBulbButtons": {
+        "chooseBulb": "اختر اللمبة",
+        "watts": "{n} وات",
+        "included": "مشمولة",
+        "change-error": "مامتش اختيار اللمبة دي. جرّب تاني."
+    },
+    "family": {
+        "INDOOR": "الإضاءة الداخلية",
+        "OUTDOOR": "الإضاءة الخارجية",
+        "CHANDELIER": "النجف"
+    },
+    "collection": {
+        "title": "مجموعة إضاءة الليد الجديدة",
+        "notFound": "المجموعة غير موجودة.",
+        "description": "هذه هي مجموعة {name}. أضف المزيد من التفاصيل حول المجموعة هنا.",
+        "products": {
+            "track": "تراك لايت ليد",
+            "bollard": "بولارد ليد",
+            "spot": "سبوت لايت ليد"
+        },
+        "metaTitle": "مجموعة إضاءة الليد الجديدة | آرت لايتنج",
+        "eyebrow": "جديد في الكتالوج",
+        "lede": "أحدث الخطوط المضافة إلى الكتالوج — إضاءة التراك والبولارد والكشافات."
+    },
+    "shop": {
+        "metaTitle": "كشافات ليد ونجف وإضاءة خارجية — تسوّق الإضاءة | آرت لايتنج",
+        "metaDescription": "كل كشافات الليد والسبوت لايت والنجف ووحدات الإضاءة الخارجية لدى آرت لايتنج بالأسعار بالجنيه — مع التصفية بالفئة والعلامة والسعر، وتوصيل في مصر.",
+        "title": "المتجر",
+        "count": "{count, plural, zero{لا منتجات} one{منتج واحد} two{منتجان} few{{formatted} منتجات} many{{formatted} منتجًا} other{{formatted} منتج}}",
+        "results": "المنتجات",
+        "activeFilters": "الفلاتر المستخدمة",
+        "remove": "إزالة الفلتر",
+        "clearAll": "مسح الكل",
+        "filter": "فلترة",
+        "close": "إغلاق الفلاتر",
+        "onSale": "عليه خصم",
+        "priceChip": "نطاق السعر",
+        "priceMin": "أقل سعر",
+        "priceMax": "أعلى سعر",
+        "applyPrice": "تطبيق السعر",
+        "sortBy": "ترتيب حسب",
+        "emptyTitle": "مافيش منتجات بالفلاتر دي",
+        "emptyBody": "جرّب إزالة أحد عوامل التصفية، أو امسحها كلها لعرض كل المنتجات.",
+        "group": {
+            "sale": "العروض",
+            "family": "الفئة",
+            "brand": "العلامة",
+            "price": "السعر",
+            "type": "النوع"
+        },
+        "brand": {
+            "balcom": "بالكوم",
+            "misterLed": "مستر ليد"
+        },
+        "sort": {
+            "featured": "المميّز",
+            "price-asc": "السعر: من الأقل",
+            "price-desc": "السعر: من الأعلى",
+            "discount": "أكبر خصم",
+            "newest": "الأحدث"
+        },
+        "prev": "السابق",
+        "next": "التالي",
+        "pageOf": "صفحة {page} من {pages}",
+        "pagination": "صفحات النتائج",
+        "goToPage": "صفحة {page}",
+        "familyMetaTitle": "{family} في مصر | آرت لايتنج",
+        "usedIn": "تُستخدم في:",
+        "allTypes": "كل الأنواع",
+        "shopByType": "تسوّق حسب النوع",
+        "typeMetaTitle": "{type} في مصر | آرت لايتنج",
+        "typeMetaDescription": "{purpose} تصفّح {type} بالأسعار بالجنيه من معرض آرت لايتنج في القاهرة، مع التوريد للمشروعات في أنحاء مصر.",
+        "heading": "تسوّق إضاءة الليد"
+    },
+    "pdp": {
+        "glance": "بنظرة سريعة",
+        "about": "عن المنتج",
+        "specs": "المواصفات الفنية",
+        "arms": "عدد الأذرع",
+        "colorGuide": "تختار أنهي لون إضاءة؟",
+        "colorGuideSub": "على حسب المكان اللي هيتركّب فيه.",
+        "inStock": "متوفر",
+        "soldOut": "نفدت الكمية — تواصل معنا وسنبلغك عند توفره",
+        "fewLeft": "{count, plural, one{متبقّي قطعة واحدة} two{متبقّي قطعتان} few{متبقّي {formatted} قطع} many{متبقّي {formatted} قطعة} other{متبقّي {formatted} قطعة}}",
+        "addToCart": "أضف إلى السلة",
+        "whereEyebrow": "الاستخدام",
+        "whereTitle": "أين تُستخدم",
+        "supportTitle": "تحدد هذا المنتج لمشروع؟",
+        "supportBody": "لمشروع، أو لاعتماد من الاستشاري، أو لسؤال لا تجيب عنه المواصفات، يمكن للمعرض أن يساعدك.",
+        "datasheet": "حمّل ورقة البيانات",
+        "ask": "اسأل عن هذا المنتج",
+        "askMessage": "مرحبًا، لدي سؤال عن {name} (كود المنتج {code}).",
+        "projectQuote": "اطلب عرض سعر لمشروع",
+        "projectMessage": "مرحبًا، أحتاج عرض سعر لمشروع للمنتج {code}. الكمية:",
+        "profile": "ملف الشركة (PDF)"
+    },
+    "reviews": {
+        "title": "تقييمات العملاء",
+        "noReviews": "لسه مفيش تقييمات لهذا المنتج.",
+        "beFirst": "كن أول من يقيّمه.",
+        "outOf": "من ٥",
+        "basedOn": "{count, plural, zero{مفيش تقييمات} one{بناءً على تقييم واحد} two{بناءً على تقييمين} few{بناءً على {formatted} تقييمات} many{بناءً على {formatted} تقييمًا} other{بناءً على {formatted} تقييم}}",
+        "starsLabel": "{formatted} نجوم",
+        "writeReview": "اكتب تقييم",
+        "editReview": "عدّل تقييمك",
+        "yourRating": "تقييمك",
+        "titleLabel": "عنوان (اختياري)",
+        "titlePlaceholder": "لخّص تجربتك في جملة",
+        "bodyLabel": "تعليقك (اختياري)",
+        "bodyPlaceholder": "إزاي كانت تجربتك مع المنتج؟",
+        "submit": "انشر التقييم",
+        "submitting": "جارٍ النشر...",
+        "update": "حدّث التقييم",
+        "cancel": "إلغاء",
+        "verifiedPurchase": "عملية شراء موثّقة",
+        "signInToReview": "سجّل الدخول عشان تقيّم المنتج",
+        "ratingRequired": "اختار عدد النجوم الأول",
+        "submitError": "حصل خطأ أثناء نشر التقييم، حاول تاني",
+        "submitSuccess": "شكرًا لك، تم نشر تقييمك",
+        "loadMore": "عرض المزيد من التقييمات",
+        "you": "أنت"
+    }
+}

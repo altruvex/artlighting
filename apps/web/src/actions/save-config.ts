@@ -5,6 +5,7 @@ import { priceLine } from "@/lib/pricing"
 import { PricingService } from "@/lib/pricing.server"
 import { editableConfigurationId } from "@/lib/configuration-access.server"
 import { publicConfiguration } from "@/lib/guest-token"
+import { serializeRowMoney } from "@/lib/serialize-money"
 
 export interface SaveConfigArgs {
   configId: string
@@ -93,7 +94,8 @@ export async function saveConfig({
 
     return {
       success: true,
-      configuration: publicConfiguration(updatedConfiguration),
+      // Money leaves as strings: a Prisma.Decimal cannot reach a Client Component.
+      configuration: serializeRowMoney(publicConfiguration(updatedConfiguration)),
       message: "Configuration saved successfully",
     }
   } catch (error) {

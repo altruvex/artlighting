@@ -1,0 +1,109 @@
+{
+    "privacy": {
+        "title": "Privacy Policy",
+        "lastUpdated": "Last updated: {date}",
+        "s1": {
+            "title": "1. Personal Data Collection",
+            "q1": "What personal information do we collect?",
+            "desc": "We collect personal information when you create an account or make a purchase on our website. This may include:",
+            "list": [
+                "Names",
+                "Email addresses",
+                "Phone numbers",
+                "Shipping addresses",
+                "The products you order",
+                "Any other personal information provided during account creation or purchases"
+            ]
+        },
+        "s2": {
+            "title": "2. Use of Personal Data",
+            "q1": "How do we use your personal data?",
+            "desc": "We use the personal data we collect for the following purposes:",
+            "list": [
+                "To process and fulfill your orders",
+                "To improve your user experience on our website",
+                "To send promotional offers and updates about our products (with your consent)",
+                "To communicate with you about your orders or account",
+                "To analyze and improve our services and product offerings"
+            ]
+        },
+        "s3": {
+            "title": "3. Sharing Data with Third Parties",
+            "q1": "When do we share your data with third parties?",
+            "desc": "We may share your personal data with third parties under the following circumstances:",
+            "list": [
+                "With delivery companies, to deliver your orders",
+                "With our email provider (Resend), to send your order confirmation and account emails",
+                "With service providers who assist us in operating our website and conducting our business",
+                "When required by law or to respond to legal processes"
+            ],
+            "footer": "We ensure that any third parties we share data with are bound by confidentiality agreements and are required to respect the security of your personal data."
+        },
+        "s4": {
+            "title": "4. Data Protection",
+            "q1": "How do we protect your data?",
+            "desc": "We implement appropriate technical and organizational measures to protect your personal data against unauthorized access, alteration, disclosure, or destruction. These measures include:",
+            "list": [
+                "Encryption of sensitive data",
+                "Regular security assessments",
+                "Limited access to personal information by our employees",
+                "Strict confidentiality agreements with any third parties who may have access to your data"
+            ]
+        },
+        "s5": {
+            "title": "5. Your Rights",
+            "q1": "What rights do you have regarding your personal data?",
+            "desc": "You have the following rights regarding your personal data:",
+            "list": [
+                "The right to access your personal data",
+                "The right to request correction of inaccurate data",
+                "The right to request deletion of your data",
+                "The right to object to or restrict processing of your data",
+                "The right to data portability"
+            ],
+            "footer": "To exercise these rights, please contact us using the information provided at the end of this policy."
+        },
+        "s6": {
+            "title": "6. Contact Us",
+            "q1": "How can you contact us about this policy?",
+            "desc": "If you have any questions about this privacy policy or our data practices, please don't hesitate to contact us:",
+            "contact": "You can reach us by phone at {phone}, or by email at {email}",
+            "footer": "We're available Saturday - Thursday, 9.30am to 5.30pm, and we'll do our best to respond to your inquiry as quickly as possible."
+        },
+        "metaTitle": "Privacy policy | Art Lighting",
+        "metaDescription": "How Art Lighting collects, uses and protects the personal information you give us when you create an account or order.",
+        "lede": "What personal information we collect when you use this site, why, who it is shared with, and your rights over it."
+    },
+    "shipping": {
+        "metaTitle": "Delivery and payment | Art Lighting",
+        "metaDescription": "Delivery within four working days, a flat delivery charge per order, and cash on delivery.",
+        "title": "Delivery and payment",
+        "lede": "How orders placed on this site are delivered and paid for.",
+        "timeTitle": "Delivery time",
+        "timeBody": "Orders are delivered within four working days of being placed.",
+        "costTitle": "Delivery charge",
+        "costBody": "Standard delivery is a flat {fee} per order, charged once however many products the order holds. It is shown in the cart before you order.",
+        "costOutside": "For addresses outside Cairo, the showroom contacts you to confirm the delivery cost before the order is sent.",
+        "paymentTitle": "Payment",
+        "paymentBody": "Orders are paid cash on delivery: you pay when the order arrives, and no card details are needed to order.",
+        "projectsTitle": "Project and large orders",
+        "projectsBody": "Delivery for projects and large quantities is arranged directly with the showroom.",
+        "projectsLink": "Supply for projects",
+        "questionsTitle": "Questions about an order",
+        "questionsBody": "Call or message the showroom, Saturday to Thursday, 9:30am to 5:30pm:"
+    },
+    "policies": {
+        "crumb": "Policies",
+        "eyebrow": "Store policy",
+        "contents": "Contents",
+        "others": "Other policies",
+        "faq": "Frequently asked questions",
+        "names": {
+            "shipping": "Delivery and payment",
+            "privacy": "Privacy policy",
+            "terms": "Terms of sale",
+            "returns": "Returns and exchanges",
+            "warranty": "Warranty"
+        }
+    }
+}

@@ -2,6 +2,10 @@
 
 import { auth } from "@/lib/auth-server";
 import { CheckoutError, completeOrder, placeOrder, saveShippingAddress } from "@/lib/checkout.server";
+import { sendOrderConfirmationEmails } from "@/lib/email/order-emails";
+import { CATALOGUE_TAG } from "@/lib/cache.server";
+import { revalidateTag } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 
 /**
@@ -36,6 +40,8 @@ export async function checkoutCart(locale: string): Promise<Result<{ orderId: nu
   if (!userId) return { ok: false, error: "signed_out" };
   try {
     const orderId = await placeOrder(userId, { kind: "cart" }, { customerLanguage: locale === "en" ? "en" : "ar" });
+    // A redemption can use up a promotion the promo bar is still showing.
+    revalidateTag(CATALOGUE_TAG, "max");
     return { ok: true, value: { orderId } };
   } catch (error) {
     return failure(error);
@@ -74,7 +80,15 @@ export async function confirmOrder(orderId: number): Promise<Result<{ orderId: n
   if (!userId) return { ok: false, error: "signed_out" };
   if (!Number.isInteger(orderId)) return { ok: false, error: "invalid" };
   try {
-    return (await completeOrder(orderId, userId)) ? { ok: true, value: { orderId } } : { ok: false, error: "not_found" };
+    const result = await completeOrder(orderId, userId);
+    if (!result) return { ok: false, error: "not_found" };
+    // Stock moved: the cards' "few left" and "sold out" are built from it.
+    revalidateTag(CATALOGUE_TAG, "max");
+    // The receipt to the customer and the copy to the shop go out after
+    // the response: the customer sees the thank-you page without waiting
+    // on the mail provider, and a mail failure cannot undo the order.
+    if (result === "completed") after(() => sendOrderConfirmationEmails(orderId, userId));
+    return { ok: true, value: { orderId } };
   } catch (error) {
     return failure(error);
   }

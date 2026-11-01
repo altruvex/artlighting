@@ -5,6 +5,7 @@ import { familySlug, type ProductFamily } from "@repo/catalog/families";
 import { formatPercent, formatNumberWithConversion } from "@/lib/numbers";
 import type { Promotion } from "@/lib/promotions.server";
 import { cn } from "@/lib/utils";
+import { Onward } from "@/components/editorial/arrow";
 import { XIcon } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
@@ -18,6 +19,12 @@ import { useEffect, useMemo, useState } from "react";
  * Discount rows the checkout prices with, so what it offers is what the cart
  * gives, and it shows what ends with a real countdown rather than a
  * permanent "limited time".
+ *
+ * Set as a narrow ink band, the same always-dark ground as the home page's
+ * first screen, in either theme: the figure in gold type rather than a
+ * filled gold chip, the offers divided by hairlines, and each whole offer a
+ * link — it read as a shop's sale ticker, not the top line of a company's
+ * site.
  */
 export function PromoBar({ promotions }: { promotions: Promotion[] }) {
   const t = useTranslations("promo");
@@ -55,15 +62,19 @@ export function PromoBar({ promotions }: { promotions: Promotion[] }) {
   return (
     <aside
       aria-label={t("label")}
-      className="relative z-40 border-b border-border/60 bg-card text-card-foreground"
+      className="relative z-40 border-b border-[oklch(1_0_0/0.08)] bg-[oklch(0.16_0.006_60)] text-[oklch(0.975_0.002_80)]"
     >
-      <div className="mx-auto flex max-w-screen-2xl items-center justify-center gap-x-5 gap-y-1 px-10 py-2 text-[length:var(--text-sm)] sm:px-12">
-        <ul className="flex min-w-0 flex-wrap items-center justify-center gap-x-5 gap-y-1">
+      <div className="mx-auto flex h-10 max-w-screen-2xl items-center justify-center gap-x-6 px-12 text-[length:var(--text-xs)] sm:text-[length:var(--text-sm)]">
+        <span className="eyebrow hidden shrink-0 !text-[color:var(--gold-300)] lg:inline">{t("label")}</span>
+        <ul className="flex min-w-0 items-center justify-center">
           {promotions.map((promotion, index) => (
             <li
               key={promotion.id}
               // One line on a phone: the rest wait for the wider screen.
-              className={cn("flex items-center gap-2", index > 0 && "hidden md:flex")}
+              className={cn(
+                "min-w-0 items-center",
+                index > 0 ? "hidden border-s border-[oklch(1_0_0/0.16)] ps-6 ms-6 md:flex" : "flex",
+              )}
             >
               <PromotionLine promotion={promotion} locale={locale} />
             </li>
@@ -71,11 +82,12 @@ export function PromoBar({ promotions }: { promotions: Promotion[] }) {
         </ul>
         {soonest && <Countdown endsAt={soonest} />}
       </div>
+      {/* The bar's full height: a 32px target was too small for a thumb. */}
       <button
         type="button"
         onClick={dismiss}
         aria-label={t("dismiss")}
-        className="absolute inset-y-0 end-2 my-auto grid size-8 place-items-center rounded-md text-muted-foreground transition-colors duration-[var(--dur-hover)] ease-[var(--ease-out)] hover:bg-muted hover:text-foreground"
+        className="absolute inset-y-0 end-1 my-auto grid size-10 place-items-center rounded-md text-[oklch(0.975_0.002_80/0.6)] transition-colors duration-[var(--dur-hover)] ease-[var(--ease-out)] hover:bg-[oklch(1_0_0/0.08)] hover:text-[oklch(0.975_0.002_80)]"
       >
         <XIcon className="size-4" aria-hidden />
       </button>
@@ -115,26 +127,23 @@ function PromotionLine({ promotion, locale }: { promotion: Promotion; locale: st
     coverage.kind === "family" ? `/products?family=${familySlug(coverage.family as ProductFamily)}` : "/products";
 
   return (
-    <>
-      <span className="rounded-sm bg-primary px-1.5 py-0.5 text-[length:var(--text-xs)] font-semibold tabular-nums text-primary-foreground">
-        {t("off", { figure })}
-      </span>
-      <span className="text-muted-foreground">{where}</span>
+    <Link
+      href={target}
+      className="group flex min-w-0 items-center gap-2 whitespace-nowrap transition-colors duration-[var(--dur-hover)]"
+    >
+      <span className="font-semibold tabular-nums text-[color:var(--gold-300)]">{t("off", { figure })}</span>
+      <span className="truncate text-[oklch(0.975_0.002_80/0.72)] group-hover:text-[oklch(0.975_0.002_80)]">{where}</span>
       {promotion.code && (
-        <span className="text-muted-foreground">
+        <span className="hidden text-[oklch(0.975_0.002_80/0.72)] sm:inline">
           {t("withCode")}{" "}
-          <code className="rounded-sm border border-border px-1 font-mono text-[length:var(--text-xs)] text-foreground" dir="ltr">
+          <code className="rounded-sm border border-[oklch(1_0_0/0.24)] px-1 font-mono text-[length:var(--text-xs)] text-[oklch(0.975_0.002_80)]" dir="ltr">
             {promotion.code}
           </code>
         </span>
       )}
-      <Link
-        href={target}
-        className="font-medium text-foreground underline decoration-primary/60 underline-offset-4 transition-colors duration-[var(--dur-hover)] hover:decoration-primary"
-      >
-        {t("shop")}
-      </Link>
-    </>
+      <span className="sr-only">— {t("shop")}</span>
+      <Onward className="size-3.5 shrink-0 text-[oklch(0.975_0.002_80/0.6)] transition-transform duration-[var(--dur-hover)] group-hover:translate-x-0.5 group-hover:text-[oklch(0.975_0.002_80)] rtl:group-hover:-translate-x-0.5" />
+    </Link>
   );
 }
 
@@ -165,9 +174,9 @@ function Countdown({ endsAt }: { endsAt: string }) {
   const n = (value: number) => new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-US").format(value);
 
   return (
-    <span className="hidden items-center gap-1.5 text-muted-foreground sm:flex">
+    <span className="hidden shrink-0 items-center gap-1.5 border-s border-[oklch(1_0_0/0.16)] ps-6 text-[oklch(0.975_0.002_80/0.6)] lg:flex">
       {t("endsIn")}
-      <time dateTime={endsAt} className="font-medium tabular-nums text-foreground">
+      <time dateTime={endsAt} className="font-medium tabular-nums text-[oklch(0.975_0.002_80)]">
         {days > 0 ? t("dh", { d: n(days), h: n(hours) }) : t("hm", { h: n(hours), m: n(minutes) })}
       </time>
     </span>

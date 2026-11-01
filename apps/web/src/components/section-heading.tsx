@@ -44,12 +44,12 @@ export function SectionHeading({
     <header className={cn("mb-6 flex flex-wrap items-end justify-between gap-4 lg:mb-8", className)}>
       <div className="min-w-0 space-y-1.5">
         {eyebrow && (
-          <p className="text-[length:var(--text-xs)] font-semibold uppercase tracking-[0.14em] text-primary">{eyebrow}</p>
+          <p className="eyebrow">{eyebrow}</p>
         )}
         <Heading
           id={id}
           className={cn(
-            "font-[family-name:var(--font-display-face)] font-semibold leading-tight tracking-tight text-balance",
+            "font-[family-name:var(--font-display-face)] font-medium leading-tight ltr:tracking-tight text-balance",
             as === "h1" ? "text-[length:var(--text-3xl)]" : "text-[length:var(--text-2xl)]",
           )}
         >

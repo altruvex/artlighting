@@ -14,6 +14,14 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   secret: getAuthSecret(),
   baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL,
+  session: {
+    // A signed copy of the session in a cookie, trusted for 5 minutes.
+    // Without it every session check — each server render that calls
+    // auth(), and the browser's useSession() on every page load and tab
+    // focus — was a database read. The cost: signing out elsewhere or a
+    // revoked session is noticed within 5 minutes, not instantly.
+    cookieCache: { enabled: true, maxAge: 5 * 60 },
+  },
   emailAndPassword: {
     enabled: true,
     // Password reset is wired here; the message itself is sent by

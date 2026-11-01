@@ -29,6 +29,36 @@
         "dev"
       ],
       "port": 3000
+    },
+    {
+      "name": "admin-3002",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "admin",
+        "exec",
+        "next",
+        "dev",
+        "--turbopack",
+        "--port",
+        "3002"
+      ],
+      "port": 3002
+    },
+    {
+      "name": "web-3010",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "web",
+        "exec",
+        "next",
+        "dev",
+        "--turbopack",
+        "--port",
+        "3010"
+      ],
+      "port": 3010
     }
   ]
 }

@@ -314,9 +314,11 @@ export async function saveShippingAddress(orderId: number, userId: string, input
  * cart and the button fails the confirmation instead of being sold twice.
  *
  * Confirming twice (a double click, a retry) is not an error: the second
- * finds the order complete and its stock already reserved.
+ * finds the order complete and its stock already reserved, and answers
+ * "already" — so only the confirmation that completed the order sends the
+ * order emails.
  */
-export async function completeOrder(orderId: number, userId: string): Promise<boolean> {
+export async function completeOrder(orderId: number, userId: string): Promise<"completed" | "already" | false> {
   try {
     return await prisma.$transaction(
       async (tx) => {
@@ -325,7 +327,7 @@ export async function completeOrder(orderId: number, userId: string): Promise<bo
           select: { isCompleted: true, status: true },
         });
         if (!order) return false;
-        if (order.isCompleted) return true;
+        if (order.isCompleted) return "already" as const;
 
         await tx.order.update({ where: { id: orderId }, data: { isCompleted: true } });
         await syncOrderStock(orderId, order.status, `customer:${userId}`, tx);
@@ -337,7 +339,7 @@ export async function completeOrder(orderId: number, userId: string): Promise<bo
             where: { cartId: cart.id, productId: { in: items.map((item) => item.productId) } },
           });
         }
-        return true;
+        return "completed" as const;
       },
       // A reservation per line over a remote database; the default five
       // seconds is short for a large cart.

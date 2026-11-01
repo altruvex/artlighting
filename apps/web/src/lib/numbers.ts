@@ -36,9 +36,12 @@ export function formatNumberWithConversion(amount: MoneyInput, locale: string): 
 
     const config = currencyConfig[locale as keyof typeof currencyConfig] || currencyConfig["en"];
 
-    const formatOptions: Intl.NumberFormatOptions = {
-        minimumFractionDigits: 0,
+    // Whole pounds print whole; anything with piastres prints both digits.
+    // "EGP 1,067.5" read as a typo on a price tag — it is "EGP 1,067.50".
+    const formatOptions: Intl.NumberFormatOptions & { trailingZeroDisplay?: "auto" | "stripIfInteger" } = {
+        minimumFractionDigits: 2,
         maximumFractionDigits: 2,
+        trailingZeroDisplay: "stripIfInteger",
     };
 
     if (locale.startsWith("ar")) {
@@ -79,4 +82,14 @@ export function formatPercent(rate: MoneyInput, locale: string): string {
     const options: Intl.NumberFormatOptions = { style: "percent", maximumFractionDigits: 2 };
     if (locale.startsWith("ar")) options.numberingSystem = "arab";
     return new Intl.NumberFormat(locale, options).format(serializeRate(rate) as unknown as number);
+}
+
+/** A year, in the locale's digits and without a thousands separator: 2010, ٢٠١٠. */
+export function formatYear(year: number, locale: string): string {
+    return new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-US", { useGrouping: false }).format(year);
+}
+
+/** A two-digit index for numbered rows — 01, 02 — in the locale's digits (٠١، ٠٢ in Arabic). */
+export function formatIndex(index: number, locale: string): string {
+    return new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-US", { minimumIntegerDigits: 2, useGrouping: false }).format(index);
 }

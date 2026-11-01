@@ -1,15 +1,15 @@
 "use client";
 
 import { EmptyState } from "@/components/empty-state";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@repo/ui/components/button";
+import { Input } from "@repo/ui/components/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@repo/ui/components/select";
 import {
   Table,
   TableBody,
@@ -17,8 +17,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { cn } from "@/lib/utils";
+} from "@repo/ui/components/table";
+import { cn } from "@repo/ui/lib/utils";
 import { flexRender, useTable } from "@tanstack/react-table";
 import { ArrowDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, ChevronsUpDownIcon, SearchIcon, XIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -84,7 +84,10 @@ export function ServerDataTable<TData extends Record<string, unknown>>({
   });
 
   return (
-    <div className={cn("space-y-3", isPending && "opacity-70 transition-opacity")} aria-busy={isPending}>
+    <div
+      className={cn("space-y-3 transition-opacity duration-(--dur-hover) ease-(--ease-out)", isPending && "opacity-70")}
+      aria-busy={isPending}
+    >
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-0 flex-1 sm:max-w-xs">
           <SearchIcon aria-hidden className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -121,7 +124,9 @@ export function ServerDataTable<TData extends Record<string, unknown>>({
         )}
       </div>
 
-      <div className="rounded-lg border">
+      {/* bg-card: the rows sit on the same surface as the sticky header, and
+          overflow-hidden keeps that header inside the rounded corners. */}
+      <div className="overflow-hidden rounded-lg border bg-card">
         <div className="relative max-h-[70svh] overflow-auto">
           <Table className="min-w-[720px]">
             <TableHeader className="sticky top-0 z-10 bg-card">
@@ -134,13 +139,14 @@ export function ServerDataTable<TData extends Record<string, unknown>>({
                     const content = header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext());
+                    const alignEnd = header.column.columnDef.meta?.align === "end";
                     return (
-                      <TableHead key={header.id} className="h-9 whitespace-nowrap">
+                      <TableHead key={header.id} className={cn("h-9 whitespace-nowrap", alignEnd && "text-end")}>
                         {sortable ? (
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="-ms-2 h-7 gap-1 px-2"
+                            className={cn("h-7 gap-1 px-2", alignEnd ? "-me-2" : "-ms-2")}
                             onClick={() =>
                               setSort(active && active.desc ? undefined : { id: header.column.id, desc: Boolean(active) })
                             }
@@ -168,7 +174,10 @@ export function ServerDataTable<TData extends Record<string, unknown>>({
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="py-2">
+                      <TableCell
+                        key={cell.id}
+                        className={cn("py-2", cell.column.columnDef.meta?.align === "end" && "text-end")}
+                      >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
@@ -185,7 +194,7 @@ export function ServerDataTable<TData extends Record<string, unknown>>({
           <span className="tabular-nums">{t("showing", { from, to, total })}</span>
           <Select value={String(params.pageSize)} onValueChange={(value) => setPageSize(Number(value))}>
             <SelectTrigger size="sm" className="h-8 w-auto gap-1" aria-label={t("rowsPerPage")}>
-              <SelectValue />
+              <SelectValue>{t("rowsPerPageValue", { size: params.pageSize })}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {PAGE_SIZES.map((size) => (

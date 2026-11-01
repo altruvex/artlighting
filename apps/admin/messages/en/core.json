@@ -32,7 +32,8 @@
       "placeholder": "Search sections and actions…",
       "empty": "Nothing matches that.",
       "actions": "Actions",
-      "newProduct": "New product"
+      "newProduct": "New product",
+      "newQuotation": "New quotation"
     },
     "userMenu": {
       "language": "Language",
@@ -46,6 +47,7 @@
   "Nav": {
     "dashboard": "Dashboard",
     "orders": "Orders",
+    "quotations": "Quotations",
     "products": "Products",
     "categories": "Categories",
     "discounts": "Discounts",
@@ -63,7 +65,7 @@
     "password": "Password",
     "submit": "Sign in",
     "submitting": "Signing in…",
-    "accessNote": "Admin accounts are created by an owner from inside the dashboard — contact yours if you need access.",
+    "accessNote": "Team accounts are created by a manager from inside the dashboard — contact yours if you need access.",
     "backHome": "Back to home",
     "errors": {
       "invalidCredentials": "Invalid email or password",

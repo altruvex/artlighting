@@ -501,6 +501,7 @@ model Product {
   discounts         DiscountProduct[]
   priceHistory      PriceHistory[]
   bulbs             ProductBulb[]
+  quotationLines    QuotationLine[]
   reviews           Review[]
 
   @@index([productId])
@@ -542,9 +543,10 @@ model ProductVariant {
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
-  product    Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
-  orderItems OrderItem[]
-  inventory  InventoryItem[]
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems     OrderItem[]
+  inventory      InventoryItem[]
+  quotationLines QuotationLine[]
 
   @@index([productId])
   @@index([productId, position])
@@ -557,20 +559,25 @@ model ProductVariant {
 // still read the array; only admin writes/reads this table for now. Seeded
 // from the same array at migration time.
 model ProductImage {
-  id         String   @id @default(cuid())
+  id         String            @id @default(cuid())
   productId  String
   url        String
   providerId String? // Cloudinary public_id — needed to delete the asset later; parsing it back out of the URL is fragile, so it's stored directly. Null for images added by pasting an external URL.
   altText    String?
-  order      Int      @default(0)
-  isPrimary  Boolean  @default(false)
+  order      Int               @default(0)
+  isPrimary  Boolean           @default(false)
   /// Straight from the Cloudinary upload response, so next/image can be
   /// given real dimensions instead of guessing an aspect ratio.
   width      Int?
   height     Int?
   format     String?
   bytes      Int?
-  createdAt  DateTime @default(now())
+  /// What the picture shows, for documents that place pictures by kind (the
+  /// datasheet's photo, drawings and installed shot). Null means "not
+  /// marked": the first image is read as the photo and the rest as
+  /// drawings, the catalog's convention before this column existed.
+  role       ProductImageRole?
+  createdAt  DateTime          @default(now())
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
@@ -723,8 +730,7 @@ model CategoryTranslation {
 // ─── ProductCategory ─────────────────────────────────────────
 // Genuinely many-to-many product/category membership, additive to the
 // legacy Product.categoryId / Product.lightingtypeId direct FKs below
-// (kept so apps/web/src/lib/i18n/services.ts and the /category/* route
-// tree don't need to change). New admin category tagging should use this.
+// (kept so the storefront's /category/* route tree doesn't need to change). New admin category tagging should use this.
 model ProductCategory {
   id         String   @id @default(cuid())
   productId  String
@@ -893,12 +899,16 @@ model Admin {
   email         String    @unique
   emailVerified Boolean   @default(false)
   image         String?
-  role          AdminRole @default(STAFF)
+  role          AdminRole @default(SALES)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   sessions AdminSession[]
   accounts AdminAccount[]
+
+  quotations         Quotation[]         @relation("QuotationCreator")
+  ownedQuotations    Quotation[]         @relation("QuotationOwner")
+  quotationActivity  QuotationActivity[]
 
   @@map("admins")
 }
@@ -976,6 +986,154 @@ model CurrencyRate {
   @@unique([fromCurrency, toCurrency])
   @@index([isActive])
   @@map("currency_rates")
+}
+
+// ─── Customer ────────────────────────────────────────────────
+// Who a quotation is addressed to: a contractor, a designer, a company.
+// Separate from `users` (storefront accounts) — most B2B customers never
+// sign in, and one who later does can be linked then.
+model Customer {
+  id          String   @id @default(cuid())
+  name        String
+  companyName String?
+  email       String?
+  phone       String?
+  taxId       String?
+  address     String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  quotations Quotation[]
+
+  @@index([name])
+  @@index([companyName])
+  @@map("customers")
+}
+
+// ─── Quotation ───────────────────────────────────────────────
+// A priced offer. Totals are derived from the lines on every save and
+// stored, so the list and the document read the same figures the editor
+// showed. A DRAFT is editable; anything past it is a record of what the
+// customer was offered and is never edited — a change is a new revision.
+model Quotation {
+  id               String          @id @default(cuid())
+  /// "Q-2026-0001", allocated from DocumentSequence on create.
+  number           String          @unique
+  customerId       String
+  status           QuotationStatus @default(DRAFT)
+  currency         String          @default("EGP")
+  issueDate        DateTime        @default(now())
+  validUntil       DateTime
+  /// The project or reference the offer is for, printed under the title.
+  subject          String?
+  /// Whole-quotation discount, after the line discounts. Exactly one of
+  /// rate/amount is set, matching the type (CHECK in the migration).
+  discountType     DiscountType?
+  discountRate     Decimal?        @db.Decimal(5, 4)
+  discountAmount   Decimal?        @db.Decimal(12, 2)
+  /// VAT as a rate: 0.1400 is 14%.
+  taxRate          Decimal         @default(0) @db.Decimal(5, 4)
+  subtotal         Decimal         @default(0) @db.Decimal(12, 2)
+  discountTotal    Decimal         @default(0) @db.Decimal(12, 2)
+  taxTotal         Decimal         @default(0) @db.Decimal(12, 2)
+  grandTotal       Decimal         @default(0) @db.Decimal(12, 2)
+  /// Printed on the document.
+  terms            String?
+  /// Internal only — never printed.
+  notes            String?
+  /// The customer as addressed on the document, copied on every save while
+  /// a draft and frozen once sent, so editing the customer later does not
+  /// rewrite an offer already in their hands.
+  customerSnapshot Json
+  /// The quotation this one revises, when it was created with "Revise".
+  revisionOfId     String?
+  createdById      String
+  /// The employee answerable for the offer: who sees it (a salesperson sees
+  /// only their own), follows it up and may edit it. Starts as the creator;
+  /// a manager can hand it to someone else. Distinct from createdById, which
+  /// never changes.
+  ownerId          String
+  sentAt           DateTime?
+  respondedAt      DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  customer   Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  createdBy  Admin           @relation("QuotationCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  owner      Admin           @relation("QuotationOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  activity   QuotationActivity[]
+  revisionOf Quotation?      @relation("QuotationRevisions", fields: [revisionOfId], references: [id], onDelete: SetNull)
+  revisions  Quotation[]     @relation("QuotationRevisions")
+  lines      QuotationLine[]
+
+  @@index([customerId])
+  @@index([ownerId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("quotations")
+}
+
+// A line is a snapshot: name, SKU, description and price are copied from
+// the product when it is added and edited only here, so a product renamed
+// or repriced later never changes an offer. The product link is kept for
+// reporting and survives as null if the product is deleted.
+model QuotationLine {
+  id           String  @id @default(cuid())
+  quotationId  String
+  position     Int
+  productId    String?
+  variantId    String?
+  sku          String  @default("")
+  name         String
+  description  String?
+  imageUrl     String?
+  quantity     Int
+  unitPrice    Decimal @db.Decimal(12, 2)
+  /// Line discount as a rate: 0.1000 is 10%.
+  discountRate Decimal @default(0) @db.Decimal(5, 4)
+  /// quantity × unitPrice − the line discount, rounded to money scale.
+  lineTotal    Decimal @db.Decimal(12, 2)
+
+  quotation Quotation       @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  product   Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([quotationId, position])
+  @@index([productId])
+  @@map("quotation_lines")
+}
+
+/// Per-document-type counter behind human numbers like Q-2026-0001. `next`
+/// is the number the next allocation returns; it restarts at 1 each year.
+/// Who did what to a quotation, and when — append-only. The actor's name is
+/// kept on the row so the history still reads correctly after an employee
+/// leaves (actorId is then nulled).
+model QuotationActivity {
+  id          String                  @id @default(cuid())
+  quotationId String
+  actorId     String?
+  actorName   String
+  action      QuotationActivityAction
+  /// What changed: { from, to } for a status or owner, { format } for a
+  /// document, { grandTotal: { from, to } } for an edit, { number } for a revision.
+  detail      Json?
+  createdAt   DateTime                @default(now())
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  actor     Admin?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([quotationId, createdAt])
+  @@index([actorId])
+  @@map("quotation_activity")
+}
+
+model DocumentSequence {
+  type String @id
+  year Int
+  next Int
+
+  @@map("document_sequences")
 }
 
 // ─── Enums ───────────────────────────────────────────────────
@@ -1305,9 +1463,42 @@ enum DiscountScope {
   @@map("DiscountScope")
 }
 
+enum ProductImageRole {
+  PHOTO
+  DRAWING
+  APPLICATION
+
+  @@map("ProductImageRole")
+}
+
+enum QuotationActivityAction {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  REVISED
+  ASSIGNED
+  DOCUMENT_EXPORTED
+
+  @@map("QuotationActivityAction")
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+
+  @@map("QuotationStatus")
+}
+
+/// What an employee does, which decides what they may do in the admin
+/// (apps/admin/lib/permissions.ts). MANAGER was ADMIN and SALES was STAFF.
 enum AdminRole {
-  ADMIN
-  STAFF
+  MANAGER
+  SALES
+  ENGINEERING
+  ACCOUNTS
 
   @@map("AdminRole")
 }

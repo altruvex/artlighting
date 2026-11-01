@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getTranslations } from "next-intl/server";
-import { AdminAuthError, requireAdmin } from "@/lib/auth";
+import { AdminAuthError, requirePermission } from "@/lib/auth";
 import { prisma } from "@repo/database";
 
 interface BulkStartRequest {
@@ -14,7 +14,7 @@ interface BulkStartRequest {
 export async function POST(req: Request) {
   const t = await getTranslations("BulkDatasheet");
   try {
-    await requireAdmin();
+    await requirePermission("datasheet:generate");
   } catch (err) {
     if (err instanceof AdminAuthError) {
       return NextResponse.json({ error: t("errors.unauthorized") }, { status: 401 });

@@ -1,0 +1,90 @@
+{
+    "jetra": {
+        "title": "Introducing Jetra",
+        "subtitle": "A new category designed to enhance your experience",
+        "comingSoon": "Coming Soon",
+        "description": "We're working on something special. Stay tuned for updates.",
+        "brandAlt": "Jetra brand"
+    },
+    "news-projects": {
+        "title": "Where our lighting is installed",
+        "description": "Hospitals, universities, hotels, residential compounds and public spaces across Egypt.",
+        "exploreAllProjects": "Explore All Projects",
+        "eyebrow": "Projects",
+        "sectors": "Sectors supplied:"
+    },
+    "home": {
+        "hero": {
+            "offer": "off — our best offer right now",
+            "title": "LED lighting in Egypt, chosen for the space it has to serve.",
+            "body": "LED spotlights, linear, panel and outdoor lighting, and chandeliers, for homes, hospitals, universities and hotels across Egypt — supplied as the sole agent for Balcom and an agent for Mister LED, with advice on choosing it.",
+            "shop": "Shop all lighting",
+            "deals": "See the offers",
+            "eyebrow": "Art Lighting · Cairo · since 2010",
+            "catalogue": "Explore the catalogue",
+            "applications": "Find light for your space",
+            "factFounded": "Established in Cairo",
+            "factAgentValue": "Balcom",
+            "factAgent": "Sole authorised agent in Egypt",
+            "factProducts": "Products in the catalogue",
+            "factBrands": "Brands represented directly"
+        },
+        "categories": {
+            "title": "Product families",
+            "all": "All products",
+            "shop": "Shop",
+            "count": "{count, plural, one{# product} other{# products}}",
+            "eyebrow": "The catalogue",
+            "subtitle": "Three families, each with its own purpose — architectural indoor, outdoor and landscape, and decorative."
+        },
+        "rails": {
+            "sale": "On sale now",
+            "saleSub": "Biggest savings first",
+            "saleLink": "All offers",
+            "featured": "Featured",
+            "featuredSub": "Picked by the showroom",
+            "featuredLink": "Shop all",
+            "newest": "New arrivals",
+            "newestLink": "Shop the newest",
+            "related": "More from this family",
+            "relatedLink": "See all"
+        },
+        "trust": {
+            "label": "Our promises",
+            "delivery": {
+                "title": "Delivered in 4 working days",
+                "body": "Packed securely and handled with care."
+            },
+            "cod": {
+                "title": "Cash on delivery",
+                "body": "Pay when it arrives at your door — no card needed."
+            },
+            "support": {
+                "title": "Talk to the showroom"
+            }
+        },
+        "positioning": {
+            "eyebrow": "The company",
+            "about": "About Art Lighting",
+            "soleAgent": "Sole authorised agent",
+            "agent": "Authorised agent",
+            "since": "since {year}",
+            "brand": {
+                "balcom": "Balcom — architectural indoor and outdoor lighting",
+                "mister-led": "Mister LED — chandeliers and decorative lighting"
+            }
+        },
+        "applications": {
+            "eyebrow": "Applications",
+            "title": "What are you lighting?",
+            "body": "Most people arrive with a space, not a product code. Start from the room or the building — each application explains what the space needs and leads to the fittings that do the job."
+        },
+        "services": {
+            "eyebrow": "How we work with you",
+            "title": "More than a catalogue",
+            "body": "Whether it is one room or a hospital, the part that matters most happens before the order: choosing the right light for the space.",
+            "imageAlt": "A spotlight with its beam angle marked",
+            "more": "How we work with homeowners and projects"
+        }
+    }
+}

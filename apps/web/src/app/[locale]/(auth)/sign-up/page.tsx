@@ -5,51 +5,58 @@ import { Link } from "@/i18n/navigation";
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 import { getLocaleFromParams } from "@/lib/i18n/utils";
+import { constructMetadata } from "@/lib/metadata";
 import { PagePropsTypes } from "@/types";
+import type { Metadata } from "next";
+
+/** Account pages have no content of their own to rank — index them and Google indexes N empty duplicates of the same form. */
+export async function generateMetadata({ params }: PagePropsTypes): Promise<Metadata> {
+  const locale = getLocaleFromParams(await params);
+  const t = await getTranslations({ locale, namespace: "auth" });
+  return constructMetadata({ locale, path: "/sign-up", title: t("signUpTitle"), noIndex: true });
+}
 
 const SignUpPage = async ({ params }: PagePropsTypes) => {
   const locale = getLocaleFromParams(await params);
   const t = await getTranslations({ locale, namespace: "auth" });
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-16">
-      <div
-        className="glow-orb glow-orb-animate -top-32 start-[-6rem] h-[28rem] w-[28rem] bg-primary/30 dark:bg-primary/20"
-        aria-hidden
-      />
-      <div
-        className="glow-orb glow-orb-animate top-1/2 end-[-8rem] h-[24rem] w-[24rem] bg-primary/20 dark:bg-primary/15"
-        style={{ animationDelay: "-7s" }}
-        aria-hidden
-      />
+    <main className="relative grid min-h-dvh bg-background lg:grid-cols-2">
 
-      <Link
-        href="/"
-        className="absolute start-4 top-4 z-10 flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground rtl:flex-row-reverse sm:start-6 sm:top-6"
-      >
-        <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
-        {t("backHome")}
-      </Link>
-
-      <div className="relative z-10 flex w-full max-w-5xl overflow-hidden rounded-3xl shadow-2xl shadow-black/10">
-        <div className="relative hidden flex-1 lg:block">
+      <>
+        {/* The photograph keeps its dark ground in either theme, so the
+            panel takes the dark token set rather than hard-coded white and
+            black: text, scrim and the gold eyebrow all come from it. */}
+        <div className="dark relative hidden lg:block">
           <Image
             src="/new-collection/new-collection-1.jpg"
             alt={t("imageAlt")}
             fill
+            priority
+            sizes="50vw"
             className="object-cover"
           />
-          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 p-10 text-white">
-            <h2 className="mb-2 text-3xl font-bold">{t("panelSignUpTitle")}</h2>
-            <p className="text-sm text-white/80">{t("panelSignUpBody")}</p>
+          <div className="absolute inset-0 bg-linear-to-t from-background/85 via-background/20 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 max-w-xl p-12 text-foreground">
+            <p className="eyebrow">{locale === "ar" ? "آرت لايتنج" : "Art Lighting"}</p>
+            <h2 className="mt-3 mb-3 text-[length:var(--text-3xl)] font-medium leading-tight ltr:tracking-tight">{t("panelSignUpTitle")}</h2>
+            <p className="max-w-md text-pretty text-[length:var(--text-sm)] text-foreground/80">{t("panelSignUpBody")}</p>
           </div>
         </div>
-        <div className="glass-surface flex flex-1 flex-col items-center justify-center p-8 sm:p-12">
-          <Suspense fallback={<div className="text-sm text-muted-foreground">{t("loading")}</div>}>
+        <div className="relative flex flex-col items-center justify-center px-4 py-20 sm:px-12">
+          {/* In the form's column, not over the photograph: one colour works
+              for it in both themes and at every width. */}
+          <Link
+            href="/"
+            className="absolute start-4 top-5 z-10 inline-flex min-h-10 items-center gap-2 text-[length:var(--text-sm)] text-muted-foreground transition-colors duration-[var(--dur-hover)] hover:text-foreground sm:start-6"
+          >
+            <ArrowLeft className="size-4 rtl:-scale-x-100" aria-hidden />
+            {t("backHome")}
+          </Link>
+          <Suspense fallback={<div className="text-[length:var(--text-sm)] text-muted-foreground">{t("loading")}</div>}>
             <ThemedSignUp />
           </Suspense>
         </div>
-      </div>
+      </>
     </main>
   );
 };

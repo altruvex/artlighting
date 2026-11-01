@@ -35,11 +35,11 @@ export function OptionGroup({
 /** A chip in an OptionGroup. Pass role="radio" and aria-checked on the button. */
 export function optionChip(active: boolean) {
   return cn(
-    "relative flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border px-3 py-2 text-center",
+    "relative flex min-h-11 w-full items-center justify-center gap-2 rounded-md border px-3 py-2 text-center",
     "text-[length:var(--text-sm)] font-medium tabular-nums",
     "transition-[border-color,background-color,color,transform] duration-[var(--dur-hover)] ease-[var(--ease-out)]",
     "active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+    "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
     active
       ? "border-primary bg-primary/10 text-foreground shadow-[inset_0_0_0_1px_var(--color-primary)]"
       : "border-border bg-background text-foreground/85 hover:border-foreground/30 hover:text-foreground",

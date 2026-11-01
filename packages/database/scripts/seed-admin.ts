@@ -39,7 +39,7 @@ async function main() {
     user: {
       modelName: "admin",
       additionalFields: {
-        role: { type: "string", required: false, defaultValue: "STAFF" },
+        role: { type: "string", required: false, defaultValue: "SALES" },
       },
     },
     session: { modelName: "adminSession", fields: { userId: "adminId" } },
@@ -57,7 +57,7 @@ async function main() {
 
   const admin = await prisma.admin.update({
     where: { email: ADMIN_EMAIL },
-    data: { role: "ADMIN" },
+    data: { role: "MANAGER" },
   });
 
   console.log(`Owner admin ready: ${admin.email} (id=${admin.id})`);

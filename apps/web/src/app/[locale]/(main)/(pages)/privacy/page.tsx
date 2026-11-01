@@ -1,35 +1,56 @@
-import { constructMetadata } from "@/lib/metadata";
-import { Metadata } from "next";
+import { PolicyDocument } from "@/components/editorial/policy-document";
+import { COMPANY, displayPhone } from "@/lib/company";
 import { getLocaleFromParams } from "@/lib/i18n/utils";
-import PrivacySection from "./privacy-section";
+import { constructMetadata } from "@/lib/metadata";
 import { PagePropsTypes } from "@/types";
-
-export default function page() {
-  return <PrivacySection />;
-}
-
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
 export async function generateMetadata({ params }: PagePropsTypes): Promise<Metadata> {
-  const { locale } = await params;
-  const currentLocale = getLocaleFromParams(await params);
+  const locale = getLocaleFromParams(await params);
+  const t = await getTranslations({ locale, namespace: "privacy" });
+  return constructMetadata({ locale, path: "/privacy", title: t("metaTitle"), description: t("metaDescription") });
+}
 
-  const titles: Record<string, string> = {
-    en: "Privacy Policy | Art Lighting",
-    ar: "سياسة الخصوصية | أرت لايتنج",
-  };
+const SECTIONS = ["s1", "s2", "s3", "s4", "s5", "s6"] as const;
 
-  const descriptions: Record<string, string> = {
-    en: "Learn about how Art Lighting collects, uses, and protects your personal information.",
-    ar: "تعرف على كيفية قيام أرت لايتنج بجمع واستخدام وحماية معلوماتك الشخصية.",
-  };
+/**
+ * The privacy policy — the company's own text, unchanged, set as a
+ * document. Its "last updated" line printed today's date on every visit, so
+ * the policy always claimed to have just changed; it is gone until the
+ * policy carries a real effective date.
+ */
+export default async function PrivacyPage({ params }: PagePropsTypes) {
+  const locale = getLocaleFromParams(await params);
+  const t = await getTranslations({ locale, namespace: "privacy" });
+  const phone = displayPhone(COMPANY.phones.showroom);
 
-  return constructMetadata({
-    title: titles[currentLocale] || titles.en,
-    description: descriptions[currentLocale] || descriptions.en,
-    twitter: {
-      card: "summary_large_image",
-      title: titles[currentLocale] || titles.en,
-      description: descriptions[currentLocale] || descriptions.en,
-    },
+  const sections = SECTIONS.map((key) => {
+    const list = t.has(`${key}.list`) ? (t.raw(`${key}.list`) as string[]) : [];
+    return {
+      id: key,
+      title: t(`${key}.title`).replace(/^\d+\.\s*/, ""),
+      body: (
+        <>
+          <h3 className="!mt-4 !text-[length:var(--text-base)]">{t(`${key}.q1`)}</h3>
+          <p>{t(`${key}.desc`)}</p>
+          {list.length > 0 && (
+            <ul>
+              {list.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          )}
+          {key === "s6" && (
+            <p>
+              <a href={`tel:${COMPANY.phones.showroom}`} dir="ltr">{phone}</a>
+            </p>
+          )}
+          {t.has(`${key}.footer`) && <p>{t(`${key}.footer`)}</p>}
+        </>
+      ),
+    };
   });
+
+  return <PolicyDocument locale={locale} id="privacy" title={t("title")} lede={t("lede")} sections={sections} />;
 }

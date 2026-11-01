@@ -7,8 +7,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { buttonVariants } from "@/components/ui/button";
+} from "@repo/ui/components/alert-dialog";
+import { buttonVariants } from "@repo/ui/components/button";
 import { SignInButton, SignUpButton } from "@/lib/auth-hooks";
 import { Lock, LogIn, X } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -29,29 +29,29 @@ const LoginModal = ({
     <AlertDialog onOpenChange={setIsOpen} open={isOpen}>
       <AlertDialogContent className="sm:max-w-[425px]">
         <button
+          type="button"
           onClick={closeModal}
-          className="absolute right-3 top-3 rounded-full p-1 hover:bg-muted transition"
+          aria-label={t("close")}
+          className="absolute end-3 top-3 grid size-9 place-items-center rounded-md text-muted-foreground transition-colors duration-[var(--dur-hover)] hover:bg-muted hover:text-foreground"
         >
-          <X className="h-4 w-4" />
+          <X className="size-4" aria-hidden />
         </button>
         <AlertDialogHeader>
-          <div className="flex items-center">
-            <Lock className="mr-3 rtl:ml-3 h-5 w-5 text-primary" />
-            <AlertDialogTitle className="text-xl">{t("loginRequired")}</AlertDialogTitle>
+          <div className="flex items-center gap-3 pe-8">
+            <Lock className="size-5 shrink-0 text-primary" aria-hidden />
+            <AlertDialogTitle className="text-[length:var(--text-lg)]">{t("loginRequired")}</AlertDialogTitle>
           </div>
-          <AlertDialogDescription className="text-left rtl:text-right">
+          <AlertDialogDescription className="text-pretty text-start">
             {t("loginDescription")}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <div className="py-4">
-          <p className="text-sm text-muted-foreground">{t("loginNote")}</p>
-        </div>
+        <p className="text-pretty text-[length:var(--text-sm)] text-muted-foreground">{t("loginNote")}</p>
         <AlertDialogFooter className="sm:justify-start">
           <SignInButton>
             <button
-              className={`${buttonVariants({ variant: "outline" })} w-full sm:w-auto mt-3 sm:mt-0 outline-none`}
+              className={`${buttonVariants({ variant: "outline" })} w-full sm:w-auto`}
             >
-              <LogIn className="mr-2 h-4 w-4" />
+              <LogIn className="size-4" aria-hidden />
               {t("proceedToLogin")}
             </button>
           </SignInButton>

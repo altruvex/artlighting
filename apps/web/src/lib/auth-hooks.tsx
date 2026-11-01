@@ -2,11 +2,25 @@
 
 import { authClient } from "./auth-client";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
+
+const noSubscribe = () => () => {};
+
+/**
+ * The session, held back until hydration is done. Pages are prerendered once
+ * for every visitor, so the server HTML is always signed out; a session the
+ * client already has cached (from an earlier navigation) would otherwise
+ * render different markup on the first pass and fail hydration.
+ */
+function useHydratedSession() {
+  const { data, isPending } = authClient.useSession();
+  const hydrated = useSyncExternalStore(noSubscribe, () => true, () => false);
+  return { session: hydrated ? data : null, isPending: !hydrated || isPending };
+}
 
 /** Client-side session state: `{ isLoaded, isSignedIn, userId }`. */
 export function useAuth() {
-  const { data: session, isPending } = authClient.useSession();
+  const { session, isPending } = useHydratedSession();
   return {
     isLoaded: !isPending,
     isSignedIn: !!session,
@@ -16,7 +30,7 @@ export function useAuth() {
 
 /** Client-side current user. */
 export function useUser() {
-  const { data: session, isPending } = authClient.useSession();
+  const { session, isPending } = useHydratedSession();
   return {
     isLoaded: !isPending,
     isSignedIn: !!session,

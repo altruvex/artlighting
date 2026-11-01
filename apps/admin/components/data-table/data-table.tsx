@@ -1,8 +1,8 @@
 "use client";
 
 import { EmptyState } from "@/components/empty-state";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@repo/ui/components/button";
+import { Checkbox } from "@repo/ui/components/checkbox";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -10,8 +10,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
+} from "@repo/ui/components/dropdown-menu";
+import { Input } from "@repo/ui/components/input";
 import {
   Table,
   TableBody,
@@ -19,8 +19,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { cn } from "@/lib/utils";
+} from "@repo/ui/components/table";
+import { cn } from "@repo/ui/lib/utils";
 import {
   type ColumnFiltersState,
   type ColumnVisibilityState,
@@ -191,14 +191,19 @@ export function DataTable<TData extends Record<string, unknown>>({
         </div>
       )}
 
-      <div className="rounded-lg border">
+      {/* bg-card: the rows sit on the same surface as the sticky header, and
+          overflow-hidden keeps that header inside the rounded corners. */}
+      <div className="overflow-hidden rounded-lg border bg-card">
         <div className="relative max-h-[70svh] overflow-auto">
           <Table className="min-w-[720px]">
             <TableHeader className="sticky top-0 z-10 bg-card">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="hover:bg-transparent">
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="h-9 whitespace-nowrap">
+                    <TableHead
+                      key={header.id}
+                      className={cn("h-9 whitespace-nowrap", header.column.columnDef.meta?.align === "end" && "text-end")}
+                    >
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   ))}
@@ -216,7 +221,14 @@ export function DataTable<TData extends Record<string, unknown>>({
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id} data-state={row.getIsSelected() ? "selected" : undefined}>
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className={cn("py-2", cell.column.id === "select" && "w-10")}>
+                      <TableCell
+                        key={cell.id}
+                        className={cn(
+                          "py-2",
+                          cell.column.id === "select" && "w-10",
+                          cell.column.columnDef.meta?.align === "end" && "text-end",
+                        )}
+                      >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}

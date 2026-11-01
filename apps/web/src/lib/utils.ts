@@ -1,11 +1,6 @@
 import { ProductChandLamp } from "@repo/database";
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+export { cn } from "@repo/ui/lib/utils";
 import z from "zod";
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
 
 export const authFormConfirmingOrderSchema = z.object({
   fullName: z.string().min(3, {

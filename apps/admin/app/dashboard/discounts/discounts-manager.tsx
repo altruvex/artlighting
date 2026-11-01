@@ -3,7 +3,7 @@
 import { createDiscount, previewCart, setDiscountActive, updateDiscount } from "@/lib/actions/discounts";
 import { productLabels, searchProducts, type ProductHit } from "@/lib/actions/search";
 import { SearchPicker } from "@/components/search-picker";
-import { type AdminColumn, ColumnHeader, DataTable } from "@/components/data-table";
+import { type AdminColumn, ServerDataTable, type ServerFacet, type TableParams } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
 import { StatusBadge, type StatusTone } from "@/components/status-badge";
 import { Button } from "@repo/ui/components/button";
@@ -91,10 +91,14 @@ const searchDiscountProducts = (q: string) => searchProducts(q, "discount");
 
 export function DiscountsManager({
   discounts,
+  total,
+  params,
   categories,
   canWrite,
 }: {
   discounts: DiscountRow[];
+  total: number;
+  params: TableParams;
   categories: Option[];
   canWrite: boolean;
 }) {
@@ -231,7 +235,7 @@ export function DiscountsManager({
       {
         id: "name",
         accessorFn: (row) => `${row.name} ${row.code ?? ""}`,
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.name")} />,
+        header: t("columns.name"),
         cell: ({ row }) => (
           <div className="min-w-0">
             <span className="block truncate font-medium">{row.original.name}</span>
@@ -246,8 +250,9 @@ export function DiscountsManager({
       {
         id: "value",
         meta: { align: "end" },
+        enableSorting: false,
         accessorFn: (row) => Number(row.rate ?? row.amount ?? 0),
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.value")} />,
+        header: t("columns.value"),
         cell: ({ row }) => (
           <span className="tabular-nums whitespace-nowrap">
             {row.original.type === "PERCENTAGE"
@@ -258,9 +263,9 @@ export function DiscountsManager({
       },
       {
         id: "applies",
+        enableSorting: false,
         accessorFn: (row) => row.scope,
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.applies")} />,
-        filterFn: "arrIncludesSome",
+        header: t("columns.applies"),
         cell: ({ row }) => (
           <div className="min-w-0">
             <span className="block text-sm">{t(`scope.${row.original.scope}` as const)}</span>
@@ -278,7 +283,7 @@ export function DiscountsManager({
         id: "usage",
         meta: { align: "end" },
         accessorFn: (row) => row.usageCount,
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.usage")} />,
+        header: t("columns.usage"),
         cell: ({ row }) => (
           <span className="tabular-nums text-sm" dir="ltr">
             {format.number(row.original.usageCount)}
@@ -288,9 +293,9 @@ export function DiscountsManager({
       },
       {
         id: "state",
+        enableSorting: false,
         accessorFn: (row) => stateOf(row, now).key,
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.state")} />,
-        filterFn: "arrIncludesSome",
+        header: t("columns.state"),
         cell: ({ row }) => {
           const state = stateOf(row.original, now);
           return <StatusBadge tone={state.tone}>{t(`state.${state.key}` as const)}</StatusBadge>;
@@ -326,6 +331,25 @@ export function DiscountsManager({
   const selectedTargets =
     form.scope === "PRODUCTS" ? form.productIds : form.scope === "CATEGORIES" ? form.categoryIds : form.families;
 
+  const facets: ServerFacet[] = [
+    {
+      key: "state",
+      title: t("columns.state"),
+      options: (["active", "scheduled", "expired", "usedUp", "stopped"] as const).map((key) => ({
+        value: key,
+        label: t(`state.${key}` as const),
+      })),
+    },
+    {
+      key: "scope",
+      title: t("columns.applies"),
+      options: (["PRODUCTS", "CATEGORIES", "FAMILIES", "CART"] as const).map((key) => ({
+        value: key,
+        label: t(`scope.${key}` as const),
+      })),
+    },
+  ];
+
   return (
     <div className="space-y-4">
       {/* The page's primary action sits over the list it adds to, not under
@@ -339,36 +363,13 @@ export function DiscountsManager({
         </div>
       )}
 
-      <DataTable
+      <ServerDataTable
         columns={columns}
         data={discounts}
-        searchColumnId="name"
+        total={total}
+        params={params}
         searchPlaceholder={t("searchPlaceholder")}
-        columnLabels={{
-          name: t("columns.name"),
-          value: t("columns.value"),
-          applies: t("columns.applies"),
-          usage: t("columns.usage"),
-          state: t("columns.state"),
-        }}
-        facets={[
-          {
-            columnId: "state",
-            title: t("columns.state"),
-            options: (["active", "scheduled", "expired", "usedUp", "stopped"] as const).map((key) => ({
-              value: key,
-              label: t(`state.${key}` as const),
-            })),
-          },
-          {
-            columnId: "applies",
-            title: t("columns.applies"),
-            options: (["PRODUCTS", "CATEGORIES", "CART"] as const).map((key) => ({
-              value: key,
-              label: t(`scope.${key}` as const),
-            })),
-          },
-        ]}
+        facets={facets}
         emptyState={
           <EmptyState
             icon={TicketPercentIcon}

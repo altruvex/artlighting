@@ -5,6 +5,7 @@ export { adminTableFeatures, type AdminColumn, type AdminColumnMeta, type AdminT
 export { ServerDataTable, type ServerFacet } from "./server-data-table";
 export {
   DEFAULT_PAGE_SIZE,
+  ilikeContains,
   PAGE_SIZES,
   pageCount,
   parseTableParams,

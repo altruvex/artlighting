@@ -74,6 +74,11 @@ export function parseTableParams(
   return { page, pageSize, sort, q: (firstValue(searchParams[TABLE_PARAM_KEYS.query]) ?? "").trim(), filters };
 }
 
+/** ILIKE pattern for a raw-SQL search: the user's % and _ match literally. */
+export function ilikeContains(query: string): string {
+  return `%${query.replace(/[\\%_]/g, "\\$&")}%`;
+}
+
 /** Rows to skip / take for Prisma. */
 export function toPrismaPagination(params: TableParams) {
   return { skip: (params.page - 1) * params.pageSize, take: params.pageSize };

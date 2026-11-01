@@ -9,8 +9,9 @@ import { revalidateStorefront } from "@/lib/storefront";
 import { ActionError, run } from "./result";
 
 /**
- * The Excel round-trip. Export is the same file an import reads back, so
- * the loop is: export, edit in Excel, preview, apply.
+ * The Excel round-trip. Export (app/api/products/export/route.ts) is the same
+ * file an import reads back, so the loop is: export, edit in Excel, preview,
+ * apply.
  *
  * Both languages are columns here. D11 makes generated *documents* English
  * only; this is a data file the admin edits, not something a customer
@@ -21,44 +22,6 @@ import { ActionError, run } from "./result";
 
 const MAX_SHEET_BYTES = 10 * 1024 * 1024;
 const MAX_ROWS = 5000;
-
-/** Builds the workbook and hands it back as base64 for the browser to save. */
-export async function exportProductsSheet() {
-  return run(async () => {
-    await requirePermission("catalog:read");
-
-    const rows = await catalog.exportProducts();
-
-    const workbook = new ExcelJS.Workbook();
-    workbook.creator = "Art Lighting admin";
-    workbook.created = new Date();
-
-    const sheet = workbook.addWorksheet("Products", {
-      views: [{ state: "frozen", ySplit: 1 }],
-    });
-    sheet.columns = catalog.PRODUCT_COLUMNS.map((key) => ({
-      header: key,
-      key,
-      width: key.startsWith("description") ? 48 : key.startsWith("name") ? 32 : 14,
-    }));
-    sheet.getRow(1).font = { bold: true };
-
-    for (const row of rows) sheet.addRow(row);
-
-    // Text, not "general": Excel would otherwise read 729.00 as a float and
-    // write 729 back, and a SKU like 202-15 as a date.
-    for (const column of ["sku", "price", "discount"] as const) {
-      sheet.getColumn(column).numFmt = "@";
-    }
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    return {
-      filename: `artlighting-products-${new Date().toISOString().slice(0, 10)}.xlsx`,
-      base64: Buffer.from(buffer).toString("base64"),
-      rows: rows.length,
-    };
-  });
-}
 
 /** Reads the uploaded sheet into plain rows, by header name. */
 async function readSheet(file: File): Promise<Record<string, unknown>[]> {

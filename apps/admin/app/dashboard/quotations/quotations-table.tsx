@@ -61,6 +61,8 @@ export function QuotationsTable({
     () => [
       {
         id: "number",
+        // The link to the quotation: the one column a row cannot lose.
+        enableHiding: false,
         accessorFn: (row) => row.number,
         header: t("columns.number"),
         cell: ({ row }) => (
@@ -77,8 +79,7 @@ export function QuotationsTable({
       {
         id: "customer",
         accessorFn: (row) => row.customer,
-        // The name shown comes from the snapshot, which the database cannot order by.
-        enableSorting: false,
+        // Sorted by the live customer's company, then name (see page.tsx).
         header: t("columns.customer"),
         cell: ({ row }) => (
           <div className="min-w-0 max-w-[260px]">
@@ -153,6 +154,8 @@ export function QuotationsTable({
       total={total}
       params={params}
       searchPlaceholder={t("searchPlaceholder")}
+      columnMenu
+      columnStorageKey="admin.quotations.columns"
       facets={[
         {
           key: "status",

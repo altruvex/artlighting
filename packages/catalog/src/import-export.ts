@@ -38,13 +38,19 @@ export interface ExportedProduct extends Record<ProductColumn, string | number |
   sku: string;
 }
 
-/** Every product as a row, in the export's column order. */
+/**
+ * Products as rows, in the export's column order. Without `options` that is
+ * every product; the admin download pages through them instead: `take` rows
+ * after the SKU `after` (SKUs are unique, so the SKU is the cursor).
+ */
 export async function exportProducts(
   where: Record<string, unknown> = {},
   db: Db = prisma,
+  options: { take?: number; after?: string } = {},
 ): Promise<ExportedProduct[]> {
   const products = await db.product.findMany({
-    where,
+    where: options.after ? { AND: [where, { productId: { gt: options.after } }] } : where,
+    ...(options.take ? { take: options.take } : {}),
     select: {
       id: true,
       productId: true,

@@ -1,4 +1,4 @@
-import { parseTableParams, type SearchParamsInput, toPrismaPagination } from "@/components/data-table";
+import { ilikeContains, parseTableParams, type SearchParamsInput, toPrismaPagination } from "@/components/data-table";
 import { PageHeader, PageShell } from "@/components/page-header";
 import { serializeMoney } from "@repo/money";
 import { availableFrom, inventorySelect } from "@repo/catalog";
@@ -6,7 +6,7 @@ import { StatCard } from "@/components/stat-card";
 import { Button } from "@repo/ui/components/button";
 import { requireAdminOrRedirect } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { type Prisma, prisma } from "@repo/database";
+import { Prisma, prisma } from "@repo/database";
 import { AlertTriangleIcon, CircleCheckIcon, PackageIcon } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
@@ -23,6 +23,23 @@ const SORTABLE = {
   created: (desc: boolean) => ({ createdAt: dir(desc) }),
 } satisfies Record<string, (desc: boolean) => Prisma.ProductOrderByWithRelationInput>;
 
+/**
+ * The stock column's figure in SQL: the first default variant's sellable
+ * units (onHand - reserved, floored at 0, summed over locations), 0 when it
+ * has none. NULL for untracked products: they have no count, so they sort
+ * after every tracked one in both directions (NULLS LAST).
+ */
+const STOCK_SQL = Prisma.sql`CASE WHEN p."trackInventory" THEN COALESCE((
+    SELECT SUM(GREATEST(0, i."onHand" - i."reserved"))
+    FROM "inventory_items" i
+    WHERE i."variantId" = (
+      SELECT v."id" FROM "product_variants" v
+      WHERE v."productId" = p."id" AND v."isDefault"
+      ORDER BY v."position", v."id"
+      LIMIT 1
+    )
+  ), 0) END`;
+
 const STATUSES = ["active", "inactive"] as const;
 
 function dir(desc: boolean): Prisma.SortOrder {
@@ -33,7 +50,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   const admin = await requireAdminOrRedirect();
 
   const params = parseTableParams(await searchParams, {
-    sortableIds: Object.keys(SORTABLE),
+    sortableIds: [...Object.keys(SORTABLE), "stock"],
     filterKeys: ["category", "status"],
     defaultSort: { id: "created", desc: true },
   });
@@ -62,37 +79,70 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
       : {}),
   };
 
-  const sortKey = (params.sort?.id ?? "created") as keyof typeof SORTABLE;
-  // id breaks ties so a page boundary never repeats or skips a row.
-  const orderBy = [SORTABLE[sortKey](params.sort?.desc ?? true), { id: "asc" as const }];
+  const select = {
+    id: true,
+    productId: true,
+    productName: true,
+    price: true,
+    trackInventory: true,
+    isActive: true,
+    featured: true,
+    translations: { where: { language: locale }, select: { name: true } },
+    category: { select: { id: true, name: true, translations: { where: { language: locale }, select: { name: true } } } },
+    lightingtype: { select: { name: true, translations: { where: { language: locale }, select: { name: true } } } },
+    // Sellable units, not units on a shelf: the products list should
+    // agree with what the storefront will let a customer buy.
+    variants: {
+      where: { isDefault: true },
+      orderBy: [{ position: "asc" }, { id: "asc" }],
+      select: { inventory: inventorySelect() },
+      take: 1,
+    },
+    images: { where: { isPrimary: true }, select: { url: true }, take: 1 },
+  } satisfies Prisma.ProductSelect;
+
+  const desc = params.sort?.desc ?? true;
+  const { skip, take } = toPrismaPagination(params);
+
+  /**
+   * Stock is computed, not a column Prisma can order by. The page's ids come
+   * from SQL ordered by STOCK_SQL, under the same filters as `where` above
+   * (keep the two in step); the rows then load through the usual select.
+   */
+  async function productsByStock() {
+    const conditions = [Prisma.sql`p."deletedAt" IS NULL`];
+    if (categoryFilter.length > 0) conditions.push(Prisma.sql`p."categoryId" IN (${Prisma.join(categoryFilter)})`);
+    if (statusFilter.length === 1) conditions.push(Prisma.sql`p."isActive" = ${statusFilter[0] === "active"}`);
+    if (params.q) {
+      const pattern = ilikeContains(params.q);
+      conditions.push(Prisma.sql`(
+        p."productId" ILIKE ${pattern}
+        OR p."productName" ILIKE ${pattern}
+        OR EXISTS (SELECT 1 FROM "product_translations" t WHERE t."productId" = p."id" AND t."name" ILIKE ${pattern})
+      )`);
+    }
+    const ids = await prisma.$queryRaw<{ id: string }[]>`
+      SELECT p."id" FROM "products" p
+      WHERE ${Prisma.join(conditions, " AND ")}
+      ORDER BY ${STOCK_SQL} ${desc ? Prisma.sql`DESC` : Prisma.sql`ASC`} NULLS LAST, p."id"
+      LIMIT ${take} OFFSET ${skip}`;
+    if (ids.length === 0) return [];
+    const rows = await prisma.product.findMany({ where: { id: { in: ids.map((row) => row.id) } }, select });
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    return ids.flatMap(({ id }) => byId.get(id) ?? []);
+  }
 
   const [products, filteredCount, totalCount, activeCount, [low], topCategories] = await Promise.all([
-    prisma.product.findMany({
-      where,
-      orderBy,
-      ...toPrismaPagination(params),
-      select: {
-        id: true,
-        productId: true,
-        productName: true,
-        price: true,
-        trackInventory: true,
-        isActive: true,
-        featured: true,
-        translations: { where: { language: locale }, select: { name: true } },
-        category: { select: { id: true, name: true, translations: { where: { language: locale }, select: { name: true } } } },
-        lightingtype: { select: { name: true, translations: { where: { language: locale }, select: { name: true } } } },
-        // Sellable units, not units on a shelf: the products list should
-        // agree with what the storefront will let a customer buy.
-        variants: {
-          where: { isDefault: true },
-          orderBy: [{ position: "asc" }, { id: "asc" }],
-          select: { inventory: inventorySelect() },
-          take: 1,
-        },
-        images: { where: { isPrimary: true }, select: { url: true }, take: 1 },
-      },
-    }),
+    params.sort?.id === "stock"
+      ? productsByStock()
+      : prisma.product.findMany({
+          where,
+          // id breaks ties so a page boundary never repeats or skips a row.
+          orderBy: [SORTABLE[(params.sort?.id ?? "created") as keyof typeof SORTABLE](desc), { id: "asc" }],
+          skip,
+          take,
+          select,
+        }),
     prisma.product.count({ where }),
     prisma.product.count({ where: { deletedAt: null } }),
     prisma.product.count({ where: { deletedAt: null, isActive: true } }),

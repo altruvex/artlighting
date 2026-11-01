@@ -14,7 +14,7 @@ import { applyRate, money, serializeMoney, serializeRate, subtractMoney } from "
 import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { localizeSpecGroups, specGroupSelect, specsByKey } from "@/lib/spec-groups";
 import { CARD_SPEC_KEYS, cardDescription } from "@/lib/card-description";
-import { CATALOGUE_TAG, catalogueCacheLife } from "@/lib/cache.server";
+import { CARDS_TAG, CATALOGUE_TAG, catalogueCacheLife } from "@/lib/cache.server";
 import { cacheTag } from "next/cache";
 import { getTranslations } from "next-intl/server";
 
@@ -147,7 +147,7 @@ async function loadCardRows(locale: string) {
  */
 export async function catalogueCards(locale: string): Promise<ShopCard[]> {
   "use cache";
-  cacheTag(CATALOGUE_TAG);
+  cacheTag(CATALOGUE_TAG, CARDS_TAG);
   await catalogueCacheLife();
   const [rows, t] = await Promise.all([
     loadCardRows(locale),
@@ -245,7 +245,7 @@ export async function searchShop(query: ShopQuery, locale: string): Promise<Shop
  */
 async function cachedShop(query: ShopQuery, locale: string): Promise<ShopResult> {
   "use cache";
-  cacheTag(CATALOGUE_TAG);
+  cacheTag(CATALOGUE_TAG, CARDS_TAG);
   return shopPage(await catalogueCards(locale), query, locale);
 }
 

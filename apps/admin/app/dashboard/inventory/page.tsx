@@ -1,4 +1,4 @@
-import { parseTableParams, type SearchParamsInput, toPrismaPagination } from "@/components/data-table";
+import { ilikeContains, parseTableParams, type SearchParamsInput, toPrismaPagination } from "@/components/data-table";
 import { PageHeader, PageShell } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { requireAdminOrRedirect } from "@/lib/auth";
@@ -35,11 +35,6 @@ type RawRow = {
   tracked: boolean;
 };
 
-/** ILIKE pattern for a user's text: % and _ are matched literally. */
-function containsPattern(query: string) {
-  return `%${query.replace(/[\\%_]/g, "\\$&")}%`;
-}
-
 /**
  * The stock list. `available` is computed here the same way the service
  * computes it — onHand minus reserved — rather than read from a column,
@@ -65,7 +60,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
     JOIN "products" p ON p."id" = v."productId"
     LEFT JOIN "product_translations" t ON t."productId" = p."id" AND t."language" = ${locale}`;
 
-  const pattern = containsPattern(params.q);
+  const pattern = ilikeContains(params.q);
   const where = params.q
     ? Prisma.sql`WHERE (v."sku" ILIKE ${pattern} OR p."productName" ILIKE ${pattern} OR t."name" ILIKE ${pattern})`
     : Prisma.empty;

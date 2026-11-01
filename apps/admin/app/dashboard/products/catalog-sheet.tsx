@@ -1,6 +1,6 @@
 "use client";
 
-import { applyProductsSheet, exportProductsSheet, previewProductsSheet } from "@/lib/actions/catalog-sheet";
+import { applyProductsSheet, previewProductsSheet } from "@/lib/actions/catalog-sheet";
 import { Button } from "@repo/ui/components/button";
 import {
   Dialog,
@@ -36,20 +36,15 @@ const ACTION_TONE: Record<ImportAction, string> = {
   error: "text-danger",
 };
 
-function saveBase64(filename: string, base64: string) {
-  const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
-  const url = URL.createObjectURL(
-    new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
-  );
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
+/** The file comes from a route that streams it; the name is the server's. */
+function filenameFrom(response: Response) {
+  const header = response.headers.get("Content-Disposition") ?? "";
+  return /filename="([^"]+)"/.exec(header)?.[1] ?? "artlighting-products.xlsx";
 }
 
 export function CatalogSheetActions({ canWrite }: { canWrite: boolean }) {
   const t = useTranslations("Products.sheet");
+  const tCommon = useTranslations("Common");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [open, setOpen] = useState(false);
@@ -59,13 +54,23 @@ export function CatalogSheetActions({ canWrite }: { canWrite: boolean }) {
 
   function runExport() {
     startTransition(async () => {
-      const result = await exportProductsSheet();
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
+      try {
+        const response = await fetch("/api/products/export", { cache: "no-store" });
+        if (!response.ok) {
+          const body = (await response.json().catch(() => null)) as { error?: string } | null;
+          toast.error(body?.error ?? tCommon("genericError"));
+          return;
+        }
+        const url = URL.createObjectURL(await response.blob());
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filenameFrom(response);
+        anchor.click();
+        URL.revokeObjectURL(url);
+        toast.success(t("exported", { count: Number(response.headers.get("X-Row-Count")) || 0 }));
+      } catch {
+        toast.error(tCommon("genericError"));
       }
-      saveBase64(result.data.filename, result.data.base64);
-      toast.success(t("exported", { count: result.data.rows }));
     });
   }
 

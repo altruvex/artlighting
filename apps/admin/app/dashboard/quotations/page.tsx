@@ -20,11 +20,23 @@ const SORTABLE = {
   number: (d: Prisma.SortOrder) => ({ number: d }),
   status: (d: Prisma.SortOrder) => ({ status: d }),
   owner: (d: Prisma.SortOrder) => ({ owner: { name: d } }),
+  // The row shows the snapshot's company, else its contact name. Prisma cannot
+  // order by that JSON, so this orders by the live customer the same way:
+  // companies by name, then people without a company (desc is the exact
+  // reverse). A customer renamed after a quotation was sent sorts by the new name.
+  customer: (d: Prisma.SortOrder) => [
+    { customer: { companyName: { sort: d, nulls: d === "asc" ? "last" : "first" } } },
+    { customer: { name: d } },
+    { id: d },
+  ],
   issueDate: (d: Prisma.SortOrder) => ({ issueDate: d }),
   validUntil: (d: Prisma.SortOrder) => ({ validUntil: d }),
   lines: (d: Prisma.SortOrder) => ({ lines: { _count: d } }),
   total: (d: Prisma.SortOrder) => ({ grandTotal: d }),
-} satisfies Record<string, (d: Prisma.SortOrder) => Prisma.QuotationOrderByWithRelationInput>;
+} satisfies Record<
+  string,
+  (d: Prisma.SortOrder) => Prisma.QuotationOrderByWithRelationInput | Prisma.QuotationOrderByWithRelationInput[]
+>;
 
 export default async function QuotationsPage({ searchParams }: { searchParams: Promise<SearchParamsInput> }) {
   const admin = await requirePermissionOrRedirect("quotation:read");

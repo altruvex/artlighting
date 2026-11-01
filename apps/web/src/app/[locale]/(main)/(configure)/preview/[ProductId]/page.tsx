@@ -10,6 +10,8 @@ import { prisma } from "@repo/database"
 import type { Metadata } from "next"
 import { constructMetadata } from "@/lib/metadata"
 import { notFound, unstable_rethrow } from "next/navigation"
+import { redirect } from "@/i18n/navigation"
+import { familySlug } from "@repo/catalog/families"
 import Preview, { type PreviewProduct } from "./preview"
 
 // The spec keys behind the six figures the screen shows; nothing else is read.
@@ -52,8 +54,20 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
     }
 
     if (!configuration) {
-      console.error("Configuration not found after all attempts")
-      return notFound()
+      // Nothing saved yet (a shared link, a new device, a cleared cookie):
+      // send the visitor to the product page to choose their options there.
+      const target = ProductId
+        ? await prisma.product.findFirst({
+            // Codes are stored lower-case; a typed or shared link may not be.
+            where: { productId: { equals: ProductId, mode: "insensitive" }, isActive: true, deletedAt: null },
+            select: { productId: true, brand: true, sectionType: true, spotlightType: true },
+          })
+        : null
+      if (!target) return notFound()
+      return redirect({
+        href: `/category/${target.brand}/${familySlug(target.sectionType)}/${target.spotlightType.toLowerCase()}/${target.productId.toLowerCase()}`,
+        locale,
+      })
     }
 
     // Only what the screen shows: name, photos, the two labels and the six

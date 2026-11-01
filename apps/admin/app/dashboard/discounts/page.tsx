@@ -1,26 +1,84 @@
+import { parseTableParams, type SearchParamsInput, toPrismaPagination } from "@/components/data-table";
 import { PageHeader, PageShell } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { requireAdminOrRedirect } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { prisma } from "@repo/database";
+import { type Prisma, prisma } from "@repo/database";
 import { formatMoney, serializeMoney, serializeRate } from "@repo/money";
 import { BadgePercentIcon, TicketIcon, TrendingDownIcon } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { DiscountsManager, type DiscountRow } from "./discounts-manager";
 
-/** See the findMany below. */
-const MAX_DISCOUNTS = 500;
+/** Sortable columns → Prisma order. Value and state are not stored columns
+ *  (mixed rate/amount, derived state), so they are not listed. */
+const SORTABLE = {
+  name: (desc: Prisma.SortOrder) => ({ name: desc }),
+  usage: (desc: Prisma.SortOrder) => ({ usageCount: desc }),
+} satisfies Record<string, (desc: Prisma.SortOrder) => Prisma.DiscountOrderByWithRelationInput>;
 
-export default async function DiscountsPage() {
+const SCOPES = ["PRODUCTS", "CATEGORIES", "FAMILIES", "CART"] as const;
+
+/**
+ * The list's derived states as queries, mirroring stateOf() in the manager
+ * (stopped, then used up, then scheduled, then expired, else running), so the
+ * filter runs in the database over every rule, not over one page.
+ */
+function stateFilters(now: Date, usageLimit: Prisma.IntFieldRefInput<"Discount">): Record<string, Prisma.DiscountWhereInput> {
+  const usedUp: Prisma.DiscountWhereInput = { usageLimit: { not: null }, usageCount: { gte: usageLimit } };
+  const notUsedUp: Prisma.DiscountWhereInput = { OR: [{ usageLimit: null }, { usageCount: { lt: usageLimit } }] };
+  const scheduled: Prisma.DiscountWhereInput = { startsAt: { gt: now } };
+  const started: Prisma.DiscountWhereInput = { OR: [{ startsAt: null }, { startsAt: { lte: now } }] };
+  return {
+    stopped: { isActive: false },
+    usedUp: { isActive: true, ...usedUp },
+    scheduled: { isActive: true, AND: [notUsedUp, scheduled] },
+    expired: { isActive: true, AND: [notUsedUp, started, { endsAt: { lte: now } }] },
+    active: { isActive: true, AND: [notUsedUp, started, { OR: [{ endsAt: null }, { endsAt: { gt: now } }] }] },
+  };
+}
+
+export default async function DiscountsPage({ searchParams }: { searchParams: Promise<SearchParamsInput> }) {
   const admin = await requireAdminOrRedirect();
   const [t, locale] = await Promise.all([getTranslations("Discounts"), getLocale()]);
 
-  const [discounts, activeCount, couponCount, categories, redeemed] = await Promise.all([
+  const params = parseTableParams(await searchParams, {
+    sortableIds: Object.keys(SORTABLE),
+    filterKeys: ["state", "scope"],
+  });
+
+  const byState = stateFilters(new Date(), prisma.discount.fields.usageLimit);
+  const states = (params.filters.state ?? []).filter((value) => value in byState);
+  const scopes = (params.filters.scope ?? []).filter((value): value is (typeof SCOPES)[number] =>
+    (SCOPES as readonly string[]).includes(value),
+  );
+  const where: Prisma.DiscountWhereInput = {
+    ...(states.length > 0 ? { OR: states.map((state) => byState[state]!) } : {}),
+    ...(scopes.length > 0 ? { scope: { in: scopes } } : {}),
+    ...(params.q
+      ? {
+          AND: [
+            {
+              OR: [
+                { name: { contains: params.q, mode: "insensitive" as const } },
+                { code: { contains: params.q, mode: "insensitive" as const } },
+              ],
+            },
+          ],
+        }
+      : {}),
+  };
+
+  // No sort chosen: running rules first, newest first. id keeps paging stable.
+  const orderBy: Prisma.DiscountOrderByWithRelationInput[] = params.sort
+    ? [SORTABLE[params.sort.id as keyof typeof SORTABLE](params.sort.desc ? "desc" : "asc"), { id: "asc" }]
+    : [{ isActive: "desc" }, { createdAt: "desc" }, { id: "asc" }];
+
+  const [total, discounts, activeCount, couponCount, categories, redeemed] = await Promise.all([
+    prisma.discount.count({ where }),
     prisma.discount.findMany({
-      orderBy: [{ isActive: "desc" }, { createdAt: "desc" }],
-      // A bounded list in practice; the cap keeps a runaway import from
-      // shipping thousands of rows to the browser.
-      take: MAX_DISCOUNTS,
+      where,
+      orderBy,
+      ...toPrismaPagination(params),
       select: {
         id: true,
         name: true,
@@ -137,6 +195,8 @@ export default async function DiscountsPage() {
 
       <DiscountsManager
         discounts={rows}
+        total={total}
+        params={params}
         categories={categories.map((category) => ({
           id: category.id,
           label: category.translations[0]?.name ?? category.name,

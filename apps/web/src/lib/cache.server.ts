@@ -12,11 +12,15 @@ import { cacheLife } from "next/cache";
  *   bulbs, categories or specs. The admin invalidates it through
  *   /api/revalidate on every catalogue write; an order invalidates it
  *   only when it changes what a card shows (see tagsForOrder).
+ * - CARDS: every product card (the shop, the home and application pages,
+ *   the rails), on top of CATALOGUE. A review (the stars) and an order that
+ *   leaves a product at "few left" drop this instead of every product page.
  * - productTag(code): one product's page record. Orders and reviews drop
  *   this instead of the whole catalogue.
  * - reviewsTag(code): one product's review list and distribution.
  */
 export const CATALOGUE_TAG = "catalogue";
+export const CARDS_TAG = "cards";
 export const productTag = (productCode: string) => `product:${productCode.toLowerCase()}`;
 export const reviewsTag = (productCode: string) => `reviews:${productCode.toLowerCase()}`;
 
@@ -26,12 +30,12 @@ const CARD_LOW_STOCK = 5;
 /**
  * What a confirmed order must invalidate.
  *
- * Each product on it, always: its page shows the exact stock. The whole
- * catalogue only when a card would change too: a product is now at or
- * below the "few left" mark (cards show the count from there, and "sold
- * out" at 0), or a coupon has used its last use (the promo bar). Above the
- * mark a card shows no stock at all, so the ~480 prerendered pages, the
- * shop and the sitemap are left alone.
+ * Each product on it, always: its page shows the exact stock. The cards
+ * too when a product is now at or below the "few left" mark (cards show
+ * the count from there, and "sold out" at 0). The whole catalogue only
+ * when a coupon has used its last use (the promo bar). Above the mark a
+ * card shows no stock at all, so the shop and the other ~480 prerendered
+ * pages are left alone.
  */
 export async function tagsForOrder(orderId: number): Promise<string[]> {
   try {
@@ -58,8 +62,10 @@ export async function tagsForOrder(orderId: number): Promise<string[]> {
       return left !== null && left <= CARD_LOW_STOCK;
     });
     const couponSpent = claims.some(({ discount }) => discount.usageLimit !== null && discount.usageCount >= discount.usageLimit);
-    if (lowStock || couponSpent) return [CATALOGUE_TAG];
-    return [...new Set(items.map(({ product }) => productTag(product.productId)))];
+    // A spent coupon changes the promo bar, which only CATALOGUE covers.
+    if (couponSpent) return [CATALOGUE_TAG];
+    const products = [...new Set(items.map(({ product }) => productTag(product.productId)))];
+    return lowStock ? [CARDS_TAG, ...products] : products;
   } catch (error) {
     // The order is placed either way; refreshing too much beats too little.
     console.error("Order cache tags failed:", error);

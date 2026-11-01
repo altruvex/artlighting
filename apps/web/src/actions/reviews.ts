@@ -2,8 +2,8 @@
 
 import { auth } from "@/lib/auth-server";
 import { limitAction } from "@/middleware/ratelimit";
-import { productTag, reviewsTag } from "@/lib/cache.server";
-import { updateTag } from "next/cache";
+import { CARDS_TAG, productTag, reviewsTag } from "@/lib/cache.server";
+import { revalidateTag, updateTag } from "next/cache";
 import {
   productReviewsSection,
   submitReview as submitReviewToDb,
@@ -24,9 +24,9 @@ export async function submitReview(productId: string, input: ReviewInput): Promi
     // product's page.
     updateTag(reviewsTag(productId));
     updateTag(productTag(productId));
-    // Not the catalogue: the stars on the cards catch up within its
-    // lifetime (an hour at most). Dropping it for one rating rebuilt every
-    // product page, the shop and the sitemap.
+    // The stars on the cards: marked stale and rebuilt in the background on
+    // the next visit. Only the cards, not every product page or the sitemap.
+    revalidateTag(CARDS_TAG, "max");
   }
   return result;
 }

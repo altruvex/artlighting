@@ -19,7 +19,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Loading from "@/app/[locale]/loading";
 import { cacheTag } from "next/cache";
-import { CATALOGUE_TAG, catalogueCacheLife } from "@/lib/cache.server";
+import { CARDS_TAG, CATALOGUE_TAG, catalogueCacheLife } from "@/lib/cache.server";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 type Props = {
@@ -118,7 +118,7 @@ function shopParamsOnly(raw: ShopParams): ShopParams {
  */
 async function CachedShopView({ locale, raw }: { locale: string; raw: ShopParams }) {
   "use cache";
-  cacheTag(CATALOGUE_TAG);
+  cacheTag(CATALOGUE_TAG, CARDS_TAG);
   await catalogueCacheLife();
   return shopView(locale, raw);
 }

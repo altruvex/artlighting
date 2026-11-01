@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { rm } from "node:fs/promises";
+import { dirname } from "node:path";
 
 export type JobStatus = "queued" | "running" | "done" | "error";
 
@@ -59,7 +60,8 @@ export function incrementJobProgress(id: string): void {
 export async function deleteJob(id: string): Promise<void> {
   const job = jobs.get(id);
   if (job?.resultPath) {
-    await rm(job.resultPath, { force: true }).catch(() => {});
+    // The zip sits alone in its own mkdtemp folder (see zipFiles).
+    await rm(dirname(job.resultPath), { recursive: true, force: true }).catch(() => {});
   }
   jobs.delete(id);
 }

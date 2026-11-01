@@ -10,7 +10,7 @@
     "check-types": "tsc --noEmit && node scripts/check-messages.mjs && node scripts/check-action-guards.mjs"
   },
   "dependencies": {
-    "@radix-ui/react-direction": "^1.1.4",
+    "@radix-ui/react-direction": "^1.2.0",
     "@repo/catalog": "workspace:*",
     "@repo/database": "workspace:*",
     "@repo/datasheet": "workspace:*",
@@ -18,8 +18,8 @@
     "@repo/money": "workspace:*",
     "@repo/pricing": "workspace:*",
     "@repo/ui": "workspace:*",
-    "@tanstack/react-query": "^5.103.1",
-    "@tanstack/react-table": "^9.2.4",
+    "@tanstack/react-query": "^5.105.1",
+    "@tanstack/react-table": "^9.3.1",
     "better-auth": "catalog:",
     "cloudinary": "^2.11.0",
     "exceljs": "^4.4.0",
@@ -29,7 +29,7 @@
     "next-themes": "^0.4.6",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "react-hook-form": "^7.88.0",
+    "react-hook-form": "^7.91.0",
     "server-only": "^0.0.1",
     "sonner": "^2.0.8",
     "zod": "catalog:"

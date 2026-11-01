@@ -20,6 +20,6 @@
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "typescript": "catalog:",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.5"
   }
 }

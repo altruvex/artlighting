@@ -85,7 +85,7 @@ app.post("/jobs", checkSecret, express.json({ limit: "1mb" }), (req, res) => {
 });
 
 app.get("/jobs/:id", checkSecret, (req, res) => {
-  const job = getJob(req.params.id);
+  const job = getJob(String(req.params.id));
   if (!job) {
     res.status(404).json({ error: "job not found" });
     return;
@@ -100,7 +100,7 @@ app.get("/jobs/:id", checkSecret, (req, res) => {
 });
 
 app.get("/jobs/:id/download", checkSecret, (req, res) => {
-  const job = getJob(req.params.id);
+  const job = getJob(String(req.params.id));
   if (!job) {
     res.status(404).json({ error: "job not found" });
     return;
@@ -118,7 +118,9 @@ app.get("/jobs/:id/download", checkSecret, (req, res) => {
   stream.on("error", () => {
     if (!res.headersSent) res.status(500).json({ error: "failed to read result file" });
   });
-  stream.on("close", () => {
+  // Only a completed download frees the job: an aborted one can be retried
+  // until the TTL sweep removes it.
+  res.on("finish", () => {
     void deleteJob(job.id);
   });
   stream.pipe(res);

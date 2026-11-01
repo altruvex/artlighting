@@ -29,18 +29,18 @@
   "dependencies": {
     "@repo/database": "workspace:*",
     "@repo/money": "workspace:*",
-    "zod": "catalog:",
-    "@repo/pricing": "workspace:*"
+    "@repo/pricing": "workspace:*",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "catalog:",
-    "eslint": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "^5.0.1",
     "cloudinary": "^2.11.0",
-    "tsx": "^4.23.13",
-    "exceljs": "^4.4.0"
+    "eslint": "catalog:",
+    "exceljs": "^4.4.0",
+    "tsx": "^4.23.15",
+    "typescript": "catalog:",
+    "vitest": "^5.0.5"
   }
 }

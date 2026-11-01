@@ -2,7 +2,7 @@ import { createWriteStream } from "node:fs";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import archiver from "archiver";
+import { ZipArchive } from "archiver";
 
 export interface BuiltFile {
   name: string;
@@ -16,9 +16,10 @@ export async function zipFiles(jobId: string, files: BuiltFile[]): Promise<strin
 
   await new Promise<void>((resolve, reject) => {
     const output = createWriteStream(zipPath);
-    const archive = archiver("zip", { zlib: { level: 9 } });
+    const archive = new ZipArchive({ zlib: { level: 9 } });
 
     output.on("close", resolve);
+    output.on("error", reject);
     archive.on("error", reject);
     archive.pipe(output);
 

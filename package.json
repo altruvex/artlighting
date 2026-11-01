@@ -21,9 +21,9 @@
     "test": "turbo run test"
   },
   "devDependencies": {
-    "prettier": "^3.9.8",
+    "prettier": "^3.9.10",
     "tsx": "catalog:",
-    "turbo": "^2.11.2",
+    "turbo": "^2.11.10",
     "typescript": "catalog:"
   },
   "packageManager": "pnpm@10.28.2",

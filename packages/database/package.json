@@ -17,12 +17,12 @@
     "seed:dev": "tsx scripts/seed-dev.ts"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.0.2",
+    "@neondatabase/serverless": "^1.2.0",
     "@prisma/adapter-neon": "catalog:",
     "@prisma/client": "catalog:",
     "@repo/money": "workspace:*",
     "better-auth": "catalog:",
-    "dotenv": "^17.4.2"
+    "dotenv": "^18.0.9"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",

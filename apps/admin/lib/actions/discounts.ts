@@ -85,7 +85,10 @@ export async function previewCart(input: { productId: string; quantity: number; 
     if (!product) throw new ActionError(t("productNotFound"));
 
     const quantity = Math.max(1, Math.min(999, Math.trunc(input.quantity) || 1));
-    const rules = await catalog.discountsForCart(input.coupon ?? null, prisma);
+    const rules = await catalog.discountsForCart(input.coupon ?? null, prisma, {
+      // The preview lists not-started and expired rules too, with their reason.
+      at: null,
+    });
 
     return {
       productName: product.productName,

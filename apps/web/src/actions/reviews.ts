@@ -2,8 +2,8 @@
 
 import { auth } from "@/lib/auth-server";
 import { limitAction } from "@/middleware/ratelimit";
-import { CATALOGUE_TAG, reviewsTag } from "@/lib/cache.server";
-import { revalidateTag, updateTag } from "next/cache";
+import { productTag, reviewsTag } from "@/lib/cache.server";
+import { updateTag } from "next/cache";
 import {
   productReviewsSection,
   submitReview as submitReviewToDb,
@@ -20,12 +20,13 @@ export async function submitReview(productId: string, input: ReviewInput): Promi
   if (!(await limitAction("review", userId))) return { ok: false, error: "rate_limited" };
   const result = await submitReviewToDb(userId, productId, input);
   if (result.ok) {
-    // The list this customer is about to reload, and the rating every card
-    // and the product page show.
+    // The list this customer is about to reload, and the rating on this
+    // product's page.
     updateTag(reviewsTag(productId));
-    // The card ratings can lag one view behind: expiring the whole
-    // catalogue made the next visitor of every page wait on a full render.
-    revalidateTag(CATALOGUE_TAG, "max");
+    updateTag(productTag(productId));
+    // Not the catalogue: the stars on the cards catch up within its
+    // lifetime (an hour at most). Dropping it for one rating rebuilt every
+    // product page, the shop and the sitemap.
   }
   return result;
 }

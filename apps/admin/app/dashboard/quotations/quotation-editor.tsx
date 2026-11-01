@@ -5,11 +5,14 @@ import {
   createCustomer,
   createQuotation,
   deleteQuotation,
+  quotationProduct,
   reviseQuotation,
   setQuotationStatus,
   updateQuotation,
 } from "@/lib/actions/quotations";
 import type { ActionResult } from "@/lib/actions/result";
+import { searchCustomers, searchProducts, type ProductHit } from "@/lib/actions/search";
+import { SearchPicker } from "@/components/search-picker";
 import { PageHeader, PageShell } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { StatusBadge } from "@/components/status-badge";
@@ -19,7 +22,7 @@ import {
 } from "@repo/ui/components/alert-dialog";
 import { Button } from "@repo/ui/components/button";
 import { Card } from "@repo/ui/components/card";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@repo/ui/components/command";
+import { CommandGroup, CommandItem } from "@repo/ui/components/command";
 import {
   Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@repo/ui/components/dialog";
@@ -28,7 +31,6 @@ import {
 } from "@repo/ui/components/dropdown-menu";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/select";
 import { Textarea } from "@repo/ui/components/textarea";
 import { formatMoney } from "@/lib/money";
@@ -107,15 +109,15 @@ function addDays(date: string, days: number): string {
 
 export interface QuotationEditorProps {
   quotation: QuotationView | null;
-  customers: CustomerOption[];
-  products: ProductOption[];
+  /** The customer already on the quotation; the picker searches for others. */
+  customer: CustomerOption | null;
   canWrite: boolean;
   /** People a manager can hand this quotation to; empty for anyone who cannot reassign. */
   assignees?: { id: string; name: string }[];
   defaults: { taxRate: string; validityDays: number; terms: string; today: string };
 }
 
-export function QuotationEditor({ quotation, customers: initialCustomers, products, canWrite, assignees = [], defaults }: QuotationEditorProps) {
+export function QuotationEditor({ quotation, customer: initialCustomer, canWrite, assignees = [], defaults }: QuotationEditorProps) {
   const t = useTranslations("QuotationEditor");
   const tStatus = useTranslations("QuotationStatus");
   const tCommon = useTranslations("Common");
@@ -128,8 +130,8 @@ export function QuotationEditor({ quotation, customers: initialCustomers, produc
   const status: QuotationStatus = quotation?.status ?? "DRAFT";
   const editable = canWrite && status === "DRAFT";
 
-  const [customers, setCustomers] = useState(initialCustomers);
-  const [customerId, setCustomerId] = useState(quotation?.customerId ?? "");
+  const [customer, setCustomer] = useState(initialCustomer);
+  const customerId = customer?.id ?? quotation?.customerId ?? "";
   const [currency, setCurrency] = useState(quotation?.currency ?? "EGP");
   const [issueDate, setIssueDate] = useState(quotation?.issueDate ?? defaults.today);
   const [validUntil, setValidUntil] = useState(quotation?.validUntil ?? addDays(defaults.today, defaults.validityDays));
@@ -153,8 +155,6 @@ export function QuotationEditor({ quotation, customers: initialCustomers, produc
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
-
-  const customer = customers.find((c) => c.id === customerId) ?? null;
 
   const discount: QuotationDiscountInput =
     discountType === "PERCENTAGE"
@@ -262,10 +262,9 @@ export function QuotationEditor({ quotation, customers: initialCustomers, produc
         router.push(`/dashboard/quotations/${id}`);
       });
     } else {
-      act(() => updateQuotation(quotation.id, payload()), t("saved"), () => {
-        setSaved(snapshot);
-        router.refresh();
-      });
+      // The action revalidates this page, so the saved copy arrives with
+      // its response; a router.refresh() here fetched it a second time.
+      act(() => updateQuotation(quotation.id, payload()), t("saved"), () => setSaved(snapshot));
     }
   }
 
@@ -332,11 +331,11 @@ export function QuotationEditor({ quotation, customers: initialCustomers, produc
 
             {quotation && canWrite && status === "SENT" && (
               <>
-                <Button variant="outline" size="sm" disabled={isPending} onClick={() => act(() => setQuotationStatus(quotation.id, "REJECTED"), t("statusChanged"), () => router.refresh())}>
+                <Button variant="outline" size="sm" disabled={isPending} onClick={() => act(() => setQuotationStatus(quotation.id, "REJECTED"), t("statusChanged"))}>
                   <XIcon aria-hidden className="size-4" />
                   {t("markRejected")}
                 </Button>
-                <Button size="sm" disabled={isPending} onClick={() => act(() => setQuotationStatus(quotation.id, "ACCEPTED"), t("statusChanged"), () => router.refresh())}>
+                <Button size="sm" disabled={isPending} onClick={() => act(() => setQuotationStatus(quotation.id, "ACCEPTED"), t("statusChanged"))}>
                   <CheckIcon aria-hidden className="size-4" />
                   {t("markAccepted")}
                 </Button>
@@ -358,7 +357,7 @@ export function QuotationEditor({ quotation, customers: initialCustomers, produc
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => act(() => setQuotationStatus(quotation.id, "SENT"), t("statusChanged"), () => router.refresh())}>
+                    <AlertDialogAction onClick={() => act(() => setQuotationStatus(quotation.id, "SENT"), t("statusChanged"))}>
                       {t("markSent")}
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -409,15 +408,8 @@ export function QuotationEditor({ quotation, customers: initialCustomers, produc
               <div className="space-y-1.5 md:col-span-2">
                 <Label>{t("fields.customer")}</Label>
                 <div className="flex gap-2">
-                  <CustomerPicker customers={customers} value={customerId} onChange={setCustomerId} disabled={!editable} />
-                  {editable && (
-                    <NewCustomerDialog
-                      onCreated={(c) => {
-                        setCustomers((prev) => [...prev, c].sort((a, b) => a.label.localeCompare(b.label)));
-                        setCustomerId(c.id);
-                      }}
-                    />
-                  )}
+                  <CustomerPicker selected={customer} onChange={setCustomer} disabled={!editable} />
+                  {editable && <NewCustomerDialog onCreated={setCustomer} />}
                 </div>
                 {customer && (
                   <p className="text-xs text-muted-foreground" dir="auto">
@@ -481,7 +473,7 @@ export function QuotationEditor({ quotation, customers: initialCustomers, produc
             )}
             {editable && (
               <div className="flex flex-wrap gap-2 border-t bg-muted/30 px-4 py-3">
-                <ProductPicker products={products} onPick={addProduct} />
+                <ProductPicker onPick={addProduct} />
                 <Button variant="ghost" size="sm" onClick={addCustomLine}>
                   <FilePlus2Icon aria-hidden className="size-4" />
                   {t("addCustomLine")}
@@ -511,9 +503,7 @@ export function QuotationEditor({ quotation, customers: initialCustomers, produc
                 <Select
                   value={quotation.owner.id}
                   disabled={isPending}
-                  onValueChange={(ownerId) =>
-                    act(() => assignQuotation(quotation.id, ownerId), t("assigned"), () => router.refresh())
-                  }
+                  onValueChange={(ownerId) => act(() => assignQuotation(quotation.id, ownerId), t("assigned"))}
                 >
                   <SelectTrigger className="w-full" aria-label={t("sections.owner")}>
                     <SelectValue>{quotation.owner.name}</SelectValue>
@@ -891,112 +881,124 @@ function LineRow({
 }
 
 function CustomerPicker({
-  customers, value, onChange, disabled,
+  selected, onChange, disabled,
 }: {
-  customers: CustomerOption[];
-  value: string;
-  onChange: (id: string) => void;
+  selected: CustomerOption | null;
+  onChange: (customer: CustomerOption) => void;
   disabled: boolean;
 }) {
   const t = useTranslations("QuotationEditor");
-  const [open, setOpen] = useState(false);
-  const selected = customers.find((c) => c.id === value);
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" role="combobox" aria-expanded={open} disabled={disabled} className="h-9 min-w-0 flex-1 justify-between font-normal">
+    <SearchPicker
+      search={searchCustomers}
+      placeholder={t("fields.customerSearch")}
+      emptyText={t("fields.customerEmpty")}
+      contentClassName="w-(--radix-popover-trigger-width) min-w-72"
+      trigger={
+        <Button variant="outline" role="combobox" disabled={disabled} className="h-9 min-w-0 flex-1 justify-between font-normal">
           <span className={cn("truncate", !selected && "text-muted-foreground")} dir="auto">
             {selected?.label ?? t("fields.customerPlaceholder")}
           </span>
           <ChevronsUpDownIcon aria-hidden className="size-4 shrink-0 opacity-50" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-(--radix-popover-trigger-width) min-w-72 p-0" align="start">
-        <Command>
-          <CommandInput placeholder={t("fields.customerSearch")} />
-          <CommandList>
-            <CommandEmpty>{t("fields.customerEmpty")}</CommandEmpty>
-            <CommandGroup>
-              {customers.map((c) => (
-                <CommandItem
-                  key={c.id}
-                  value={`${c.label} ${c.phone ?? ""} ${c.email ?? ""}`}
-                  onSelect={() => {
-                    onChange(c.id);
-                    setOpen(false);
-                  }}
-                >
-                  <CheckIcon aria-hidden className={cn("size-4", c.id === value ? "opacity-100" : "opacity-0")} />
-                  <span className="truncate" dir="auto">{c.label}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+      }
+    >
+      {(customers, { close }) => (
+        <CommandGroup>
+          {customers.map((c) => (
+            <CommandItem
+              key={c.id}
+              value={c.id}
+              onSelect={() => {
+                onChange(c);
+                close();
+              }}
+            >
+              <CheckIcon aria-hidden className={cn("size-4", c.id === selected?.id ? "opacity-100" : "opacity-0")} />
+              <span className="truncate" dir="auto">{c.label}</span>
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      )}
+    </SearchPicker>
   );
 }
 
+const searchQuotationProducts = (q: string) => searchProducts(q, "quotation");
+
 function ProductPicker({
-  products, onPick,
+  onPick,
 }: {
-  products: ProductOption[];
   onPick: (product: ProductOption, variant: ProductOption["variants"][number] | null) => void;
 }) {
   const t = useTranslations("QuotationEditor");
   const locale = useLocale();
-  const [open, setOpen] = useState(false);
+  const [adding, startAdding] = useTransition();
+
+  // The search answers with labels only; the line's description, image and
+  // prices come from this one product when it is picked.
+  function pick(hit: ProductHit, variantId: string | null) {
+    startAdding(async () => {
+      const result = await quotationProduct(hit.id);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      const product = result.data;
+      const variant = variantId ? (product.variants.find((v) => v.id === variantId) ?? null) : null;
+      onPick(product, variant);
+      toast.success(t("productAdded", { name: product.name }));
+    });
+  }
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button size="sm">
+    <SearchPicker
+      search={searchQuotationProducts}
+      placeholder={t("productSearch")}
+      emptyText={t("productEmpty")}
+      contentClassName="w-[min(92vw,460px)]"
+      listClassName="max-h-80"
+      trigger={
+        <Button size="sm" disabled={adding}>
           <PackagePlusIcon aria-hidden className="size-4" />
           {t("addProduct")}
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[min(92vw,460px)] p-0" align="start">
-        {/* Keeps the popover open while adding: quoting ten items is ten picks. */}
-        <Command>
-          <CommandInput placeholder={t("productSearch")} />
-          <CommandList className="max-h-80">
-            <CommandEmpty>{t("productEmpty")}</CommandEmpty>
-            <CommandGroup>
-              {products.flatMap((p) => {
-                const variants = p.variants.length > 0 ? p.variants : [null];
-                return variants.map((v) => (
-                  <CommandItem
-                    key={`${p.id}:${v?.id ?? ""}`}
-                    value={`${p.sku} ${p.name} ${v?.sku ?? ""} ${v?.label ?? ""}`}
-                    onSelect={() => {
-                      onPick(p, v);
-                      toast.success(t("productAdded", { name: p.name }));
-                    }}
-                    className="gap-3"
-                  >
-                    {p.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.imageUrl} alt="" className="size-8 shrink-0 rounded-sm border bg-muted object-contain" />
-                    ) : (
-                      <span aria-hidden className="size-8 shrink-0 rounded-sm border bg-muted" />
-                    )}
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm">{p.name}</span>
-                      <span className="block truncate font-mono text-xs text-muted-foreground" dir="ltr">
-                        {v && p.variants.length > 1 ? `${v.sku} · ${v.label}` : (v?.sku ?? p.sku)}
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                      {formatMoney(v?.price ?? p.price, { locale })}
-                    </span>
-                  </CommandItem>
-                ));
-              })}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+      }
+    >
+      {/* Keeps the popover open while adding: quoting ten items is ten picks. */}
+      {(products) => (
+        <CommandGroup>
+          {products.flatMap((p) => {
+            const variants = p.variants.length > 0 ? p.variants : [null];
+            return variants.map((v) => (
+              <CommandItem
+                key={`${p.id}:${v?.id ?? ""}`}
+                value={`${p.id}:${v?.id ?? ""}`}
+                disabled={adding}
+                onSelect={() => pick(p, v?.id ?? null)}
+                className="gap-3"
+              >
+                {p.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.imageUrl} alt="" className="size-8 shrink-0 rounded-sm border bg-muted object-contain" />
+                ) : (
+                  <span aria-hidden className="size-8 shrink-0 rounded-sm border bg-muted" />
+                )}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm">{p.name}</span>
+                  <span className="block truncate font-mono text-xs text-muted-foreground" dir="ltr">
+                    {v && p.variants.length > 1 ? `${v.sku} · ${v.label}` : (v?.sku ?? p.sku)}
+                  </span>
+                </span>
+                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                  {formatMoney(v?.price ?? p.price, { locale })}
+                </span>
+              </CommandItem>
+            ));
+          })}
+        </CommandGroup>
+      )}
+    </SearchPicker>
   );
 }
 

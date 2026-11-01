@@ -1,8 +1,8 @@
 import { applyRate, clampNonNegative, compareMoney, money, type MoneyInput, multiplyMoney, roundMoney, serializeMoney, subtractMoney } from "@repo/money";
 
 /**
- * Order/configuration pricing shown in the configure flow and validated by
- * /api/pricing/validate. Despite the file name it runs on both sides, so it
+ * Order/configuration pricing shown in the configure flow. Despite the file
+ * name it runs on both sides, so it
  * stays free of server-only imports.
  *
  * Money in and out is a string (or Decimal); nothing here goes through a JS

@@ -1,4 +1,4 @@
-import { orderLinesSelect, summarizeLines } from "@/lib/order-lines";
+import { orderLinesCount, orderLinesSelect, summarizeLines } from "@/lib/order-lines";
 import { PageHeader, PageShell } from "@/components/page-header";
 import { formatMoney, money, type MoneyInput, roundMoney, serializeMoney } from "@repo/money";
 import { StatCard } from "@/components/stat-card";
@@ -14,6 +14,8 @@ import { ORDER_STATUSES, orderStatusTone, REVENUE_STATUSES } from "./order-statu
 import { RecentOrders, type RecentOrderRow } from "./recent-orders";
 
 const RECENT_ORDERS_LIMIT = 10;
+// The dashboard row shows no unit count, so it skips the quantity query.
+const noQuantities = new Map<number, number>();
 
 export default async function DashboardPage() {
   await requireAdminOrRedirect();
@@ -36,6 +38,7 @@ export default async function DashboardPage() {
         user: { select: { id: true } },
         shippingAddress: { select: { fullName: true } },
         orderItems: orderLinesSelect,
+        _count: orderLinesCount,
       },
     }),
     prisma.user.count(),
@@ -62,17 +65,20 @@ export default async function DashboardPage() {
   const countByStatus = new Map(statusGroups.map((group) => [group.status, group._count._all]));
   const statusRows = ORDER_STATUSES.map((status) => ({ status, count: countByStatus.get(status) ?? 0 }));
 
-  const rows: RecentOrderRow[] = recentOrders.map((order) => ({
-    id: order.id,
-    customer: order.shippingAddress?.fullName ?? null,
+  const rows: RecentOrderRow[] = recentOrders.map((order) => {
     // The first product and how many more — see lib/order-lines.
-    productName: summarizeLines(order.orderItems).productName,
-    moreProducts: summarizeLines(order.orderItems).moreProducts,
-    total: serializeMoney(order.totalPrice),
-    createdAt: order.createdAt.getTime(),
-    status: order.status,
-    userId: order.userId,
-  }));
+    const { productName, moreProducts } = summarizeLines(order, noQuantities);
+    return {
+      id: order.id,
+      customer: order.shippingAddress?.fullName ?? null,
+      productName,
+      moreProducts,
+      total: serializeMoney(order.totalPrice),
+      createdAt: order.createdAt.getTime(),
+      status: order.status,
+      userId: order.userId,
+    };
+  });
 
   const currency = (value: MoneyInput) => formatMoney(value, { locale });
 

@@ -130,5 +130,14 @@
     "retry": "حاول مرة أخرى",
     "dashboard": "الذهاب إلى لوحة التحكم",
     "reference": "الرقم المرجعي"
+  },
+  "SearchPicker": {
+    "search": "بحث",
+    "empty": "لا توجد نتائج مطابقة.",
+    "loading": "جارٍ البحث…",
+    "minChars": "اكتب {count} أحرف على الأقل للبحث.",
+    "productSearch": "ابحث بالاسم أو الكود",
+    "addProducts": "إضافة منتجات",
+    "remove": "إزالة {name}"
   }
 }

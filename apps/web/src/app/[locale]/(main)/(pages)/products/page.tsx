@@ -7,7 +7,7 @@ import { Link } from "@/i18n/navigation";
 import { getLocaleFromParams } from "@/lib/i18n/utils";
 import { constructMetadata } from "@/lib/metadata";
 import { formatNumber } from "@/lib/numbers";
-import { parseShopQuery, searchShop } from "@/lib/shop.server";
+import { isOpenEndedQuery, parseShopQuery, searchShop } from "@/lib/shop.server";
 import { clearFilters, removeParams, setParam, toggleParam, type ShopParams } from "@/lib/shop-url";
 import { SearchX, XIcon } from "lucide-react";
 import { Breadcrumbs } from "@/components/editorial/page-header";
@@ -91,7 +91,12 @@ export default function ShopPage({ params, searchParams }: Props) {
 
 async function ShopForUrl({ params, searchParams }: Props) {
   const locale = getLocaleFromParams(await params);
-  return <ShopView locale={locale} raw={shopParamsOnly(await searchParams)} />;
+  const raw = shopParamsOnly(await searchParams);
+  // Free text and price bounds can take any value: caching on them would
+  // add a cache entry per visitor's search. Those render per request (over
+  // the cached catalogue); every finite shelf is still cached.
+  if (isOpenEndedQuery(parseShopQuery(raw))) return shopView(locale, raw);
+  return <CachedShopView locale={locale} raw={raw} />;
 }
 
 /** The query keys the shop reads. Anything else (utm_…, fbclid) is not part of the page. */
@@ -104,21 +109,27 @@ function shopParamsOnly(raw: ShopParams): ShopParams {
 }
 
 /**
- * The shop for one query, rendered once and cached (`"use cache"` keys on
- * its arguments). The search params make the page itself per request, but
- * a hundred visitors on the same shelf — the first page, a family, a sort —
- * now share one render instead of each paying for 24 cards and the facets.
- * Tracking parameters are dropped first so they do not split the cache.
+ * The shop for one finite query, rendered once and cached (`"use cache"`
+ * keys on its arguments). The search params make the page itself per
+ * request, but a hundred visitors on the same shelf — the first page, a
+ * family, a sort — now share one render instead of each paying for 24
+ * cards and the facets. Tracking parameters are dropped first so they do
+ * not split the cache.
  */
-async function ShopView({ locale, raw }: { locale: string; raw: ShopParams }) {
+async function CachedShopView({ locale, raw }: { locale: string; raw: ShopParams }) {
   "use cache";
   cacheTag(CATALOGUE_TAG);
+  await catalogueCacheLife();
+  return shopView(locale, raw);
+}
+
+/** The shop for one query — cached by CachedShopView, or per request for a search. */
+async function shopView(locale: string, raw: ShopParams) {
   // A cache scope does not see the layout's setRequestLocale, and the
   // components below (useLocale in the product cards) would fall back to
   // reading the request headers — which a cached render may not do, so
   // every visit missed the cache and rendered from scratch.
   setRequestLocale(locale);
-  await catalogueCacheLife();
   const query = parseShopQuery(raw);
   const [t, tFamily, result] = await Promise.all([
     getTranslations({ locale, namespace: "shop" }),

@@ -16,7 +16,6 @@ import { Label } from "@repo/ui/components/label";
 import { cn } from "@repo/ui/lib/utils";
 import { ClipboardCheckIcon, HistoryIcon, PlusIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -58,7 +57,6 @@ export function StockActions({
 }) {
   const t = useTranslations("Inventory");
   const format = useFormatter();
-  const router = useRouter();
   const fieldId = useId();
 
   const [open, setOpen] = useState<null | "receive" | "count" | "history">(null);
@@ -82,8 +80,9 @@ export function StockActions({
         return;
       }
       toast.success(t("received", { count: Number(quantity) }));
+      // receiveStock revalidates /dashboard/inventory, so the response
+      // already carries the new row.
       close();
-      router.refresh();
     });
   }
 
@@ -98,7 +97,6 @@ export function StockActions({
       // — worth saying, rather than a success toast for a no-op.
       toast.success(result.data === null ? t("noChange") : t("counted"));
       close();
-      router.refresh();
     });
   }
 

@@ -68,7 +68,11 @@ export async function GET() {
   }
 }
 
-/** Sets a line's quantity, and answers with that line repriced alongside the rest. */
+/**
+ * Sets a line's quantity, and answers with the whole cart repriced. One
+ * line's change can move every line's discount (a cart-wide minimum, a
+ * stacked rule), and the drawer used to fetch the cart again to find out.
+ */
 async function updateQuantity(request: NextRequest) {
   const { userId } = await auth();
   if (!userId) {
@@ -91,8 +95,7 @@ async function updateQuantity(request: NextRequest) {
       return NextResponse.json({ error: "Cart item not found" }, { status: 404 });
     }
 
-    const line = (await pricedCart(userId)).find((item) => item.id === itemId);
-    return NextResponse.json(line);
+    return NextResponse.json(await pricedCart(userId));
   } catch (error) {
     console.error("Failed to update cart item:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -103,6 +106,7 @@ export const PATCH = updateQuantity;
 // Kept for older clients that still send PUT.
 export const PUT = updateQuantity;
 
+/** Removes a line, and answers with what is left, repriced. */
 export async function DELETE(request: NextRequest) {
   const { userId } = await auth();
   if (!userId) {
@@ -122,7 +126,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Cart item not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(await pricedCart(userId));
   } catch (error) {
     console.error("Failed to remove cart item:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

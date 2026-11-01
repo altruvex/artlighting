@@ -1,10 +1,14 @@
+import { APPLICATIONS } from "@/content/applications"
 import Header from "./header"
 
 /**
- * The header's server entry. It used to read the projects file and pass
- * six projects into a projects mega-menu; projects are a plain link now,
- * so there is nothing to load.
+ * The header's server entry. The applications menu needs only each
+ * application's slug, name and summary; importing the whole content file
+ * into the client header shipped ~21 KB of bilingual page copy to every
+ * visitor. It is trimmed here, on the server.
  */
-const HeaderWrapper = () => <Header />
+const menuApplications = APPLICATIONS.map(({ slug, name, summary }) => ({ slug, name, summary }))
+
+const HeaderWrapper = () => <Header applications={menuApplications} />
 
 export default HeaderWrapper

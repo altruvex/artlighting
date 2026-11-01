@@ -29,16 +29,24 @@ export async function addToCart(productId: string, quantity: number = 1) {
     // — Better Auth writes it directly to this table at sign-up.
     const product = await prisma.product.findUnique({
       where: { productId },
+      select: { id: true, isActive: true },
     });
     if (!product) {
       throw new Error("Product not found");
     }
+    // A retired product cannot be added: checkout would refuse the cart
+    // anyway (CheckoutError "unavailable"), with every line held hostage.
+    if (!product.isActive) {
+      throw new Error("Product is not available");
+    }
     let cart = await prisma.cart.findUnique({
       where: { userId },
+      select: { id: true },
     });
     if (!cart) {
       cart = await prisma.cart.create({
         data: { userId },
+        select: { id: true },
       });
     }
     const existingCartItem = await prisma.cartItem.findUnique({
@@ -48,6 +56,7 @@ export async function addToCart(productId: string, quantity: number = 1) {
           productId: product.id,
         },
       },
+      select: { id: true, quantity: true },
     });
     if (existingCartItem) {
       await prisma.cartItem.update({

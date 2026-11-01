@@ -130,5 +130,14 @@
     "retry": "Try again",
     "dashboard": "Go to the dashboard",
     "reference": "Reference"
+  },
+  "SearchPicker": {
+    "search": "Search",
+    "empty": "No matches.",
+    "loading": "Searching…",
+    "minChars": "Type at least {count} characters to search.",
+    "productSearch": "Search by name or code",
+    "addProducts": "Add products",
+    "remove": "Remove {name}"
   }
 }

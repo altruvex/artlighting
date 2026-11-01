@@ -14,7 +14,7 @@ import { ChandelierItems, IndoorItems, OutdoorItems } from "@/constants"
 import { Link, usePathname } from "@/i18n/navigation"
 import { familySlug, type ProductFamily } from "@repo/catalog/families"
 import { cn } from "@/lib/utils"
-import { APPLICATIONS } from "@/content/applications"
+import type { Application } from "@/content/applications"
 import { pick } from "@/content/l10n"
 import { MenuIcon, TagIcon, XIcon } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
@@ -41,7 +41,10 @@ import { SearchHeader } from "./search-header"
  * `<ul>` may only hold `<li>`, and nesting them was a hydration error. The
  * current section is marked, so a visitor can tell where they are.
  */
-export default function Header() {
+/** What the applications menu shows of each application (passed from header-wrapper). */
+export type MenuApplication = Pick<Application, "slug" | "name" | "summary">
+
+export default function Header({ applications }: { applications: MenuApplication[] }) {
   const t = useTranslations("header")
   const tNav = useTranslations("nav")
   const tProducts = useTranslations("products")
@@ -141,7 +144,7 @@ export default function Header() {
                   <div className="w-[min(40rem,calc(100vw-3rem))] p-6">
                     <p className="mb-4 text-[length:var(--text-sm)] text-muted-foreground">{tNav("applicationsIntro")}</p>
                     <ul className="grid grid-cols-2 gap-x-6">
-                      {APPLICATIONS.map((application) => (
+                      {applications.map((application) => (
                         <li key={application.slug} className="border-t border-border">
                           <Link href={`/applications/${application.slug}`} className="group block py-3">
                             <span className="block text-[length:var(--text-sm)] font-semibold transition-colors duration-[var(--dur-hover)] group-hover:text-primary">

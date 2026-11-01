@@ -222,17 +222,48 @@ const DISCOUNT_FOR_PRICING = {
 } as const;
 
 /**
- * Every discount that could apply right now: the automatic ones, plus the
- * one coupon the customer typed. Fetching only what can apply keeps the
- * engine's input small and stops an unrelated coupon appearing in
- * `rejected` for no reason.
+ * The Prisma where for "live at `at`": started (or never scheduled to
+ * start) and not yet ended. The same boundaries the engine applies in
+ * @repo/pricing (startsAt inclusive, endsAt exclusive), so a row this
+ * leaves out is one the engine would have rejected anyway.
  */
-export async function discountsForCart(coupon?: string | null, db: Db = prisma) {
+export function liveDiscountWindow(at: Date) {
+  return {
+    AND: [
+      { OR: [{ startsAt: null }, { startsAt: { lte: at } }] },
+      { OR: [{ endsAt: null }, { endsAt: { gt: at } }] },
+    ],
+  };
+}
+
+/**
+ * Every discount that could apply right now: the automatic ones that are
+ * live, plus the one coupon the customer typed. Fetching only what can
+ * apply keeps the engine's input small and stops an unrelated coupon
+ * appearing in `rejected` for no reason.
+ *
+ * Automatic discounts outside their window are not loaded at all — with
+ * their product, category and family links, they were the bulk of what
+ * every cart pricing read, for rules the engine then rejected. The typed
+ * coupon is loaded whatever its dates, so the customer is told it has
+ * expired rather than that it does not exist. `at: null` loads every
+ * active rule and leaves the window to the engine, for a preview that
+ * wants to show the rejections.
+ */
+export async function discountsForCart(
+  coupon?: string | null,
+  db: Db = prisma,
+  options: { at?: Date | null } = {},
+) {
   const code = coupon?.trim().toUpperCase() || null;
+  const at = options.at === undefined ? new Date() : options.at;
   const rows = await db.discount.findMany({
     where: {
       isActive: true,
-      OR: [{ mode: "AUTOMATIC" }, ...(code ? [{ mode: "COUPON" as const, code }] : [])],
+      OR: [
+        { mode: "AUTOMATIC" as const, ...(at ? liveDiscountWindow(at) : {}) },
+        ...(code ? [{ mode: "COUPON" as const, code }] : []),
+      ],
     },
     ...DISCOUNT_FOR_PRICING,
   });
@@ -307,7 +338,7 @@ export async function productDiscountRates(
   if (products.length === 0) return {};
 
   // Automatic only: a coupon is not a price the storefront may advertise.
-  const rules = await discountsForCart(null, db);
+  const rules = await discountsForCart(null, db, { at: now });
   if (rules.length === 0) return {};
 
   const rates: Record<string, string> = {};

@@ -1,7 +1,6 @@
 "use client";
 
 import { useId, useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { type AdminColumn, ColumnHeader, DataTable } from "@/components/data-table";
@@ -99,7 +98,6 @@ export function BulbsManager({
   canWrite: boolean;
 }) {
   const t = useTranslations("Bulbs");
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY);
@@ -115,7 +113,6 @@ export function BulbsManager({
       return false;
     }
     toast.success(success);
-    router.refresh();
     return true;
   }
 

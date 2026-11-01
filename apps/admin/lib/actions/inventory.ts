@@ -99,11 +99,3 @@ export async function stockHistory(variantId: string) {
     }));
   });
 }
-
-/** What the admin should reorder. */
-export async function lowStockReport() {
-  return run(async () => {
-    await requirePermission("catalog:read");
-    return catalog.lowStock();
-  });
-}

@@ -56,6 +56,7 @@ export function UsersClient({
             <span className="grid min-w-0 leading-tight">
               <Link
                 href={`/dashboard/users/${row.original.id}`}
+                prefetch={false}
                 className="font-medium whitespace-nowrap hover:underline"
               >
                 {row.original.name ?? t("unnamed")}
@@ -138,7 +139,9 @@ export function UsersClient({
         cell: ({ row }) => (
           <div className="flex justify-end">
             <Button asChild variant="ghost" size="sm" className="h-7">
-              <Link href={`/dashboard/users/${row.original.id}`}>{t("view")}</Link>
+              <Link href={`/dashboard/users/${row.original.id}`} prefetch={false}>
+                {t("view")}
+              </Link>
             </Button>
           </div>
         ),

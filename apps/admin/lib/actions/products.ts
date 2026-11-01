@@ -168,6 +168,8 @@ export async function softDeleteProduct(productId: string) {
     });
     revalidateStorefront();
     revalidatePath("/dashboard/products");
+    // The editor this is clicked from shows the deleted state.
+    revalidatePath(`/dashboard/products/${productId}`);
     return product;
   });
 }
@@ -181,6 +183,8 @@ export async function restoreProduct(productId: string) {
     });
     revalidateStorefront();
     revalidatePath("/dashboard/products");
+    // The editor this is clicked from shows the deleted state.
+    revalidatePath(`/dashboard/products/${productId}`);
     return product;
   });
 }

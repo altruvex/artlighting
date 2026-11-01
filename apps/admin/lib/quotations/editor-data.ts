@@ -32,69 +32,84 @@ function lineSummary(p: {
   return parts.length ? parts.join(" · ") : null;
 }
 
+/** The columns a customer picker shows: the label and the contact line under it. */
+export const customerOptionSelect = {
+  id: true,
+  name: true,
+  companyName: true,
+  email: true,
+  phone: true,
+  address: true,
+  taxId: true,
+} as const;
+
+export function toCustomerOption(c: {
+  id: string;
+  name: string;
+  companyName: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  taxId: string | null;
+}): CustomerOption {
+  return { ...c, label: customerLabel(c) };
+}
+
+/** Only the customer already on the quotation; the picker searches for the rest. */
+export async function getCustomerOption(customerId: string): Promise<CustomerOption | null> {
+  const customer = await prisma.customer.findUnique({ where: { id: customerId }, select: customerOptionSelect });
+  return customer ? toCustomerOption(customer) : null;
+}
+
 /**
- * Pickers for the editor. Product names and descriptions are the ENGLISH
- * translation, because the document they end up in is English (D11).
+ * Everything a quotation line copies from one product. Names and
+ * descriptions are the ENGLISH translation, because the document they end up
+ * in is English (D11). Loaded for the one product picked, never the catalogue.
  */
-export async function getQuotationEditorOptions(): Promise<{
-  customers: CustomerOption[];
-  products: ProductOption[];
-}> {
-  const [customers, products] = await Promise.all([
-    prisma.customer.findMany({ orderBy: [{ companyName: "asc" }, { name: "asc" }] }),
-    prisma.product.findMany({
-      where: { deletedAt: null, status: { not: "ARCHIVED" } },
-      orderBy: { productId: "asc" },
-      select: {
-        id: true,
-        productId: true,
-        productName: true,
-        price: true,
-        sectionType: true,
-        translations: { where: { language: "en" }, select: { name: true, description: true } },
-        lightingtype: { select: { name: true, translations: { where: { language: "en" }, select: { name: true } } } },
-        specGroups: {
-          select: {
-            items: {
-              where: { key: { in: ["maximumWattage", "ip"] } },
-              select: { key: true, measurements: { orderBy: { position: "asc" }, take: 1, select: { value: true } } },
-            },
+export async function getQuotationProduct(productId: string): Promise<ProductOption | null> {
+  const p = await prisma.product.findFirst({
+    where: { id: productId, deletedAt: null, status: { not: "ARCHIVED" } },
+    select: {
+      id: true,
+      productId: true,
+      productName: true,
+      price: true,
+      sectionType: true,
+      translations: { where: { language: "en" }, select: { name: true, description: true } },
+      lightingtype: { select: { name: true, translations: { where: { language: "en" }, select: { name: true } } } },
+      specGroups: {
+        select: {
+          items: {
+            where: { key: { in: ["maximumWattage", "ip"] } },
+            select: { key: true, measurements: { orderBy: { position: "asc" }, take: 1, select: { value: true } } },
           },
         },
-        images: { orderBy: [{ isPrimary: "desc" }, { order: "asc" }], take: 1, select: { url: true } },
-        variants: {
-          where: { isActive: true },
-          orderBy: { position: "asc" },
-          select: { id: true, sku: true, wattage: true, finish: true, size: true, price: true },
-        },
       },
-    }),
-  ]);
-
+      images: { orderBy: [{ isPrimary: "desc" }, { order: "asc" }], take: 1, select: { url: true } },
+      variants: {
+        where: { isActive: true },
+        orderBy: { position: "asc" },
+        select: { id: true, sku: true, wattage: true, finish: true, size: true, price: true },
+      },
+    },
+  });
+  if (!p) return null;
   return {
-    customers: customers.map((c) => ({
-      id: c.id,
-      label: customerLabel(c),
-      name: c.name,
-      companyName: c.companyName,
-      email: c.email,
-      phone: c.phone,
-      address: c.address,
-      taxId: c.taxId,
-    })),
-    products: products.map((p) => ({
-      id: p.id,
-      sku: p.productId.toUpperCase(),
-      name: p.translations[0]?.name || p.productName,
-      description: p.translations[0]?.description?.trim() || lineSummary(p),
-      imageUrl: p.images[0]?.url ?? null,
-      price: serializeMoney(p.price),
-      variants: p.variants.map((v) => ({
-        id: v.id,
-        sku: v.sku,
-        label: [v.wattage, v.finish, v.size].filter(Boolean).join(" · ") || v.sku,
-        price: serializeMoney(v.price ?? p.price),
-      })),
+    id: p.id,
+    sku: p.productId.toUpperCase(),
+    name: p.translations[0]?.name || p.productName,
+    description: p.translations[0]?.description?.trim() || lineSummary(p),
+    imageUrl: p.images[0]?.url ?? null,
+    price: serializeMoney(p.price),
+    variants: p.variants.map((v) => ({
+      id: v.id,
+      sku: v.sku,
+      label: variantLabel(v),
+      price: serializeMoney(v.price ?? p.price),
     })),
   };
+}
+
+export function variantLabel(v: { sku: string; wattage: string | null; finish: string | null; size: string | null }): string {
+  return [v.wattage, v.finish, v.size].filter(Boolean).join(" · ") || v.sku;
 }

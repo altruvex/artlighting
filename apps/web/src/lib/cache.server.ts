@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@repo/database";
+import { inventorySelect, sellableFrom } from "@repo/catalog";
 import { cacheLife } from "next/cache";
 
 /**
@@ -10,11 +11,61 @@ import { cacheLife } from "next/cache";
  * - CATALOGUE: anything built from products, prices, stock, discounts,
  *   bulbs, categories or specs. The admin invalidates it through
  *   /api/revalidate on every catalogue write; an order invalidates it
- *   because it moves stock.
+ *   only when it changes what a card shows (see tagsForOrder).
+ * - productTag(code): one product's page record. Orders and reviews drop
+ *   this instead of the whole catalogue.
  * - reviewsTag(code): one product's review list and distribution.
  */
 export const CATALOGUE_TAG = "catalogue";
+export const productTag = (productCode: string) => `product:${productCode.toLowerCase()}`;
 export const reviewsTag = (productCode: string) => `reviews:${productCode.toLowerCase()}`;
+
+/** The stock at or below which a card says "few left" (product-card.tsx and buy-box.tsx LOW_STOCK). */
+const CARD_LOW_STOCK = 5;
+
+/**
+ * What a confirmed order must invalidate.
+ *
+ * Each product on it, always: its page shows the exact stock. The whole
+ * catalogue only when a card would change too: a product is now at or
+ * below the "few left" mark (cards show the count from there, and "sold
+ * out" at 0), or a coupon has used its last use (the promo bar). Above the
+ * mark a card shows no stock at all, so the ~480 prerendered pages, the
+ * shop and the sitemap are left alone.
+ */
+export async function tagsForOrder(orderId: number): Promise<string[]> {
+  try {
+    const [items, claims] = await Promise.all([
+      prisma.orderItem.findMany({
+        where: { orderId },
+        select: {
+          product: {
+            select: {
+              productId: true,
+              trackInventory: true,
+              variants: { where: { isDefault: true }, select: { inventory: inventorySelect() }, take: 1 },
+            },
+          },
+        },
+      }),
+      prisma.discountRedemption.findMany({
+        where: { orderId },
+        select: { discount: { select: { usageLimit: true, usageCount: true } } },
+      }),
+    ]);
+    const lowStock = items.some(({ product }) => {
+      const left = sellableFrom(product, product.variants[0]?.inventory);
+      return left !== null && left <= CARD_LOW_STOCK;
+    });
+    const couponSpent = claims.some(({ discount }) => discount.usageLimit !== null && discount.usageCount >= discount.usageLimit);
+    if (lowStock || couponSpent) return [CATALOGUE_TAG];
+    return [...new Set(items.map(({ product }) => productTag(product.productId)))];
+  } catch (error) {
+    // The order is placed either way; refreshing too much beats too little.
+    console.error("Order cache tags failed:", error);
+    return [CATALOGUE_TAG];
+  }
+}
 
 /** Tags the admin may invalidate over HTTP. Anything else is refused. */
 export function isRevalidatableTag(tag: string): boolean {

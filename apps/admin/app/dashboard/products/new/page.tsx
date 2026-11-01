@@ -7,6 +7,8 @@ const NewProductPage = async () => {
 
   const categories = await prisma.category.findMany({
     orderBy: [{ parentId: "asc" }, { order: "asc" }],
+    // The selects need id/name/parentId; slug picks the product family.
+    select: { id: true, name: true, slug: true, parentId: true },
   });
   const topCategories = categories.filter((c) => c.parentId === null);
   const childCategories = categories.filter((c) => c.parentId !== null);

@@ -1,10 +1,10 @@
 "use client";
 
-import { type AdminColumn, ColumnHeader, DataTable } from "@/components/data-table";
+import { type AdminColumn, ServerDataTable, type TableParams } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@repo/ui/components/button";
-import { formatMoney, moneySortKey } from "@/lib/money";
+import { formatMoney } from "@/lib/money";
 import { QUOTATION_STATUSES, type QuotationStatus } from "@/lib/quotations/schema";
 import { quotationStatusTone } from "@/lib/quotations/view";
 import { FileTextIcon, PlusIcon } from "lucide-react";
@@ -24,7 +24,6 @@ export interface QuotationRow extends Record<string, unknown> {
   subject: string | null;
   customer: string;
   contact: string | null;
-  createdBy: string;
   /** Who answers for it. */
   owner: string;
   lineCount: number;
@@ -35,7 +34,23 @@ export interface QuotationRow extends Record<string, unknown> {
  * accounts); a salesperson's list is all theirs, so the column would say
  * their own name on every row.
  */
-export function QuotationsTable({ rows, canWrite, showOwner }: { rows: QuotationRow[]; canWrite: boolean; showOwner: boolean }) {
+export function QuotationsTable({
+  rows,
+  total,
+  params,
+  owners,
+  canWrite,
+  showOwner,
+}: {
+  /** One page; the server sorts, filters and searches. */
+  rows: QuotationRow[];
+  total: number;
+  params: TableParams;
+  /** Owner filter options, value = admin id. */
+  owners: { value: string; label: string }[];
+  canWrite: boolean;
+  showOwner: boolean;
+}) {
   const t = useTranslations("Quotations");
   const tStatus = useTranslations("QuotationStatus");
   const locale = useLocale();
@@ -46,11 +61,12 @@ export function QuotationsTable({ rows, canWrite, showOwner }: { rows: Quotation
     () => [
       {
         id: "number",
-        accessorFn: (row) => `${row.number} ${row.customer} ${row.contact ?? ""} ${row.subject ?? ""}`,
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.number")} />,
+        accessorFn: (row) => row.number,
+        header: t("columns.number"),
         cell: ({ row }) => (
           <Link
             href={`/dashboard/quotations/${row.original.id}`}
+            prefetch={false}
             className="font-mono text-sm font-medium underline-offset-4 hover:underline"
             dir="ltr"
           >
@@ -61,7 +77,9 @@ export function QuotationsTable({ rows, canWrite, showOwner }: { rows: Quotation
       {
         id: "customer",
         accessorFn: (row) => row.customer,
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.customer")} />,
+        // The name shown comes from the snapshot, which the database cannot order by.
+        enableSorting: false,
+        header: t("columns.customer"),
         cell: ({ row }) => (
           <div className="min-w-0 max-w-[260px]">
             {/* <bdi>: a Latin company name in the Arabic table kept the cell's
@@ -78,8 +96,7 @@ export function QuotationsTable({ rows, canWrite, showOwner }: { rows: Quotation
       {
         id: "status",
         accessorFn: (row) => row.status,
-        filterFn: "arrIncludesSome",
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.status")} />,
+        header: t("columns.status"),
         cell: ({ row }) => (
           <StatusBadge tone={quotationStatusTone(row.original.status)}>{tStatus(row.original.status)}</StatusBadge>
         ),
@@ -89,8 +106,7 @@ export function QuotationsTable({ rows, canWrite, showOwner }: { rows: Quotation
             {
               id: "owner",
               accessorFn: (row: QuotationRow) => row.owner,
-              filterFn: "arrIncludesSome" as const,
-              header: ({ column }) => <ColumnHeader column={column} title={t("columns.owner")} />,
+              header: t("columns.owner"),
               cell: ({ row }) => <span className="whitespace-nowrap">{row.original.owner}</span>,
             } satisfies AdminColumn<QuotationRow>,
           ]
@@ -98,27 +114,27 @@ export function QuotationsTable({ rows, canWrite, showOwner }: { rows: Quotation
       {
         id: "issueDate",
         accessorFn: (row) => row.issueDate,
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.issueDate")} />,
+        header: t("columns.issueDate"),
         cell: ({ row }) => <span className="whitespace-nowrap tabular-nums">{day(row.original.issueDate)}</span>,
       },
       {
         id: "validUntil",
         accessorFn: (row) => row.validUntil,
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.validUntil")} />,
+        header: t("columns.validUntil"),
         cell: ({ row }) => <span className="whitespace-nowrap tabular-nums text-muted-foreground">{day(row.original.validUntil)}</span>,
       },
       {
         id: "lines",
         meta: { align: "end" },
         accessorFn: (row) => row.lineCount,
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.lines")} />,
+        header: t("columns.lines"),
         cell: ({ row }) => <span className="tabular-nums">{row.original.lineCount}</span>,
       },
       {
         id: "total",
         meta: { align: "end" },
-        accessorFn: (row) => moneySortKey(row.grandTotal),
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.total")} />,
+        accessorFn: (row) => row.grandTotal,
+        header: t("columns.total"),
         cell: ({ row }) => (
           <span className="font-medium whitespace-nowrap tabular-nums">
             {formatMoney(row.original.grandTotal, { locale, currency: row.original.currency })}
@@ -131,37 +147,20 @@ export function QuotationsTable({ rows, canWrite, showOwner }: { rows: Quotation
   );
 
   return (
-    <DataTable
+    <ServerDataTable
       columns={columns}
       data={rows}
-      searchColumnId="number"
+      total={total}
+      params={params}
       searchPlaceholder={t("searchPlaceholder")}
       facets={[
         {
-          columnId: "status",
+          key: "status",
           title: t("columns.status"),
           options: QUOTATION_STATUSES.map((status) => ({ label: tStatus(status), value: status })),
         },
-        ...(showOwner
-          ? [
-              {
-                columnId: "owner",
-                title: t("columns.owner"),
-                options: [...new Set(rows.map((r) => r.owner))].sort().map((owner) => ({ label: owner, value: owner })),
-              },
-            ]
-          : []),
+        ...(showOwner ? [{ key: "owner", title: t("columns.owner"), options: owners }] : []),
       ]}
-      columnLabels={{
-        number: t("columns.number"),
-        customer: t("columns.customer"),
-        status: t("columns.status"),
-        owner: t("columns.owner"),
-        issueDate: t("columns.issueDate"),
-        validUntil: t("columns.validUntil"),
-        lines: t("columns.lines"),
-        total: t("columns.total"),
-      }}
       emptyState={
         <EmptyState
           icon={FileTextIcon}

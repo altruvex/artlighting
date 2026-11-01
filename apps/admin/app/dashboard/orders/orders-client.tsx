@@ -58,6 +58,7 @@ export default function OrdersClient({
         cell: ({ row }) => (
           <Link
             href={`/dashboard/orders/${row.original.id}`}
+            prefetch={false}
             className="font-medium tabular-nums hover:underline"
             dir="ltr"
           >
@@ -74,6 +75,7 @@ export default function OrdersClient({
             {row.original.customer ? (
               <Link
                 href={`/dashboard/users/${row.original.userId}`}
+                prefetch={false}
                 className="font-medium whitespace-nowrap hover:underline"
               >
                 {row.original.customer}

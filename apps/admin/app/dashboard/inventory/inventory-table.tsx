@@ -1,6 +1,6 @@
 "use client";
 
-import { type AdminColumn, ColumnHeader, DataTable } from "@/components/data-table";
+import { type AdminColumn, ServerDataTable, type TableParams } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
 import { StatusBadge } from "@/components/status-badge";
 import { cn } from "@repo/ui/lib/utils";
@@ -16,7 +16,6 @@ export interface InventoryRow extends Record<string, unknown> {
   productId: string;
   sku: string;
   name: string;
-  locationCode: string;
   onHand: number;
   reserved: number;
   /** onHand - reserved. Computed, never stored — see @repo/catalog. */
@@ -28,7 +27,18 @@ export interface InventoryRow extends Record<string, unknown> {
   low: boolean;
 }
 
-export function InventoryTable({ rows, canWrite }: { rows: InventoryRow[]; canWrite: boolean }) {
+export function InventoryTable({
+  rows,
+  total,
+  params,
+  canWrite,
+}: {
+  rows: InventoryRow[];
+  /** Rows matching the search, across every page. */
+  total: number;
+  params: TableParams;
+  canWrite: boolean;
+}) {
   const t = useTranslations("Inventory");
   const format = useFormatter();
 
@@ -37,11 +47,12 @@ export function InventoryTable({ rows, canWrite }: { rows: InventoryRow[]; canWr
       {
         id: "product",
         accessorFn: (row) => `${row.name} ${row.sku}`,
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.product")} />,
+        header: t("columns.product"),
         cell: ({ row }) => (
           <div className="min-w-0">
             <Link
               href={`/dashboard/products/${row.original.productId}`}
+              prefetch={false}
               className="block truncate font-medium hover:underline"
             >
               {row.original.name}
@@ -56,14 +67,14 @@ export function InventoryTable({ rows, canWrite }: { rows: InventoryRow[]; canWr
         id: "onHand",
         meta: { align: "end" },
         accessorFn: (row) => row.onHand,
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.onHand")} />,
+        header: t("columns.onHand"),
         cell: ({ row }) => <span className="tabular-nums">{format.number(row.original.onHand)}</span>,
       },
       {
         id: "reserved",
         meta: { align: "end" },
         accessorFn: (row) => row.reserved,
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.reserved")} />,
+        header: t("columns.reserved"),
         cell: ({ row }) => (
           <span className={cn("tabular-nums", row.original.reserved > 0 ? "text-warning" : "text-muted-foreground")}>
             {format.number(row.original.reserved)}
@@ -74,7 +85,7 @@ export function InventoryTable({ rows, canWrite }: { rows: InventoryRow[]; canWr
         id: "available",
         meta: { align: "end" },
         accessorFn: (row) => row.available,
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.available")} />,
+        header: t("columns.available"),
         cell: ({ row }) => (
           // The number that decides whether a customer can buy, so it is the
           // one that carries the low-stock signal. The badges come first so
@@ -92,7 +103,7 @@ export function InventoryTable({ rows, canWrite }: { rows: InventoryRow[]; canWr
         id: "incoming",
         meta: { align: "end" },
         accessorFn: (row) => row.incoming,
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.incoming")} />,
+        header: t("columns.incoming"),
         cell: ({ row }) => (
           <span className="tabular-nums text-muted-foreground">{format.number(row.original.incoming)}</span>
         ),
@@ -101,7 +112,7 @@ export function InventoryTable({ rows, canWrite }: { rows: InventoryRow[]; canWr
         id: "reorderPoint",
         meta: { align: "end" },
         accessorFn: (row) => row.reorderPoint,
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.reorderPoint")} />,
+        header: t("columns.reorderPoint"),
         cell: ({ row }) => (
           <span className="tabular-nums text-muted-foreground">{format.number(row.original.reorderPoint)}</span>
         ),
@@ -125,19 +136,11 @@ export function InventoryTable({ rows, canWrite }: { rows: InventoryRow[]; canWr
   );
 
   return (
-    <DataTable
+    <ServerDataTable
       columns={columns}
       data={rows}
-      searchColumnId="product"
-      columnLabels={{
-        product: t("columns.product"),
-        onHand: t("columns.onHand"),
-        reserved: t("columns.reserved"),
-        available: t("columns.available"),
-        incoming: t("columns.incoming"),
-        reorderPoint: t("columns.reorderPoint"),
-      }}
-      initialSorting={[{ id: "available", desc: false }]}
+      total={total}
+      params={params}
       emptyState={
         <EmptyState icon={WarehouseIcon} title={t("empty.title")} description={t("empty.description")} />
       }

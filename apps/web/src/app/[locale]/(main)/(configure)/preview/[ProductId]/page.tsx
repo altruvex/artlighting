@@ -1,9 +1,7 @@
 import { auth } from "@/lib/auth-server"
-import { productDiscountRates } from "@repo/catalog";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { localizeSpecGroups, specGroupSelect, specsByKey } from "@/lib/spec-groups";
-import { serializeRate } from "@repo/money";
-import { serializeRowMoney, toViewConfiguration } from "@/lib/serialize-money";
+import { toViewConfiguration } from "@/lib/serialize-money";
 import { readGuestToken } from "@/lib/guest-token"
 import { editableConfigurationId } from "@/lib/configuration-access.server"
 import { getLocaleFromParams } from "@/lib/i18n/utils"
@@ -12,7 +10,10 @@ import { prisma } from "@repo/database"
 import type { Metadata } from "next"
 import { constructMetadata } from "@/lib/metadata"
 import { notFound, unstable_rethrow } from "next/navigation"
-import Preview, { type ProductWithSpecs } from "./preview"
+import Preview, { type PreviewProduct } from "./preview"
+
+// The spec keys behind the six figures the screen shows; nothing else is read.
+const FIGURE_KEYS = ["luminousFlux", "colorTemperature", "beamAngle", "cri", "mainMaterial", "lifeTime"] as const
 
 const Page = async ({ params, searchParams }: PagePropsTypes) => {
   const resolvedParams = await params
@@ -26,10 +27,11 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
     return notFound()
   }
 
-  let configuration = null
-  let product = null
-
   try {
+    // Read only. The row is made when the customer first chooses something
+    // on the product page (ensureConfiguration), and the "order now" save
+    // that leads here needs it — a page view must not write.
+    let configuration = null
     if (ProductId) {
       const { userId } = await auth()
       const guestToken = await readGuestToken()
@@ -39,56 +41,6 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
           : { productId: ProductId, userId: null, guestToken },
         orderBy: { updatedAt: 'desc' }
       })
-
-      if (!configuration) {
-        const productExists = await prisma.product.findUnique({
-          where: { productId: ProductId },
-          // The engine reads these to decide what applies.
-          select: { id: true, productId: true, price: true, categoryId: true, lightingtypeId: true, sectionType: true }
-        })
-
-        if (productExists) {
-          configuration = await prisma.configuration.create({
-            data: {
-              productId: ProductId,
-              userId: userId ?? null,
-              guestToken: userId ? null : guestToken,
-              configPrice: productExists.price,
-              priceIncrease: 0,
-              shippingPrice: 69,
-              // From the engine, so a configuration never captures a
-              // promotion that has ended or has not started.
-              discount: (await productDiscountRates([productExists], prisma))[productExists.id] ?? "0",
-              quantity: 1,
-              totalPrice: productExists.price,
-            },
-          })
-        }
-      }
-      product = await prisma.product.findUnique({
-        where: { productId: ProductId },
-        include: {
-          images: productImageSelect(),
-          category: {
-            include: {
-              translations: {
-                where: { language: locale }
-              }
-            }
-          },
-          lightingtype: {
-            include: {
-              translations: {
-                where: { language: locale }
-              }
-            }
-          },
-          translations: {
-            where: { language: locale }
-          },
-          specGroups: specGroupSelect(locale),
-        }
-      })
     }
     if (!configuration && id && typeof id === "string") {
       // Only the visitor's own configuration: a cuid in the URL is not a
@@ -97,34 +49,6 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
       configuration = ownedId
         ? await prisma.configuration.findUnique({ where: { id: ownedId } })
         : null
-
-      if (configuration) {
-
-        product = await prisma.product.findUnique({
-          where: { productId: configuration.productId },
-          include: {
-            images: productImageSelect(),
-            category: {
-              include: {
-                translations: {
-                  where: { language: locale }
-                }
-              }
-            },
-            lightingtype: {
-              include: {
-                translations: {
-                  where: { language: locale }
-                }
-              }
-            },
-            translations: {
-              where: { language: locale }
-            },
-            specGroups: specGroupSelect(locale),
-          }
-        })
-      }
     }
 
     if (!configuration) {
@@ -132,59 +56,58 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
       return notFound()
     }
 
+    // Only what the screen shows: name, photos, the two labels and the six
+    // headline figures. `cost` and the other Decimals never leave the query.
+    const specSelect = specGroupSelect(locale)
+    const product = await prisma.product.findUnique({
+      where: { productId: configuration.productId },
+      select: {
+        productName: true,
+        images: productImageSelect(),
+        translations: { where: { language: locale }, select: { name: true }, take: 1 },
+        category: {
+          select: { name: true, translations: { where: { language: locale }, select: { name: true }, take: 1 } },
+        },
+        lightingtype: {
+          select: { name: true, translations: { where: { language: locale }, select: { name: true }, take: 1 } },
+        },
+        specGroups: {
+          ...specSelect,
+          select: {
+            ...specSelect.select,
+            items: { ...specSelect.select.items, where: { key: { in: [...FIGURE_KEYS] } } },
+          },
+        },
+      },
+    })
+
     if (!product) {
       console.error("Product not found after all attempts")
       return notFound()
     }
-    // `cost` is what the product costs the company — it never leaves the
-    // admin — and it, the "was" price and the rating are Decimals a Client
-    // Component cannot receive. The whole row used to be spread into the
-    // page, cost included.
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { cost: _cost, compareAtPrice: _compareAtPrice, ratingAverage: _ratingAverage, specGroups, ...productRow } = product
-    // The structured specs, by key — the legacy ProductSpecification
-    // columns are no longer written. Read here rather than spread: their
-    // measurements are Decimals too.
-    const specs = specsByKey(localizeSpecGroups(specGroups, locale))
+    // The structured specs, by key. Read here rather than spread: their
+    // measurements are Decimals, which cannot cross into a Client Component.
+    const specs = specsByKey(localizeSpecGroups(product.specGroups, locale))
 
-    const localizedProduct: ProductWithSpecs = {
-      // Money leaves the server as strings; a Prisma.Decimal cannot cross
-      // into a Client Component (see @repo/money).
-      ...serializeRowMoney(productRow),
-      // The effective rate, from the engine — there is no rate on a
-      // product row any more.
-      discount: (await productDiscountRates([product], prisma))[product.id] ?? "0",
+    const localizedProduct: PreviewProduct = {
       // The ProductImage table, not the legacy array — see lib/product-images.
       productImages: imageUrls(product),
-      productName: product.translations?.[0]?.name || product.productName,
-      description: product.translations?.[0]?.description ?? undefined,
-      categoryName: product.category?.translations?.[0]?.name || product.category?.name,
-      lightingTypeName: product.lightingtype?.translations?.[0]?.name || product.lightingtype?.name,
-      maxIP: product.maxIP ?? undefined,
+      productName: product.translations[0]?.name || product.productName,
+      categoryName: product.category?.translations[0]?.name || product.category?.name,
+      lightingTypeName: product.lightingtype?.translations[0]?.name || product.lightingtype?.name,
       luminousFlux: specs.luminousFlux,
       mainMaterial: specs.mainMaterial,
       beamAngle: specs.beamAngle,
       colorTemperature: specs.colorTemperature,
       lifeTime: specs.lifeTime,
-      energySaving: specs.energySaving,
       cri: specs.cri,
-      brandOfLed: specs.brandOfLed,
-      electrical: specs.electrical,
-      input: specs.input,
-      finish: specs.finish,
-      lampBase: specs.lampBase,
-      hNumber: product.hNumber ?? undefined,
-      chandelierLightingType: product.chandelierLightingType ?? undefined,
     }
-
 
     return (
       <Preview
         configuration={toViewConfiguration(configuration)}
-        discount={serializeRate(configuration.discount)}
         productId={configuration.productId}
         product={localizedProduct}
-        locale={locale}
       />
     )
   } catch (error) {

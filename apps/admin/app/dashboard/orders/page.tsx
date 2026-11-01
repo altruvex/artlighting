@@ -6,7 +6,7 @@ import { OrderStatus, type Prisma, prisma } from "@repo/database";
 import { getTranslations } from "next-intl/server";
 import { ORDER_STATUSES } from "../order-status";
 import OrdersClient, { type OrderRow } from "./orders-client";
-import { orderLinesSelect, summarizeLines } from "@/lib/order-lines";
+import { loadLineQuantities, orderLinesCount, orderLinesSelect, summarizeLines } from "@/lib/order-lines";
 
 /** Columns a URL may sort by, mapped to the Prisma field they order on. */
 const SORTABLE = {
@@ -68,16 +68,18 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         user: { select: { id: true } },
         shippingAddress: { select: { fullName: true, phoneNumber: true } },
         orderItems: orderLinesSelect,
+        _count: orderLinesCount,
       },
     }),
   ]);
+  const quantities = await loadLineQuantities(orders.map((order) => order.id));
 
   const rows: OrderRow[] = orders.map((order) => ({
     id: order.id,
     userId: order.userId,
     customer: order.shippingAddress?.fullName ?? null,
     phone: order.shippingAddress?.phoneNumber ?? null,
-    ...summarizeLines(order.orderItems),
+    ...summarizeLines(order, quantities),
     shippingPrice: serializeMoney(order.shippingPrice),
     total: serializeMoney(order.totalPrice),
     createdAt: order.createdAt.getTime(),

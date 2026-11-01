@@ -50,10 +50,30 @@ export function cairoToday(): Date {
  * A SENT quotation past its date is EXPIRED. Applied when quotations are
  * read rather than by a scheduled job: the admin is the only reader, so the
  * status is right every time anyone can see it, with no cron to deploy.
+ *
+ * A SENT quotation only goes stale when the Cairo day turns (the one way a
+ * date passes) or when one is sent with a date already behind it, which
+ * setQuotationStatus settles itself (expireIfStale). So the sweep runs once
+ * per day per server instance instead of an UPDATE on every page view; a
+ * fresh instance sweeps on its first read, so nothing is missed.
  */
+let sweptDay: number | null = null;
+
 export async function expireStaleQuotations(): Promise<void> {
+  const today = cairoToday();
+  if (sweptDay === today.getTime()) return;
   await prisma.quotation.updateMany({
-    where: { status: "SENT", validUntil: { lt: cairoToday() } },
+    where: { status: "SENT", validUntil: { lt: today } },
+    data: { status: "EXPIRED" },
+  });
+  // Only after it succeeded: a failed sweep is retried by the next read.
+  sweptDay = today.getTime();
+}
+
+/** One quotation just sent with a date already past: expired at once, as the sweep would have. */
+export async function expireIfStale(quotationId: string): Promise<void> {
+  await prisma.quotation.updateMany({
+    where: { id: quotationId, status: "SENT", validUntil: { lt: cairoToday() } },
     data: { status: "EXPIRED" },
   });
 }

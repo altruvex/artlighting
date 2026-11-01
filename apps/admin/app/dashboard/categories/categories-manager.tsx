@@ -32,7 +32,6 @@ import {
   PencilIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -53,7 +52,6 @@ export default function CategoriesManager({
 }: {
   categories: CategoryWithCount[];
 }) {
-  const router = useRouter();
   const t = useTranslations("Categories");
   const tCommon = useTranslations("Common");
   const [isPending, startTransition] = useTransition();
@@ -83,7 +81,6 @@ export default function CategoriesManager({
           return;
         }
         toast.success(msg);
-        router.refresh();
       } catch (err) {
         // Only transport-level failures reach here now.
         console.error("Category action failed", err);

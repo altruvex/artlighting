@@ -1,7 +1,7 @@
 import { requirePermissionOrRedirect } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { canEditQuotation, quotationScope } from "@/lib/quotations/access";
-import { getQuotationEditorOptions } from "@/lib/quotations/editor-data";
+import { customerOptionSelect, toCustomerOption } from "@/lib/quotations/editor-data";
 import { DEFAULT_TAX_RATE, DEFAULT_TERMS, DEFAULT_VALIDITY_DAYS } from "@/lib/quotations/schema";
 import { expireStaleQuotations } from "@/lib/quotations/server";
 import { toDateInput, type QuotationView } from "@/lib/quotations/view";
@@ -16,7 +16,7 @@ export default async function QuotationPage({ params }: { params: Promise<{ quot
   await expireStaleQuotations();
 
   const canAssign = can(admin.role, "quotation:manage");
-  const [q, options, assignees] = await Promise.all([
+  const [q, assignees] = await Promise.all([
     // Outside the admin's scope the quotation does not exist for them.
     prisma.quotation.findFirst({
       where: { id: quotationId, ...quotationScope(admin) },
@@ -27,9 +27,10 @@ export default async function QuotationPage({ params }: { params: Promise<{ quot
         activity: { orderBy: { createdAt: "desc" }, take: 100 },
         revisionOf: { select: { id: true, number: true } },
         revisions: { select: { id: true, number: true }, orderBy: { createdAt: "asc" } },
+        // Only the customer on it: the picker searches for any other on demand.
+        customer: { select: customerOptionSelect },
       },
     }),
-    getQuotationEditorOptions(),
     // Who a manager can hand it to: people who quote and can still sign in.
     canAssign
       ? prisma.admin.findMany({
@@ -91,8 +92,7 @@ export default async function QuotationPage({ params }: { params: Promise<{ quot
     <QuotationEditor
       key={`${q.id}:${q.updatedAt.getTime()}`}
       quotation={quotation}
-      customers={options.customers}
-      products={options.products}
+      customer={toCustomerOption(q.customer)}
       canWrite={canEditQuotation(admin, q.ownerId)}
       assignees={assignees.map((a) => ({ id: a.id, name: a.name || a.email }))}
       defaults={{

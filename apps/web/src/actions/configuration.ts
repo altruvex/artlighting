@@ -1,5 +1,7 @@
 "use server";
 
+import { cookies } from "next/headers";
+import { GUEST_CONFIG_HINT } from "@/components/product/guest-config-hint";
 import { auth } from "@/lib/auth-server";
 import { limitAction } from "@/middleware/ratelimit";
 import { readGuestToken } from "@/lib/guest-token";
@@ -29,6 +31,19 @@ export async function ensureConfiguration(productCode: string, locale: string): 
   if (!product) return null;
 
   const configuration = await ProductService.getOrCreateConfiguration(product, userId, guestToken);
+  if (!userId) {
+    // Lets the product page ask for this guest's saved options on the next
+    // visit (see guest-config-hint.ts). Set once per browser.
+    const jar = await cookies();
+    if (!jar.has(GUEST_CONFIG_HINT)) {
+      jar.set(GUEST_CONFIG_HINT, "1", {
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 365,
+      });
+    }
+  }
   return { id: configuration.id };
 }
 

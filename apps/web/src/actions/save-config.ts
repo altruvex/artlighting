@@ -3,9 +3,8 @@
 import { prisma } from "@repo/database"
 import { limitAction } from "@/middleware/ratelimit"
 import { priceLine } from "@/lib/pricing"
-import { PricingService } from "@/lib/pricing.server"
-import { editableConfigurationId } from "@/lib/configuration-access.server"
-import { publicConfiguration } from "@/lib/guest-token"
+import { auth } from "@/lib/auth-server"
+import { ownsConfiguration, publicConfiguration, readGuestToken } from "@/lib/guest-token"
 import { serializeRowMoney } from "@/lib/serialize-money"
 
 export interface SaveConfigArgs {
@@ -28,54 +27,41 @@ export async function saveConfig({
   }
   const quantity = Math.min(100, requested)
   try {
+    // One read: the row, with its owner, so the ownership check and the
+    // pricing inputs come from the same query.
+    const [{ userId }, guestToken, config] = await Promise.all([
+      auth(),
+      readGuestToken(),
+      prisma.configuration.findUnique({
+        where: { id: configId },
+        select: {
+          productId: true,
+          userId: true,
+          guestToken: true,
+          priceIncrease: true,
+          lampPriceIncrease: true,
+          shippingPrice: true,
+          // The configuration's own snapshot of the rate it was quoted at.
+          discount: true,
+        },
+      }),
+    ])
     // Only the visitor's own configuration; anyone else's reads as missing.
-    const ownId = await editableConfigurationId(configId)
-    const existingConfig = ownId ? await prisma.configuration.findUnique({
-      where: { id: ownId },
-      select: {
-        id: true,
-        productId: true,
-        productIp: true,
-        shippingPrice: true,
-      },
-    }) : null
-
-    if (!existingConfig) {
+    if (!config || !ownsConfiguration(config, { userId, guestToken })) {
       throw new Error(`Configuration with ID ${configId} not found`)
     }
 
     const product = await prisma.product.findUnique({
-      where: { productId: existingConfig.productId },
-      select: {
-        productId: true,
-        price: true,
-        priceIncrease: true,
-        productIp: true,
-        productChandLamp: true,
-        hNumber: true,
-        isActive: true,
-      },
+      where: { productId: config.productId },
+      select: { productId: true, price: true, priceIncrease: true, isActive: true },
     })
     if (!product) throw new Error("Product not found")
     if (!product.isActive) throw new Error("Product is not available")
 
-    const currentConfig = await prisma.configuration.findUnique({
-      where: { id: configId },
-      select: {
-        priceIncrease: true,
-        lampPriceIncrease: true,
-        shippingPrice: true,
-        productIp: true,
-        // The configuration's own snapshot of the rate it was quoted at.
-        discount: true,
-      },
-    })
-    if (!currentConfig) throw new Error("Configuration not found")
-
-    const priceIncrease = currentConfig.priceIncrease ?? product.priceIncrease ?? 0
-    const lampPriceIncrease = currentConfig.lampPriceIncrease ?? 0
-    const discount = currentConfig.discount
-    const shippingPrice = currentConfig.shippingPrice ?? existingConfig.shippingPrice ?? 69
+    const priceIncrease = config.priceIncrease ?? product.priceIncrease ?? 0
+    const lampPriceIncrease = config.lampPriceIncrease ?? 0
+    const discount = config.discount
+    const shippingPrice = config.shippingPrice ?? 69
 
     // One helper computes every line price (see lib/pricing.ts): the
     // discount is a rate, and the arithmetic is Decimal, not float.

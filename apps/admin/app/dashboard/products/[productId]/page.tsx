@@ -102,8 +102,6 @@ const ProductDetailPage = async ({
       include: {
         images: { orderBy: { order: "asc" } },
         variants: { include: { inventory: inventorySelect() } },
-        category: true,
-        lightingtype: true,
         translations: true,
         specGroups: {
           orderBy: { position: "asc" },
@@ -121,7 +119,11 @@ const ProductDetailPage = async ({
         },
       },
     }),
-    prisma.category.findMany({ orderBy: [{ parentId: "asc" }, { order: "asc" }] }),
+    // Only what the two category selects read.
+    prisma.category.findMany({
+      orderBy: [{ parentId: "asc" }, { order: "asc" }],
+      select: { id: true, name: true, parentId: true },
+    }),
     // Every discount that covers this product, through the join table.
     prisma.discount.findMany({
       where: { isActive: true, products: { some: { productId } } },

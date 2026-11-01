@@ -44,6 +44,7 @@ export function RecentOrders({ orders }: { orders: RecentOrderRow[] }) {
         cell: ({ row }) => (
           <Link
             href={`/dashboard/orders/${row.original.id}`}
+            prefetch={false}
             className="font-medium tabular-nums hover:underline"
             dir="ltr"
           >
@@ -59,6 +60,7 @@ export function RecentOrders({ orders }: { orders: RecentOrderRow[] }) {
           row.original.customer ? (
             <Link
               href={`/dashboard/users/${row.original.userId}`}
+              prefetch={false}
               className="block max-w-[12rem] truncate hover:underline"
             >
               {row.original.customer}

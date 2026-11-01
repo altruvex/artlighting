@@ -109,7 +109,7 @@ type PriceHistoryEntry = {
 };
 type Translation = { language: string; name: string; description: string | null };
 
-/** Runs a server action, then toasts and refreshes. */
+/** Runs a server action, then toasts; the action's revalidation refreshes. */
 type Run = (fn: () => Promise<ActionResult<unknown>>, successMsg: string) => void;
 
 const BRANDS = [
@@ -319,7 +319,8 @@ export default function ProductEditor({
           return;
         }
         toast.success(successMsg);
-        router.refresh();
+        // Every action run here revalidates this route, so its response
+        // already re-renders the page; a refresh would render it twice.
       } catch (err) {
         // Only transport-level failures reach here now.
         console.error("Product action failed", err);

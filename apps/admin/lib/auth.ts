@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -21,12 +22,14 @@ export interface CurrentAdmin {
  * is the single source of truth for "is this user an admin", replacing the
  * old per-route `email === process.env.ADMIN_EMAIL` comparisons.
  */
-export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
+export const getCurrentAdmin = cache(async (): Promise<CurrentAdmin | null> => {
+  // cache(): the layout and the page (and every requirePermission in one
+  // request) share one session lookup instead of a DB query each.
   const session = await authInstance.api.getSession({ headers: await headers() });
   if (!session) return null;
   const user = session.user as unknown as CurrentAdmin;
   return user;
-}
+});
 
 /** Resolves the current Admin, throwing if there's no session at all. */
 export async function requireAdmin(): Promise<CurrentAdmin> {

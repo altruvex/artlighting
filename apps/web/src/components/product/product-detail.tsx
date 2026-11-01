@@ -3,6 +3,8 @@
 import { productPersonal } from "@/actions/configuration";
 import { SECTION_FRAME, SectionHeading } from "@/components/section-heading";
 import { RecordView } from "@/components/recently-viewed";
+import { useAuth } from "@/lib/auth-hooks";
+import { hasGuestConfigHint } from "./guest-config-hint";
 import type { ProductPersonalState } from "@/lib/product-personal.server";
 import type { ReviewsSection } from "@/lib/reviews.server";
 import type { LocalizedProductData } from "@/lib/services/product.service";
@@ -39,8 +41,13 @@ export default function ProductDetail({
 }) {
   // Who is looking — their saved options and their own review — asked for
   // once the prerendered page is on screen; null until then.
+  // A signed-out visitor with no saved guest configuration has neither, so
+  // it is not asked for: that was a server call on every anonymous view.
   const [personal, setPersonal] = useState<ProductPersonalState | null>(null);
+  const { isLoaded, isSignedIn } = useAuth();
   useEffect(() => {
+    if (!isLoaded) return;
+    if (!isSignedIn && !hasGuestConfigHint()) return;
     let live = true;
     productPersonal(product.productId)
       .then((state) => {
@@ -50,7 +57,7 @@ export default function ProductDetail({
     return () => {
       live = false;
     };
-  }, [product.productId]);
+  }, [product.productId, isLoaded, isSignedIn]);
 
   const t = useTranslations("pdp");
   const tReviews = useTranslations("reviews");

@@ -43,7 +43,6 @@ export default async function BulbsPage() {
         productName: true,
         hNumber: true,
         chandelierLightingType: true,
-        price: true,
         translations: { where: { language: locale }, select: { name: true }, take: 1 },
         bulbs: {
           select: { bulbId: true, isDefault: true, position: true },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Button } from "@repo/ui/components/button";
 import { Label } from "@repo/ui/components/label";
 import { Progress } from "@repo/ui/components/progress";
@@ -34,7 +34,11 @@ interface JobStatusResponse {
   error?: string;
 }
 
-const POLL_INTERVAL_MS = 2000;
+// Poll quickly at first, then back off: a long batch does not need a
+// request every 2s for minutes on end.
+const POLL_FIRST_MS = 2000;
+const POLL_MAX_MS = 10_000;
+const POLL_BACKOFF = 1.5;
 
 export default function BulkGenerateSheet({ topCategories }: { topCategories: Category[] }) {
   const t = useTranslations("BulkDatasheet");
@@ -51,16 +55,6 @@ export default function BulkGenerateSheet({ topCategories }: { topCategories: Ca
   const [startError, setStartError] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [job, setJob] = useState<JobStatusResponse | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  function stopPolling() {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  }
-
-  useEffect(() => stopPolling, []);
 
   async function startJob() {
     setStarting(true);
@@ -80,9 +74,8 @@ export default function BulkGenerateSheet({ topCategories }: { topCategories: Ca
       const body = await res.json();
       if (!res.ok) throw new Error(body?.error ?? t("errors.startFailed"));
 
+      // Setting the id starts the polling effect above.
       setJobId(body.jobId);
-      pollRef.current = setInterval(() => void pollStatus(body.jobId), POLL_INTERVAL_MS);
-      void pollStatus(body.jobId);
     } catch (err) {
       setStartError(err instanceof Error ? err.message : tCommon("genericError"));
     } finally {
@@ -90,31 +83,74 @@ export default function BulkGenerateSheet({ topCategories }: { topCategories: Ca
     }
   }
 
-  async function pollStatus(id: string) {
+  /** One status read. Returns true when polling should stop. */
+  async function pollStatus(id: string, isCancelled: () => boolean): Promise<boolean> {
     try {
       const res = await fetch(`/api/products/datasheet/bulk/${id}`, { cache: "no-store" });
       // A non-2xx answer is { error } (worker down, job expired), not a job:
       // treating it as one crashed the sheet on `job.skipped.length`.
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        stopPolling();
+        if (isCancelled()) return true;
         setJobId(null);
         setStartError(body?.error ?? tCommon("genericError"));
-        return;
+        return true;
       }
       const body = (await res.json()) as JobStatusResponse;
+      // A late answer for a job the admin already closed must not reappear.
+      if (isCancelled()) return true;
       setJob(body);
-      if (body.status === "done" || body.status === "error") stopPolling();
+      return body.status === "done" || body.status === "error";
     } catch (err) {
-      // Transient network hiccup — the next poll tick retries, so this stays
+      // Transient network hiccup — the next poll retries, so this stays
       // silent for the admin, but it is logged rather than swallowed: a poll
-      // that fails every tick is otherwise invisible.
+      // that fails every time is otherwise invisible.
       console.error("bulk datasheet: poll failed", err);
+      return false;
     }
   }
 
+  // One request at a time: the next poll is scheduled only after the last
+  // one answered. Stops when the job ends, the sheet closes (reset clears
+  // jobId) or the component unmounts, and waits while the tab is hidden.
+  useEffect(() => {
+    if (!open || !jobId) return;
+    const id = jobId;
+    let cancelled = false;
+    let paused = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let delay = POLL_FIRST_MS;
+
+    async function tick() {
+      timer = undefined;
+      if (document.hidden) {
+        paused = true;
+        return;
+      }
+      const finished = await pollStatus(id, () => cancelled);
+      if (cancelled || finished) return;
+      timer = setTimeout(tick, delay);
+      delay = Math.min(delay * POLL_BACKOFF, POLL_MAX_MS);
+    }
+
+    function onVisibilityChange() {
+      if (document.hidden || !paused || cancelled) return;
+      paused = false;
+      void tick();
+    }
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    void tick();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+    // pollStatus only reads stable setters and translations.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, jobId]);
+
   function reset() {
-    stopPolling();
     setJobId(null);
     setJob(null);
     setStartError(null);

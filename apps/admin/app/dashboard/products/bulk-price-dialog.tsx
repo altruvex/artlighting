@@ -19,7 +19,6 @@ import { cn } from "@repo/ui/lib/utils";
 import type { BulkPriceOperation, BulkPricePreviewRow } from "@repo/catalog";
 import { ArrowRightIcon, TagIcon } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { ProductRow } from "./products-table";
@@ -40,7 +39,6 @@ const PERCENT_MODES: Mode[] = ["increase_percent", "decrease_percent"];
 export function BulkPriceDialog({ selected, clear }: { selected: ProductRow[]; clear: () => void }) {
   const t = useTranslations("Products.bulkPrice");
   const locale = useLocale();
-  const router = useRouter();
   const fieldId = useId();
 
   const [open, setOpen] = useState(false);
@@ -101,8 +99,9 @@ export function BulkPriceDialog({ selected, clear }: { selected: ProductRow[]; c
       setOpen(false);
       setPreview(null);
       setValue("");
+      // applyBulkPrice revalidates this route, so the action response
+      // already carries the new prices; a refresh would render it twice.
       clear();
-      router.refresh();
     });
   }
 

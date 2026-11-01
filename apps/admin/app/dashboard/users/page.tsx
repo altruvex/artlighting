@@ -68,7 +68,6 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         phoneNumber: true,
         createdAt: true,
         shippingAddress: { select: { fullName: true, phoneNumber: true, address: true, city: true } },
-        orders: { select: { isCompleted: true } },
       },
     }),
     prisma.user.count(),
@@ -76,8 +75,27 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
     prisma.order.count(),
   ]);
 
+  // Order counts for the customers on this page: one grouped query instead of
+  // loading every order row of every listed customer.
+  const orderGroups =
+    customers.length === 0
+      ? []
+      : await prisma.order.groupBy({
+          by: ["userId", "isCompleted"],
+          where: { userId: { in: customers.map((user) => user.id) } },
+          _count: { _all: true },
+        });
+  const counts = new Map<string, { all: number; completed: number }>();
+  for (const group of orderGroups) {
+    const entry = counts.get(group.userId) ?? { all: 0, completed: 0 };
+    entry.all += group._count._all;
+    if (group.isCompleted) entry.completed += group._count._all;
+    counts.set(group.userId, entry);
+  }
+
   const rows: CustomerRow[] = customers.map((user) => {
-    const completedCount = user.orders.filter((order) => order.isCompleted).length;
+    const ordersCount = counts.get(user.id)?.all ?? 0;
+    const completedCount = counts.get(user.id)?.completed ?? 0;
     return {
       id: user.id,
       name: user.shippingAddress?.fullName?.trim() || user.name?.trim() || null,
@@ -86,9 +104,9 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
       address: user.shippingAddress
         ? [user.shippingAddress.address, user.shippingAddress.city].filter(Boolean).join(", ")
         : null,
-      ordersCount: user.orders.length,
+      ordersCount,
       completedCount,
-      state: user.orders.length === 0 ? "none" : completedCount > 0 ? "ordered" : "pending",
+      state: ordersCount === 0 ? "none" : completedCount > 0 ? "ordered" : "pending",
       createdAt: user.createdAt,
     };
   });

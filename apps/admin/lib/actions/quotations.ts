@@ -4,6 +4,7 @@ import { prisma } from "@repo/database";
 import { requirePermission } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { logQuotationActivity, quotationForWrite, quotationScope } from "@/lib/quotations/access";
+import { getQuotationProduct } from "@/lib/quotations/editor-data";
 import {
   customerInputSchema,
   quotationInputSchema,
@@ -15,6 +16,7 @@ import {
   allocateQuotationNumber,
   cairoToday,
   customerSnapshot,
+  expireIfStale,
   totalsFor,
   type NormalizedLine,
 } from "@/lib/quotations/server";
@@ -208,6 +210,9 @@ export async function setQuotationStatus(quotationId: string, to: QuotationStatu
       if (count === 0) throw new ActionError(t("badTransition"));
       await logQuotationActivity(tx, { quotationId, admin, action: "STATUS_CHANGED", detail: { from: quotation.status, to } });
     });
+    // The daily sweep already ran today; a quotation sent with a past date
+    // would otherwise read as SENT until tomorrow's.
+    if (to === "SENT") await expireIfStale(quotationId);
 
     revalidatePath(LIST_PATH);
     revalidatePath(`${LIST_PATH}/${quotationId}`);
@@ -317,6 +322,20 @@ export async function assignQuotation(quotationId: string, ownerId: string) {
     });
     revalidatePath(LIST_PATH);
     revalidatePath(`${LIST_PATH}/${quotationId}`);
+  });
+}
+
+/**
+ * What a line copies from one product, fetched when it is picked: the
+ * picker's search sends labels only.
+ */
+export async function quotationProduct(productId: string) {
+  return run(async () => {
+    await requirePermission("quotation:write");
+    const t = await getTranslations("Quotations.errors");
+    const product = typeof productId === "string" ? await getQuotationProduct(productId) : null;
+    if (!product) throw new ActionError(t("productUnavailable"));
+    return product;
   });
 }
 

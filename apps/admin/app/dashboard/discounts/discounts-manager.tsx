@@ -1,6 +1,8 @@
 "use client";
 
 import { createDiscount, previewCart, setDiscountActive, updateDiscount } from "@/lib/actions/discounts";
+import { productLabels, searchProducts, type ProductHit } from "@/lib/actions/search";
+import { SearchPicker } from "@/components/search-picker";
 import { type AdminColumn, ColumnHeader, DataTable } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
 import { StatusBadge, type StatusTone } from "@/components/status-badge";
@@ -12,14 +14,14 @@ import {
 } from "@repo/ui/components/dialog";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
+import { CommandGroup, CommandItem } from "@repo/ui/components/command";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/select";
 import { formatMoney, formatRateAsPercent } from "@/lib/money";
 import { cn } from "@repo/ui/lib/utils";
 import type { DiscountInput } from "@repo/catalog";
 import type { AppliedDiscount, PricingResult, RejectedDiscount } from "@repo/pricing";
-import { PlusIcon, TicketPercentIcon } from "lucide-react";
+import { CheckIcon, ChevronsUpDownIcon, PlusIcon, TicketPercentIcon, XIcon } from "lucide-react";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useId, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -54,6 +56,9 @@ export interface DiscountRow extends Record<string, unknown> {
   productIds: string[];
   categoryIds: string[];
   families: ProductFamily[];
+  /** Products + categories + families it names. */
+  targetCount: number;
+  /** Filled only when targetCount is two or fewer; past that the list shows a count. */
   targetNames: string[];
 }
 
@@ -81,21 +86,22 @@ const BLANK: DiscountInput = {
   families: [],
 };
 
+/** Names in the admin's language, archived products included. */
+const searchDiscountProducts = (q: string) => searchProducts(q, "discount");
+
 export function DiscountsManager({
   discounts,
-  products,
   categories,
   canWrite,
 }: {
   discounts: DiscountRow[];
-  products: Option[];
   categories: Option[];
   canWrite: boolean;
 }) {
   const t = useTranslations("Discounts");
+  const tPicker = useTranslations("SearchPicker");
   const format = useFormatter();
   const locale = useLocale();
-  const router = useRouter();
   const fieldId = useId();
   const now = useMemo(() => new Date(), []);
 
@@ -103,7 +109,9 @@ export function DiscountsManager({
   const [form, setForm] = useState<DiscountInput>(BLANK);
   const [percentInput, setPercentInput] = useState("");
   const [preview, setPreview] = useState<{ productName: string; quantity: number; result: PricingResult } | null>(null);
-  const [previewProduct, setPreviewProduct] = useState("");
+  const [previewProduct, setPreviewProduct] = useState<ProductHit | null>(null);
+  /** Names for the chosen products, by id; filled as they are picked or loaded. */
+  const [productNames, setProductNames] = useState<Record<string, { label: string; sku: string }>>({});
   const [previewCoupon, setPreviewCoupon] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -136,6 +144,33 @@ export function DiscountsManager({
     });
     // The admin thinks in percent; the engine takes a rate.
     setPercentInput(row.rate ? String(Number(row.rate) * 100) : "");
+    // Name the chosen products without the page loading the catalogue.
+    const missing = row.productIds.filter((id) => !productNames[id]);
+    if (missing.length > 0) {
+      void productLabels(missing).then((result) => {
+        if (!result.ok) {
+          toast.error(result.error);
+          return;
+        }
+        setProductNames((names) => ({
+          ...names,
+          ...Object.fromEntries(result.data.map((p) => [p.id, { label: p.label, sku: p.sku }])),
+        }));
+      });
+    }
+  }
+
+  function setProductIds(productIds: string[]) {
+    setForm((current) => ({ ...current, productIds }));
+  }
+
+  function toggleProduct(product: ProductHit) {
+    setProductNames((names) => ({ ...names, [product.id]: { label: product.name, sku: product.sku } }));
+    setProductIds(
+      form.productIds.includes(product.id)
+        ? form.productIds.filter((id) => id !== product.id)
+        : [...form.productIds, product.id],
+    );
   }
 
   function save() {
@@ -159,8 +194,8 @@ export function DiscountsManager({
         return;
       }
       toast.success(editing === "new" ? t("created") : t("updated"));
+      // The action revalidates this page; no extra refresh round trip.
       setEditing(null);
-      router.refresh();
     });
   }
 
@@ -172,7 +207,6 @@ export function DiscountsManager({
         return;
       }
       toast.success(row.isActive ? t("stopped") : t("resumed"));
-      router.refresh();
     });
   }
 
@@ -180,7 +214,7 @@ export function DiscountsManager({
     if (!previewProduct) return;
     startTransition(async () => {
       const result = await previewCart({
-        productId: previewProduct,
+        productId: previewProduct.id,
         quantity: 1,
         coupon: previewCoupon.trim() || null,
       });
@@ -230,11 +264,11 @@ export function DiscountsManager({
         cell: ({ row }) => (
           <div className="min-w-0">
             <span className="block text-sm">{t(`scope.${row.original.scope}` as const)}</span>
-            {row.original.targetNames.length > 0 && (
+            {row.original.targetCount > 0 && (
               <span className="block truncate text-xs text-muted-foreground">
-                {row.original.targetNames.length <= 2
+                {row.original.targetCount <= 2
                   ? row.original.targetNames.join(", ")
-                  : t("targetsCount", { count: row.original.targetNames.length })}
+                  : t("targetsCount", { count: row.original.targetCount })}
               </span>
             )}
           </div>
@@ -284,10 +318,9 @@ export function DiscountsManager({
     [t, format, locale, now, canWrite, isPending],
   );
 
+  // Products are searched on demand (below); categories and families are short lists.
   const targetOptions: Option[] =
-    form.scope === "PRODUCTS"
-      ? products
-      : form.scope === "CATEGORIES"
+    form.scope === "CATEGORIES"
         ? categories
         : FAMILIES.map((family) => ({ id: family, label: t(`family.${family}` as const) }));
   const selectedTargets =
@@ -357,20 +390,44 @@ export function DiscountsManager({
         <div className="flex flex-wrap items-end gap-2">
           <div className="min-w-0 flex-1 space-y-1.5 sm:max-w-xs">
             <Label htmlFor={`${fieldId}-preview-product`}>{t("preview.product")}</Label>
-            <Select value={previewProduct} onValueChange={setPreviewProduct}>
-              <SelectTrigger id={`${fieldId}-preview-product`} className="w-full">
-                <SelectValue placeholder={t("preview.choose")}>
-                  {products.find((p) => p.id === previewProduct)?.label}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {products.slice(0, 200).map((product) => (
-                  <SelectItem key={product.id} value={product.id}>
-                    {product.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchPicker
+              search={searchDiscountProducts}
+              placeholder={tPicker("productSearch")}
+              contentClassName="w-(--radix-popover-trigger-width) min-w-72"
+              listClassName="max-h-72"
+              trigger={
+                <Button
+                  id={`${fieldId}-preview-product`}
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  className="w-full justify-between font-normal"
+                >
+                  <span className={cn("truncate", !previewProduct && "text-muted-foreground")}>
+                    {previewProduct?.name ?? t("preview.choose")}
+                  </span>
+                  <ChevronsUpDownIcon aria-hidden className="size-4 shrink-0 opacity-50" />
+                </Button>
+              }
+            >
+              {(results, { close }) => (
+                <CommandGroup>
+                  {results.map((product) => (
+                    <CommandItem
+                      key={product.id}
+                      value={product.id}
+                      onSelect={() => {
+                        setPreviewProduct(product);
+                        close();
+                      }}
+                    >
+                      <span className="truncate">{product.name}</span>
+                      <span className="ms-auto font-mono text-xs text-muted-foreground" dir="ltr">{product.sku}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+            </SearchPicker>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor={`${fieldId}-preview-coupon`}>{t("preview.coupon")}</Label>
@@ -524,34 +581,92 @@ export function DiscountsManager({
                       : t("fields.categories")}{" "}
                   *
                 </legend>
-                <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border p-2">
-                  {targetOptions.map((option) => {
-                    const checked = selectedTargets.includes(option.id);
-                    return (
-                      <label key={option.id} className="flex items-center gap-2 rounded-sm px-1 py-0.5 text-sm hover:bg-muted/60">
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={(next) => {
-                            const ids = next
-                              ? [...selectedTargets, option.id]
-                              : selectedTargets.filter((id) => id !== option.id);
-                            setForm(
-                              form.scope === "PRODUCTS"
-                                ? { ...form, productIds: ids }
-                                : form.scope === "CATEGORIES"
-                                  ? { ...form, categoryIds: ids }
-                                  : { ...form, families: ids as ProductFamily[] },
+                {form.scope === "PRODUCTS" ? (
+                  <div className="space-y-2">
+                    <SearchPicker
+                      search={searchDiscountProducts}
+                      placeholder={tPicker("productSearch")}
+                      contentClassName="w-(--radix-popover-trigger-width) min-w-72"
+                      listClassName="max-h-72"
+                      trigger={
+                        <Button type="button" variant="outline" size="sm" className="font-normal">
+                          <PlusIcon aria-hidden className="size-4" />
+                          {tPicker("addProducts")}
+                        </Button>
+                      }
+                    >
+                      {(results) => (
+                        <CommandGroup>
+                          {results.map((product) => {
+                            const checked = form.productIds.includes(product.id);
+                            return (
+                              <CommandItem key={product.id} value={product.id} onSelect={() => toggleProduct(product)}>
+                                <CheckIcon aria-hidden className={cn("size-4", checked ? "opacity-100" : "opacity-0")} />
+                                <span className="truncate">{product.name}</span>
+                                <span className="ms-auto font-mono text-xs text-muted-foreground" dir="ltr">{product.sku}</span>
+                              </CommandItem>
                             );
-                          }}
-                        />
-                        <span className={cn("truncate", option.isChild && "ps-3 text-muted-foreground")}>
-                          {option.label}
-                        </span>
-                        {option.sku && <span className="ms-auto font-mono text-xs text-muted-foreground" dir="ltr">{option.sku}</span>}
-                      </label>
-                    );
-                  })}
-                </div>
+                          })}
+                        </CommandGroup>
+                      )}
+                    </SearchPicker>
+                    {form.productIds.length > 0 && (
+                      <ul className="flex max-h-48 flex-wrap gap-1.5 overflow-y-auto rounded-md border p-2">
+                        {form.productIds.map((id) => {
+                          const name = productNames[id];
+                          return (
+                            <li
+                              key={id}
+                              className="flex max-w-full items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-sm"
+                            >
+                              <span className="truncate">{name?.label ?? "…"}</span>
+                              {name?.sku && (
+                                <span className="font-mono text-xs text-muted-foreground" dir="ltr">{name.sku}</span>
+                              )}
+                              <button
+                                type="button"
+                                className="-me-1 rounded-sm p-0.5 text-muted-foreground hover:bg-background hover:text-foreground"
+                                aria-label={tPicker("remove", { name: name?.label ?? id })}
+                                onClick={() => setProductIds(form.productIds.filter((other) => other !== id))}
+                              >
+                                <XIcon aria-hidden className="size-3.5" />
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                ) : (
+                  <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border p-2">
+                    {targetOptions.map((option) => {
+                      const checked = selectedTargets.includes(option.id);
+                      return (
+                        <label key={option.id} className="flex items-center gap-2 rounded-sm px-1 py-0.5 text-sm hover:bg-muted/60">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(next) => {
+                              const ids = next
+                                ? [...selectedTargets, option.id]
+                                : selectedTargets.filter((id) => id !== option.id);
+                              setForm(
+                                form.scope === "PRODUCTS"
+                                  ? { ...form, productIds: ids }
+                                  : form.scope === "CATEGORIES"
+                                    ? { ...form, categoryIds: ids }
+                                    : { ...form, families: ids as ProductFamily[] },
+                              );
+                            }}
+                          />
+                          <span className={cn("truncate", option.isChild && "ps-3 text-muted-foreground")}>
+                            {option.label}
+                          </span>
+                          {option.sku && <span className="ms-auto font-mono text-xs text-muted-foreground" dir="ltr">{option.sku}</span>}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground">
                   {t("selectedCount", { count: selectedTargets.length })}
                 </p>

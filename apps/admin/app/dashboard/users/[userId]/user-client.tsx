@@ -1,6 +1,10 @@
 "use client";
 
-import { type AdminColumn, ColumnHeader, DataTable } from "@/components/data-table";
+import {
+  type AdminColumn,
+  ServerDataTable,
+  type TableParams,
+} from "@/components/data-table";
 import { formatMoney, moneySortKey } from "@/lib/money";
 import { EmptyState } from "@/components/empty-state";
 import { StatusBadge, type StatusTone } from "@/components/status-badge";
@@ -45,7 +49,15 @@ const STATUS_ORDER: OrderStatus[] = [
   "refunded",
 ];
 
-export function UserClient({ orders }: { orders: CustomerOrderRow[] }) {
+export function UserClient({
+  orders,
+  total,
+  params,
+}: {
+  orders: CustomerOrderRow[];
+  total: number;
+  params: TableParams;
+}) {
   const t = useTranslations("CustomerDetail");
   const tCommon = useTranslations("Common");
   const tOrders = useTranslations("Orders");
@@ -57,11 +69,11 @@ export function UserClient({ orders }: { orders: CustomerOrderRow[] }) {
       {
         id: "order",
         accessorFn: (row) => `${row.id} ${row.productName}`,
-        filterFn: "includesString",
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.orderNumber")} />,
+        header: t("columns.orderNumber"),
         cell: ({ row }) => (
           <Link
             href={`/dashboard/orders/${row.original.id}`}
+            prefetch={false}
             className="font-medium tabular-nums hover:underline"
             dir="ltr"
           >
@@ -73,7 +85,7 @@ export function UserClient({ orders }: { orders: CustomerOrderRow[] }) {
         id: "product",
         accessorFn: (row) => row.productName,
         enableSorting: false,
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.product")} />,
+        header: t("columns.product"),
         cell: ({ row }) => (
           <div className="flex items-center gap-3">
             {row.original.imageUrl ? (
@@ -85,14 +97,23 @@ export function UserClient({ orders }: { orders: CustomerOrderRow[] }) {
                 className="size-9 shrink-0 rounded-md object-cover"
               />
             ) : (
-              <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
+              <span
+                aria-hidden
+                className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted"
+              >
                 <PackageIcon className="size-4 text-muted-foreground" />
               </span>
             )}
             <span className="line-clamp-2 min-w-0 text-sm">
               {row.original.productName}
               {row.original.moreProducts > 0 && (
-                <span className="text-muted-foreground"> · {tOrders("moreProducts", { count: row.original.moreProducts })}</span>
+                <span className="text-muted-foreground">
+                  {" "}
+                  ·{" "}
+                  {tOrders("moreProducts", {
+                    count: row.original.moreProducts,
+                  })}
+                </span>
               )}
             </span>
           </div>
@@ -102,14 +123,17 @@ export function UserClient({ orders }: { orders: CustomerOrderRow[] }) {
         id: "quantity",
         meta: { align: "end" },
         accessorFn: (row) => row.quantity,
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.qty")} />,
-        cell: ({ row }) => <span className="tabular-nums">{row.original.quantity}</span>,
+        enableSorting: false,
+        header: t("columns.qty"),
+        cell: ({ row }) => (
+          <span className="tabular-nums">{row.original.quantity}</span>
+        ),
       },
       {
         id: "total",
         meta: { align: "end" },
         accessorFn: (row) => moneySortKey(row.total),
-        header: ({ column }) => <ColumnHeader column={column} title={tCommon("total")} />,
+        header: tCommon("total"),
         cell: ({ row }) => (
           <span className="tabular-nums whitespace-nowrap">
             {formatMoney(row.original.total, { locale })}
@@ -119,9 +143,8 @@ export function UserClient({ orders }: { orders: CustomerOrderRow[] }) {
       {
         id: "status",
         accessorFn: (row) => row.status,
-        filterFn: "arrIncludesSome",
         enableSorting: false,
-        header: ({ column }) => <ColumnHeader column={column} title={tCommon("status")} />,
+        header: tCommon("status"),
         cell: ({ row }) => (
           <StatusBadge tone={STATUS_TONES[row.original.status]}>
             {t(`orderStatus.${row.original.status}`)}
@@ -131,7 +154,7 @@ export function UserClient({ orders }: { orders: CustomerOrderRow[] }) {
       {
         id: "date",
         accessorFn: (row) => row.createdAt.getTime(),
-        header: ({ column }) => <ColumnHeader column={column} title={t("columns.orderDate")} />,
+        header: t("columns.orderDate"),
         cell: ({ row }) => (
           <span className="tabular-nums whitespace-nowrap">
             {format.dateTime(row.original.createdAt, { dateStyle: "medium" })}
@@ -146,33 +169,30 @@ export function UserClient({ orders }: { orders: CustomerOrderRow[] }) {
         cell: ({ row }) => (
           <div className="flex justify-end">
             <Button asChild variant="ghost" size="sm" className="h-7">
-              <Link href={`/dashboard/orders/${row.original.id}`}>{t("viewOrder")}</Link>
+              <Link
+                href={`/dashboard/orders/${row.original.id}`}
+                prefetch={false}
+              >
+                {t("viewOrder")}
+              </Link>
             </Button>
           </div>
         ),
       },
     ],
-    [t, tCommon, format],
+    [t, tCommon, tOrders, format, locale],
   );
 
   return (
-    <DataTable
+    <ServerDataTable
       columns={columns}
       data={orders}
-      searchColumnId="order"
+      total={total}
+      params={params}
       searchPlaceholder={t("searchPlaceholder")}
-      initialPageSize={10}
-      columnLabels={{
-        order: t("columns.orderNumber"),
-        product: t("columns.product"),
-        quantity: t("columns.qty"),
-        total: tCommon("total"),
-        status: tCommon("status"),
-        date: t("columns.orderDate"),
-      }}
       facets={[
         {
-          columnId: "status",
+          key: "status",
           title: tCommon("status"),
           options: STATUS_ORDER.map((status) => ({
             value: status,

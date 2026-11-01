@@ -1,7 +1,6 @@
 "use client";
 
 import { useId, useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Loader2Icon, PlusIcon, Trash2Icon, Undo2Icon } from "lucide-react";
@@ -225,7 +224,6 @@ export function SpecEditor({
   const tCommon = useTranslations("Common");
   const locale = useLocale();
   const isArabic = locale.startsWith("ar");
-  const router = useRouter();
   const [isSaving, startSaving] = useTransition();
   const vocabulary = useMemo(() => new Map(vocabularyList.map((entry) => [entry.key, entry])), [vocabularyList]);
   const [groups, setGroups] = useState(() => buildGroups(savedGroups, vocabulary));
@@ -270,7 +268,8 @@ export function SpecEditor({
         } else {
           toast.success(t("saved"));
         }
-        router.refresh();
+        // saveProductSpecs revalidates this product's route, so the action
+        // response already re-renders it; a refresh would render it twice.
       } catch (error) {
         console.error("Spec save failed", error);
         toast.error(tCommon("genericError"));

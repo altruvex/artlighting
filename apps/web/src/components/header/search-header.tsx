@@ -1,9 +1,10 @@
 "use client"
 
-import { searchProducts } from "@/actions/search"
+import { searchProducts, type SearchHit } from "@/actions/search"
+import { MIN_SEARCH_LENGTH } from "@/actions/search-limits"
 import { familySlug } from "@repo/catalog/families"
 import type { ProductFamily } from "@repo/catalog/families";
-import { money, type MoneyInput } from "@repo/money";
+import { money } from "@repo/money";
 import { Input } from "@repo/ui/components/input"
 import { Link, useRouter } from "@/i18n/navigation"
 import { Button } from "@repo/ui/components/button"
@@ -16,23 +17,13 @@ import { useDebounce } from "use-debounce"
 import DiscountPrice from "@/components/price/discount-price"
 import NormalPrice from "@/components/price/normal-price"
 
-interface Product {
-    productId: string
-    productName: string
-    brand: string
-    price: string
-    productImages: string[]
-    sectionType: ProductFamily
-    spotlightType: string
-    discount: string
-    ProductId: string
-    chandelierLightingType: string
-    hNumber: number
-    maximumWattage: string
-    lampBase: string
-    mainMaterial: string
-    beamAngle: string
-}
+type Product = SearchHit
+type SearchResult = { hits: Product[]; total: number }
+
+const EMPTY: SearchResult = { hits: [], total: 0 }
+
+/** Long enough to be worth asking the server about. */
+const searchable = (term: string) => term.trim().length >= MIN_SEARCH_LENGTH
 
 interface SearchHeaderProps {
     isMobile?: boolean
@@ -42,13 +33,19 @@ interface SearchHeaderProps {
 export function SearchHeader({ isMobile = false, isMobileSheet = false }: SearchHeaderProps) {
     const [searchTerm, setSearchTerm] = useState("")
     const [debouncedSearchTerm] = useDebounce(searchTerm, 300)
-    const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
+    const [result, setResult] = useState<SearchResult>(EMPTY)
     const [isSearching, setIsSearching] = useState(false)
     const [showResults, setShowResults] = useState(false)
     const searchRef = useRef<HTMLDivElement>(null)
     const t = useTranslations("search")
     const locale = useLocale()
     const router = useRouter()
+    // Terms already answered this session: backspacing over a word, or
+    // typing it again, does not ask the server twice.
+    const cacheRef = useRef(new Map<string, SearchResult>())
+    // Only the latest request may write its answer: a slow reply for "ch"
+    // must not replace the one for "chandelier" that came back first.
+    const latestRef = useRef(0)
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -64,44 +61,48 @@ export function SearchHeader({ isMobile = false, isMobileSheet = false }: Search
     }, [])
 
     useEffect(() => {
-        const performSearch = async () => {
-            if (debouncedSearchTerm.trim() === "") {
-                setFilteredProducts([])
-                setShowResults(false)
-                return
-            }
-
-            setIsSearching(true)
-            setShowResults(true)
-            try {
-                const results = await searchProducts(debouncedSearchTerm, locale)
-                const formattedResults: Product[] = results.map((product: any) => ({
-                    ...product,
-                    ProductId: product.productId,
-                    discount: product.discount || 0,
-                }))
-
-                setFilteredProducts(formattedResults)
-            } catch (error) {
-                console.error("Error searching products:", error)
-                setFilteredProducts([])
-            } finally {
-                setIsSearching(false)
-            }
+        const request = ++latestRef.current
+        const term = debouncedSearchTerm.trim()
+        if (!searchable(term)) {
+            setResult(EMPTY)
+            setIsSearching(false)
+            setShowResults(false)
+            return
         }
 
-        performSearch()
-    }, [debouncedSearchTerm])
+        const key = `${locale}:${term.toLocaleLowerCase(locale)}`
+        const cached = cacheRef.current.get(key)
+        setShowResults(true)
+        if (cached) {
+            setResult(cached)
+            setIsSearching(false)
+            return
+        }
+
+        setIsSearching(true)
+        searchProducts(term, locale)
+            .then((next) => {
+                cacheRef.current.set(key, next)
+                if (request === latestRef.current) setResult(next)
+            })
+            .catch((error) => {
+                console.error("Error searching products:", error)
+                if (request === latestRef.current) setResult(EMPTY)
+            })
+            .finally(() => {
+                if (request === latestRef.current) setIsSearching(false)
+            })
+    }, [debouncedSearchTerm, locale])
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value)
-        if (e.target.value.trim() !== "") {
+        if (searchable(e.target.value)) {
             setShowResults(true)
         }
     }
 
     const handleInputFocus = () => {
-        if (searchTerm.trim() !== "") {
+        if (searchable(searchTerm)) {
             setShowResults(true)
         }
     }
@@ -161,7 +162,8 @@ export function SearchHeader({ isMobile = false, isMobileSheet = false }: Search
                 <SearchResults
                     isSearching={isSearching}
                     searchTerm={searchTerm}
-                    filteredProducts={filteredProducts}
+                    filteredProducts={result.hits}
+                    total={result.total}
                     onResultClick={handleResultClick}
                     t={t}
                 />
@@ -174,11 +176,12 @@ interface SearchResultsProps {
     isSearching: boolean
     searchTerm: string
     filteredProducts: Product[]
+    total: number
     onResultClick: () => void
     t: any
 }
 
-function SearchResults({ isSearching, searchTerm, filteredProducts, onResultClick, t }: SearchResultsProps) {
+function SearchResults({ isSearching, searchTerm, filteredProducts, total, onResultClick, t }: SearchResultsProps) {
     return (
         <div className="absolute inset-x-0 top-full z-50 mt-2 rounded-md border border-border bg-popover text-popover-foreground shadow-e3">
             <div className="max-h-96 overflow-hidden">
@@ -191,6 +194,7 @@ function SearchResults({ isSearching, searchTerm, filteredProducts, onResultClic
                 {filteredProducts.length > 0 && (
                     <ProductResults
                         products={filteredProducts}
+                        total={total}
                         onResultClick={onResultClick}
                         searchTerm={searchTerm}
                         t={t}
@@ -218,8 +222,9 @@ function NoResults({ searchTerm, t }: { searchTerm: string; t: any }) {
     )
 }
 
-function ProductResults({ products, onResultClick, searchTerm, t }: {
+function ProductResults({ products, total, onResultClick, searchTerm, t }: {
     products: Product[]
+    total: number
     onResultClick: () => void
     searchTerm: string
     t: any
@@ -228,7 +233,7 @@ function ProductResults({ products, onResultClick, searchTerm, t }: {
         <ScrollArea className="h-96 overflow-y-auto">
             <div className="p-2">
                 <div className="space-y-1">
-                    {products.slice(0, 6).map((product) => (
+                    {products.map((product) => (
                         <ProductItem
                             key={product.productId}
                             product={product}
@@ -237,9 +242,10 @@ function ProductResults({ products, onResultClick, searchTerm, t }: {
                     ))}
                 </div>
 
-                {products.length > 6 && (
+                {total > products.length && (
                     <ViewAllResults
-                        totalResults={products.length}
+                        shown={products.length}
+                        totalResults={total}
                         searchTerm={searchTerm}
                         onResultClick={onResultClick}
                         t={t}
@@ -261,9 +267,9 @@ function ProductItem({ product, onResultClick }: {
             className="block rounded-md p-3 transition-colors duration-[var(--dur-hover)] hover:bg-accent/60 focus-visible:bg-accent/60"
         >
             <div className="flex items-start gap-4">
-                {product.productImages?.[0] && (
+                {product.image && (
                     <Image
-                        src={product.productImages[0]}
+                        src={product.image}
                         alt={product.productName}
                         className="product-photo size-16 shrink-0 rounded-sm bg-muted object-cover"
                         width={64}
@@ -311,7 +317,8 @@ function ProductPrice({ product }: { product: Product }) {
     )
 }
 
-function ViewAllResults({ totalResults, searchTerm, onResultClick, t }: {
+function ViewAllResults({ shown, totalResults, searchTerm, onResultClick, t }: {
+    shown: number
     totalResults: number
     searchTerm: string
     onResultClick: () => void
@@ -320,7 +327,8 @@ function ViewAllResults({ totalResults, searchTerm, onResultClick, t }: {
     return (
         <div className="mt-2 border-t border-border px-2 pt-3 pb-1 text-center text-sm text-muted-foreground">
             {t("showingResults", {
-                defaultMessage: "Showing 6 of {total} results",
+                defaultMessage: "Showing {shown} of {total} results",
+                shown,
                 total: totalResults
             })}
             <Link

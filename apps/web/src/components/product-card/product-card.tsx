@@ -1,7 +1,4 @@
 import { familySlug, type ProductFamily } from "@repo/catalog/families";
-import type { BulbChoice } from "@repo/catalog/bulb-pricing";
-import type { LocalizedSpecGroup } from "@/lib/specs-view";
-import { useProductDescription } from "@/lib/use-product-description";
 import { Link } from "@/i18n/navigation";
 import { formatNumber, formatNumberWithConversion, formatPercent } from "@/lib/numbers";
 import { applyRate, money, serializeMoney, subtractMoney } from "@repo/money";
@@ -28,18 +25,11 @@ interface Product {
   /** The average of this product's reviews, or null with none yet. */
   ratingAverage?: number | null;
   ratingCount?: number;
-  chandelierLightingType?: string;
-  hNumber?: number;
-  translations?: {
-    name?: string;
-    description?: string;
-  };
-  /** The structured specs, localized — what the description is built from. */
-  specGroups?: LocalizedSpecGroup[];
-  /** The lighting type's name in this locale, for the opening clause. */
-  lightingTypeName?: string;
-  /** What the fixture is sold with, so the bulb clause states the real one. */
-  bulbChoices?: BulbChoice[];
+  /**
+   * The short description, rendered on the server from the product's specs
+   * by the same generator the product page uses (lib/card-description.ts).
+   */
+  description?: string;
 }
 
 interface ProductCardProps {
@@ -71,21 +61,9 @@ export default function ProductCard({ product }: ProductCardProps) {
   const locale = useLocale();
   const t = useTranslations("product-card");
 
-  // Generated from this product's own specs — the same generator the
-  // product page uses, so a card and the page it links to cannot say
-  // different things about the same fixture.
-  const description = useProductDescription(
-    {
-      family: product.sectionType,
-      lightingTypeName: product.lightingTypeName,
-      hNumber: product.hNumber,
-      bulbChoices: product.bulbChoices,
-      specGroups: product.specGroups,
-    },
-    "short"
-  );
-
-  const displayName = product.translations?.name || product.productName;
+  const description = product.description;
+  // Already the name in this locale (catalogueCards).
+  const displayName = product.productName;
 
   const saving = applyRate(product.price, product.discount);
   const pricing = {
@@ -150,7 +128,9 @@ export default function ProductCard({ product }: ProductCardProps) {
         <h3 className="font-[family-name:var(--font-display-face)] text-[length:var(--text-base)] font-semibold leading-snug">
           <Link
             href={href}
-            prefetch
+            // The default: with partialPrefetching on, a card in view
+            // prefetches only the product page's shell, not the whole page
+            // and its data — ~40 full pages per home visit before.
             // Stretches over the whole card: one target, one tab stop.
             className="after:absolute after:inset-0 after:z-10 after:rounded-sm focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-ring"
           >

@@ -42,19 +42,58 @@ import { familySlug } from "@repo/catalog/families";
 /** Standard delivery, charged once per order however many lines it has. */
 export const STANDARD_SHIPPING = "69.00";
 
-const productInclude = {
-  images: productImageSelect(),
-  // The variant stock is taken from, and what it has left to sell.
-  variants: { where: { isDefault: true }, select: { id: true, inventory: inventorySelect() }, take: 1 },
-} as const;
+/**
+ * Only the columns pricing and the order line read. Every product column
+ * and every image used to come along for each cart line, on every page
+ * load that counted the cart; the drawer and the order show one image.
+ */
+function productSelect() {
+  return {
+    id: true,
+    productId: true,
+    productName: true,
+    price: true,
+    priceIncrease: true,
+    sectionType: true,
+    spotlightType: true,
+    brand: true,
+    isActive: true,
+    trackInventory: true,
+    categoryId: true,
+    lightingtypeId: true,
+    productIp: true,
+    productColor: true,
+    images: { ...productImageSelect(), take: 1 },
+    // The variant stock is taken from, and what it has left to sell.
+    variants: { where: { isDefault: true }, select: { id: true, inventory: inventorySelect() }, take: 1 },
+  };
+}
 
 type ProductRow = NonNullable<Awaited<ReturnType<typeof loadProduct>>>;
 
 async function loadProduct(where: { id: string } | { productId: string }) {
-  return prisma.product.findUnique({ where, include: productInclude });
+  return prisma.product.findUnique({ where, select: productSelect() });
 }
 
-type ConfigurationRow = NonNullable<Awaited<ReturnType<typeof prisma.configuration.findFirst>>>;
+/** What a configuration contributes to a line: the upgrades, the bulb, the choices the order records. */
+function configurationSelect() {
+  return {
+    id: true,
+    productId: true,
+    userId: true,
+    priceIncrease: true,
+    lampPriceIncrease: true,
+    bulbId: true,
+    productIp: true,
+    colorTemp: true,
+  };
+}
+
+type ConfigurationRow = NonNullable<Awaited<ReturnType<typeof loadConfiguration>>>;
+
+async function loadConfiguration(id: string) {
+  return prisma.configuration.findUnique({ where: { id }, select: configurationSelect() });
+}
 
 /** One product about to be priced: what it is, how it is configured, how many. */
 export interface LineDraft {
@@ -83,20 +122,28 @@ export function configuredUnitPrice(product: ProductRow, configuration: Configur
  */
 async function configurationsFor(userId: string, productCodes: string[]) {
   if (productCodes.length === 0) return new Map<string, ConfigurationRow>();
+  // Newest first, one per product: the latest configuration is the only
+  // one a line needs. Prisma dedupes in memory (no nativeDistinct), so the
+  // narrow select is what keeps this cheap.
   const rows = await prisma.configuration.findMany({
     where: { userId, productId: { in: productCodes } },
     orderBy: { updatedAt: "desc" },
+    distinct: ["productId"],
+    select: configurationSelect(),
   });
-  const latest = new Map<string, ConfigurationRow>();
-  for (const row of rows) if (!latest.has(row.productId)) latest.set(row.productId, row);
-  return latest;
+  return new Map(rows.map((row) => [row.productId, row]));
 }
 
 /** The signed-in customer's cart, as lines. */
 export async function cartDrafts(userId: string): Promise<LineDraft[]> {
   const cart = await prisma.cart.findUnique({
     where: { userId },
-    include: { items: { include: { product: { include: productInclude } }, orderBy: { id: "asc" } } },
+    select: {
+      items: {
+        select: { id: true, quantity: true, product: { select: productSelect() } },
+        orderBy: { id: "asc" },
+      },
+    },
   });
   if (!cart) return [];
 
@@ -158,7 +205,7 @@ async function draftsFor(userId: string, source: CheckoutSource): Promise<LineDr
     return drafts;
   }
 
-  const configuration = await prisma.configuration.findUnique({ where: { id: source.configurationId } });
+  const configuration = await loadConfiguration(source.configurationId);
   if (!configuration) throw new CheckoutError("not_found");
   // A configuration belongs to whoever touched it first; another customer's
   // id in the request is not a way to buy at their configured price.
@@ -251,7 +298,8 @@ export async function placeOrder(
               configPrice: line.unitPrice,
               configurationId: draft.configuration?.id ?? null,
               productName: draft.product.productName,
-              productImages: imageUrls(draft.product),
+              // Only the first: every reader of an order line shows one image.
+              productImages: imageUrls(draft.product).slice(0, 1),
               brand: draft.product.brand,
               productIp: draft.configuration?.productIp ?? draft.product.productIp ?? null,
               // The customer's choice; the product's default when they made none.

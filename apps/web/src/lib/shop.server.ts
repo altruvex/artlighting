@@ -12,9 +12,11 @@ import {
 import { bulbChoices } from "@repo/catalog/bulb-pricing";
 import { applyRate, money, serializeMoney, serializeRate, subtractMoney } from "@repo/money";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { localizeSpecGroups, specGroupSelect } from "@/lib/spec-groups";
+import { localizeSpecGroups, specGroupSelect, specsByKey } from "@/lib/spec-groups";
+import { CARD_SPEC_KEYS, cardDescription } from "@/lib/card-description";
 import { CATALOGUE_TAG, catalogueCacheLife } from "@/lib/cache.server";
 import { cacheTag } from "next/cache";
+import { getTranslations } from "next-intl/server";
 
 /**
  * The shop: every active product, filtered, faceted and sorted.
@@ -78,23 +80,55 @@ export function parseShopQuery(params: Record<string, string | string[] | undefi
   };
 }
 
-export function cardInclude(locale: string) {
+/**
+ * Only what a card, the facets and the sorts read. It used to `include`
+ * every Product column (cost price and all), the whole lighting-type row,
+ * every image and every spec of every product — ~120 times — when a card
+ * shows two images and a one-line description built from five specs.
+ */
+function cardSelect(locale: string) {
+  const specs = specGroupSelect(locale);
+  const cardSpecs = { key: { in: CARD_SPEC_KEYS } };
   return {
-    translations: { where: { language: locale }, take: 1 },
-    images: productImageSelect(),
+    id: true,
+    productId: true,
+    productName: true,
+    brand: true,
+    price: true,
+    sectionType: true,
+    spotlightType: true,
+    hNumber: true,
+    ratingAverage: true,
+    ratingCount: true,
+    featured: true,
+    createdAt: true,
+    trackInventory: true,
+    // productDiscountRates scopes discounts by these.
+    categoryId: true,
+    lightingtypeId: true,
+    translations: { where: { language: locale }, select: { name: true }, take: 1 },
+    // The photo and the one that fades in on hover.
+    images: { ...productImageSelect(), take: 2 },
     variants: { where: { isDefault: true }, select: { inventory: inventorySelect() }, take: 1 },
-    specGroups: specGroupSelect(locale),
+    specGroups: {
+      ...specs,
+      where: { items: { some: cardSpecs } },
+      select: { ...specs.select, items: { ...specs.select.items, where: cardSpecs } },
+    },
     bulbs: productBulbSelect(),
-    lightingtype: { include: { translations: { where: { language: locale }, take: 1 } } },
+    lightingtype: {
+      select: { name: true, translations: { where: { language: locale }, select: { name: true }, take: 1 } },
+    },
   };
 }
 
 type CardRow = Awaited<ReturnType<typeof loadCardRows>>[number];
+type DescriptionTranslator = Parameters<typeof cardDescription>[1];
 
 async function loadCardRows(locale: string) {
   return prisma.product.findMany({
     where: { isActive: true },
-    include: cardInclude(locale),
+    select: cardSelect(locale),
     orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
   });
 }
@@ -115,17 +149,23 @@ export async function catalogueCards(locale: string): Promise<ShopCard[]> {
   "use cache";
   cacheTag(CATALOGUE_TAG);
   await catalogueCacheLife();
-  const rows = await loadCardRows(locale);
+  const [rows, t] = await Promise.all([
+    loadCardRows(locale),
+    getTranslations({ locale, namespace: "product-description" }),
+  ]);
   const rates = await productDiscountRates(rows, prisma);
-  return rows.map((row) => toCard(row, locale, rates[row.id] ?? serializeRate(0)));
+  // The keys are built at run time (`opening.${family}`), so the typed translator is widened here.
+  const describe = t as unknown as DescriptionTranslator;
+  return rows.map((row) => toCard(row, locale, rates[row.id] ?? serializeRate(0), describe));
 }
 
-/** One product as every card renders it. */
-export function toCard(row: CardRow, locale: string, rate: string) {
+/** One product as every card renders it — no spec tree, no bulbs: the description is built here. */
+function toCard(row: CardRow, locale: string, rate: string, t: DescriptionTranslator) {
   const translation = row.translations?.[0];
   // What the shopper actually pays — the figure a price sort must use, or a
   // 30%-off chandelier sorts as though it cost its list price.
   const effective = subtractMoney(row.price, applyRate(row.price, rate));
+  const lightingTypeName = row.lightingtype?.translations?.[0]?.name ?? row.lightingtype?.name ?? undefined;
   return {
     id: row.id,
     productId: row.productId,
@@ -141,16 +181,22 @@ export function toCard(row: CardRow, locale: string, rate: string) {
     quantity: sellableFrom(row, row.variants[0]?.inventory),
     ratingAverage: row.ratingAverage !== null && row.ratingAverage !== undefined ? Number(row.ratingAverage) : null,
     ratingCount: row.ratingCount,
-    isActive: row.isActive,
     featured: row.featured,
     createdAt: row.createdAt.toISOString(),
-    chandelierLightingType: row.chandelierLightingType || undefined,
-    hNumber: row.hNumber || undefined,
-    specGroups: localizeSpecGroups(row.specGroups ?? [], locale),
-    bulbChoices: bulbChoices(row.bulbs, row.hNumber, locale),
-    lightingTypeName: row.lightingtype?.translations?.[0]?.name ?? row.lightingtype?.name ?? undefined,
+    lightingTypeName,
     lightingTypeSlug: row.spotlightType,
-    translations: { name: translation?.name || undefined, description: translation?.description || undefined },
+    // The same generator the product page uses, so the two cannot disagree.
+    description: cardDescription(
+      {
+        family: row.sectionType,
+        lightingTypeName,
+        hNumber: row.hNumber,
+        bulbChoices: bulbChoices(row.bulbs, row.hNumber, locale),
+        specs: specsByKey(localizeSpecGroups(row.specGroups ?? [], locale)),
+      },
+      t,
+      locale,
+    ),
   };
 }
 
@@ -177,14 +223,33 @@ export interface ShopResult {
 }
 
 /**
- * One page of the shop for a query, cached per (query, locale): filtering,
- * faceting and sorting ~120 cards is cheap once, but not on every request
- * of every visitor paging through the same shelf.
+ * Free text and price bounds can take any value, so caching on them would
+ * write a new cache entry for every visitor's search. Those are filtered
+ * per request over the cached catalogue instead; the finite shelves
+ * (family, brand, type, sale, sort, page) stay cached.
  */
+export function isOpenEndedQuery(query: ShopQuery): boolean {
+  return query.q !== "" || query.priceMin !== null || query.priceMax !== null;
+}
+
+/** One page of the shop for a query. */
 export async function searchShop(query: ShopQuery, locale: string): Promise<ShopResult> {
+  if (isOpenEndedQuery(query)) return shopPage(await catalogueCards(locale), query, locale);
+  return cachedShop(query, locale);
+}
+
+/**
+ * Cached per (query, locale): filtering, faceting and sorting ~120 cards is
+ * cheap once, but not on every request of every visitor paging through the
+ * same shelf.
+ */
+async function cachedShop(query: ShopQuery, locale: string): Promise<ShopResult> {
   "use cache";
   cacheTag(CATALOGUE_TAG);
-  const all = await catalogueCards(locale);
+  return shopPage(await catalogueCards(locale), query, locale);
+}
+
+function shopPage(all: ShopCard[], query: ShopQuery, locale: string): ShopResult {
 
   const needle = query.q.toLocaleLowerCase(locale);
   const priceOf = (card: ShopCard) => Number(card.effectivePrice);

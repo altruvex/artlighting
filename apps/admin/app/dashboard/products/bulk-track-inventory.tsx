@@ -3,7 +3,6 @@
 import { setProductsTrackInventory } from "@/lib/actions/products";
 import { Button } from "@repo/ui/components/button";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 import type { ProductRow } from "./products-table";
@@ -15,7 +14,6 @@ import type { ProductRow } from "./products-table";
  */
 export function BulkTrackInventory({ selected, clear }: { selected: ProductRow[]; clear: () => void }) {
   const t = useTranslations("Products.bulkTrack");
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const anyTracked = selected.some((row) => row.trackInventory);
@@ -32,8 +30,8 @@ export function BulkTrackInventory({ selected, clear }: { selected: ProductRow[]
         return;
       }
       toast.success(t(track ? "tracked" : "untracked", { count: result.data.updated }));
+      // The action revalidates this route; no second render needed.
       clear();
-      router.refresh();
     });
 
   return (

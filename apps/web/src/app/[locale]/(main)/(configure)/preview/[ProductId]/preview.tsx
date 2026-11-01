@@ -3,8 +3,6 @@
 
 import { CHECKOUT_GRID, CheckoutHeader } from "@/components/order/checkout-header";
 import { Onward } from "@/components/editorial/arrow";
-import type { ProductFamily } from "@repo/catalog/families";
-import type { MoneyInput } from "@repo/money";
 import LoginModal from "@/components/login-model";
 import NormalPrice from "@/components/price/normal-price";
 import ProductGallery from "@/components/product/product-gallery";
@@ -14,10 +12,9 @@ import { useUser } from "@/lib/auth-hooks";
 // The serialized view model, not Prisma's row type: money reaches a
 // Client Component as a string (see @repo/money).
 import type { Configuration } from "@/types/products";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { createOrder } from "./action";
@@ -25,87 +22,31 @@ import { orderErrorText } from "@/components/order/order-error";
 import { PricingService } from "@/lib/pricing.server";
 import { applyRate, serializeMoney, subtractMoney } from "@repo/money";
 
-export interface ProductWithSpecs {
-  id: string;
-  productId: string;
+/** The screen's whole view of the product; page.tsx fills in nothing else. */
+export interface PreviewProduct {
   productName: string;
-  price: string;
   productImages: string[];
-  discount: string;
-  sectionType: ProductFamily;
-  spotlightType: string;
-  brand: string;
-  productColor: string;
-  productIp: string;
-  productChandLamp: string;
-  maxIP?: number;
-  luminousFlux?: string;
-  mainMaterial?: string;
-  beamAngle?: string;
-  colorTemperature?: string;
-  lifeTime?: string;
-  energySaving?: string;
-  cri?: string;
-  brandOfLed?: string;
-  electrical?: string;
-  input?: string;
-  finish?: string;
-  lampBase?: string;
-  hNumber?: number;
-  chandelierLightingType?: string;
-  specification?: any;
-  localizedSpecs?: any;
-  description?: string;
   categoryName?: string;
   lightingTypeName?: string;
+  luminousFlux?: string;
+  colorTemperature?: string;
+  beamAngle?: string;
+  cri?: string;
+  mainMaterial?: string;
+  lifeTime?: string;
 }
-
-const fetchProduct = async (productId: string, locale: string): Promise<ProductWithSpecs> => {
-  const response = await fetch(`/api/products/${productId}?locale=${locale}`, {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
-    cache: 'no-store',
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch product: ${response.status}`);
-  }
-
-  return response.json();
-};
-
-const fetchConfiguration = async (productId: string): Promise<Configuration> => {
-  const response = await fetch(`/api/configurations/by-products/${productId}`, {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
-    cache: 'no-store',
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch configuration: ${response.status}`);
-  }
-
-  return response.json();
-};
 
 interface PreviewProps {
-  configuration?: Configuration;
-  discount?: string;
+  configuration: Configuration;
   productId: string;
-  product?: ProductWithSpecs;
-  locale: string;
+  product: PreviewProduct;
 }
 
-
 export default function Preview({
-  configuration: initialConfiguration,
-  discount: initialDiscount,
-  productId,
-  product: initialProduct,
-  locale: initialLocale,
+  configuration: finalConfiguration,
+  productId: actualProductId,
+  product: finalProduct,
 }: PreviewProps) {
-  const [configuration, setConfiguration] = useState<Configuration | undefined>(initialConfiguration);
-  const { ProductId } = useParams();
   const router = useRouter();
   const { isLoaded, isSignedIn, user } = useUser();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -119,38 +60,16 @@ export default function Preview({
     canProceedWithOrder: false
   });
 
-  const actualProductId = productId || (ProductId as string);
-
-  const { data: product, isLoading: isProductLoading, isError: isProductError, refetch: refetchProduct } = useQuery<ProductWithSpecs>({
-    queryKey: ["product", actualProductId, locale],
-    queryFn: () => fetchProduct(actualProductId, locale),
-    enabled: !!actualProductId && !initialProduct,
-    retry: 3,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: fetchedConfiguration, isLoading: isConfigLoading, isError: isConfigError, refetch: refetchConfiguration } = useQuery<Configuration>({
-    queryKey: ["configuration", actualProductId],
-    queryFn: () => fetchConfiguration(actualProductId),
-    enabled: !!actualProductId && !initialConfiguration,
-    retry: 3,
-  });
-
-  const finalProduct = initialProduct || product;
-  const finalConfiguration = initialConfiguration || configuration || fetchedConfiguration;
-
-  const priceCalculations = useMemo(() => {
-    if (!finalConfiguration) {
-      return PricingService.calculateOrderPricing(0, 0, 1, 0);
-    }
-
-    return PricingService.calculateOrderPricing(
-      finalConfiguration.configPrice || 0,
-      finalConfiguration.totalPrice || 0,
-      finalConfiguration.quantity || 1,
-      finalConfiguration.discount || 0
-    );
-  }, [finalConfiguration]);
+  const priceCalculations = useMemo(
+    () =>
+      PricingService.calculateOrderPricing(
+        finalConfiguration.configPrice || 0,
+        finalConfiguration.totalPrice || 0,
+        finalConfiguration.quantity || 1,
+        finalConfiguration.discount || 0
+      ),
+    [finalConfiguration]
+  );
 
   useEffect(() => {
     if (isLoaded) {
@@ -162,15 +81,12 @@ export default function Preview({
   }, [isLoaded, isSignedIn, user]);
 
   useEffect(() => {
-    if (finalConfiguration) {
-      try {
-        localStorage.setItem("configurationId", finalConfiguration.id);
-        setConfiguration(finalConfiguration);
-      } catch (error) {
-        console.error("Error storing configuration ID:", error);
-      }
+    try {
+      localStorage.setItem("configurationId", finalConfiguration.id);
+    } catch (error) {
+      console.error("Error storing configuration ID:", error);
     }
-  }, [finalConfiguration]);
+  }, [finalConfiguration.id]);
 
   const { mutate: CreateOrderSession, isPending } = useMutation({
     mutationKey: ["get-order-session"],
@@ -215,42 +131,17 @@ export default function Preview({
       return;
     }
 
-    if (!finalConfiguration) {
-      toast.error(t('configMissing'));
-      return;
-    }
-
     CreateOrderSession({
       configId: finalConfiguration.id,
       quantity: priceCalculations.quantity
     });
   }, [isLoaded, authState, finalConfiguration, priceCalculations, CreateOrderSession, t]);
 
-  const handleRetry = () => {
-    refetchProduct();
-    refetchConfiguration();
-  };
-
-  const isLoading = !authState.isAuthChecked || isProductLoading || isConfigLoading;
-
-  if (isLoading) {
+  if (!authState.isAuthChecked) {
     return (
       <div role="status" className="flex min-h-[50dvh] items-center justify-center gap-3 text-muted-foreground">
         <Loader2 className="size-5 animate-spin" aria-hidden />
         {t('loadingTitle')}
-      </div>
-    );
-  }
-
-  if (isProductError || isConfigError || !finalProduct || !finalConfiguration) {
-    return (
-      <div className="mx-auto flex min-h-[50dvh] max-w-md flex-col items-start justify-center gap-4 px-4">
-        <h1 className="text-[length:var(--text-2xl)] font-medium">{t('errorTitle')}</h1>
-        <p className="text-muted-foreground">{t('errorSubtitle')}</p>
-        <div className="flex gap-2">
-          <Button onClick={handleRetry} variant="outline">{t('retryButton')}</Button>
-          <Button onClick={() => window.location.reload()}>{t('refreshButton')}</Button>
-        </div>
       </div>
     );
   }

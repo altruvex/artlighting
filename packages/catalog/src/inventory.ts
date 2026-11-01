@@ -309,43 +309,6 @@ export async function stockFor(variantId: string, db: Db = prisma): Promise<Stoc
   }));
 }
 
-/**
- * Everything at or below its reorder point — the admin's restock list.
- *
- * Falls back to the product's lowStockThreshold when the item has no
- * reorder point of its own, so a product that was never configured still
- * appears rather than silently never warning.
- */
-export async function lowStock(db: Db = prisma) {
-  const items = await db.inventoryItem.findMany({
-    include: {
-      variant: { select: { sku: true, product: { select: { id: true, productId: true, productName: true, lowStockThreshold: true, trackInventory: true } } } },
-      location: { select: { code: true } },
-    },
-  });
-
-  return items
-    .map((item) => {
-      const threshold = item.reorderPoint ?? item.variant.product.lowStockThreshold;
-      const available = item.onHand - item.reserved;
-      return {
-        productId: item.variant.product.id,
-        productName: item.variant.product.productName,
-        sku: item.variant.sku,
-        locationCode: item.location.code,
-        available,
-        incoming: item.incoming,
-        threshold,
-        reorderQuantity: item.reorderQuantity,
-        tracked: item.variant.product.trackInventory,
-        below: available <= threshold,
-      };
-    })
-    // Untracked products have no count to run low on.
-    .filter((row) => row.below && row.tracked)
-    .sort((a, b) => a.available - b.available);
-}
-
 /** The ledger for one variant, newest first. */
 export async function movementHistory(variantId: string, limit = 50, db: Db = prisma) {
   return db.stockMovement.findMany({

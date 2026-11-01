@@ -14,7 +14,7 @@ import { useAuth } from "@/lib/auth-hooks"
 import { Loader2, ShoppingBag, ShoppingCart, Trash2, Plus, Minus } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import Image from "next/image"
-import { useEffect, useState, useTransition } from "react"
+import { useCallback, useEffect, useRef, useState, useTransition } from "react"
 import { toast } from "sonner"
 import DiscountPrice from "@/components/price/discount-price"
 import NormalPrice from "@/components/price/normal-price"
@@ -22,7 +22,7 @@ import { Link, useRouter } from "@/i18n/navigation"
 import { checkoutCart } from "@/actions/checkout"
 import { orderErrorText } from "@/components/order/order-error"
 import { familySlug } from "@repo/catalog/families"
-import { notifyCartChanged, onCartChanged } from "@/lib/cart-events"
+import { onCartChanged } from "@/lib/cart-events"
 
 interface CartItem {
   id: string
@@ -38,26 +38,104 @@ interface CartItem {
   totalPrice: string
 }
 
+/** Rapid +/− clicks are sent once, with the quantity they settle on. */
+const QUANTITY_SETTLE_MS = 400
+
+const countOf = (items: CartItem[]) => items.reduce((total, item) => total + item.quantity, 0)
+
+/** The line as the shopper sees it the instant they click, before the server answers. */
+function withQuantity(item: CartItem, quantity: number): CartItem {
+  return {
+    ...item,
+    quantity,
+    // `discount` is a rate (0.13 = 13%). Dividing it by 100 again
+    // charged 0.13% and disagreed with the server's total.
+    totalPrice: priceLine({ unitPrice: item.price, quantity, discountRate: item.discount }).total,
+  }
+}
+
 export function CartSidebar() {
   const { isSignedIn, userId } = useAuth()
   const t = useTranslations("cart")
   const tAuth = useTranslations("auth")
   const locale = useLocale()
   const [isOpen, setIsOpen] = useState(false)
+  // The badge's number and the drawer's lines are two fetches: the badge
+  // needs one integer on every page, the priced cart (products, images,
+  // discounts, the pricing engine) only when the drawer is open.
+  const [totalItems, setTotalItems] = useState(0)
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isUpdating, setIsUpdating] = useState<string | null>(null)
 
+  // The last cart the server confirmed, to fall back on when a change
+  // fails; and what the shopper has clicked that the server has not yet
+  // confirmed: one pending quantity per line, its timer, the quantity each
+  // in-flight request carries, and the lines being removed.
+  const serverItemsRef = useRef<CartItem[]>([])
+  const pendingRef = useRef(new Map<string, number>())
+  const timersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>())
+  const inFlightRef = useRef(new Map<string, number>())
+  const removingRef = useRef(new Set<string>())
+  // Whose cart the requests in flight belong to. A response that lands
+  // after the shopper signed out (or in as someone else) is dropped.
+  const userIdRef = useRef(userId)
+  useEffect(() => {
+    userIdRef.current = userId
+  }, [userId])
+
+  const hasUnsettledWrites = () =>
+    pendingRef.current.size > 0 || inFlightRef.current.size > 0 || removingRef.current.size > 0
+
+  // The server's cart, with the shopper's unconfirmed clicks laid over it:
+  // the unsent ones, and the ones another line's request may have been
+  // priced before. Two lines' requests in flight together can answer in
+  // either order; without this the earlier answer snapped the other line
+  // back to its old quantity.
+  const showServerCart = useCallback((items: CartItem[]) => {
+    serverItemsRef.current = items
+    const shown = items
+      .filter((item) => !removingRef.current.has(item.id))
+      .map((item) => {
+        const quantity = pendingRef.current.get(item.id) ?? inFlightRef.current.get(item.id)
+        return quantity === undefined ? item : withQuantity(item, quantity)
+      })
+    setCartItems(shown)
+    setTotalItems(countOf(shown))
+  }, [])
+
   useEffect(() => {
     if (!isSignedIn || !userId) {
+      setTotalItems(0)
       setCartItems([])
+      serverItemsRef.current = []
+      // Nothing of the previous shopper's may be laid over the next one's cart.
+      timersRef.current.forEach((timer) => clearTimeout(timer))
+      timersRef.current.clear()
+      pendingRef.current.clear()
+      inFlightRef.current.clear()
+      removingRef.current.clear()
       return
     }
 
     let cancelled = false
-    // Loud when the shopper is looking at the sheet, silent when this is
-    // only the badge catching up in the background — a toast about a cart
-    // nobody opened is noise.
+
+    const fetchCount = async () => {
+      try {
+        const response = await fetch("/api/cart/count")
+        if (!response.ok) return
+        const { count } = (await response.json()) as { count: number }
+        // A count read while a change is unsent or in flight predates it;
+        // the response to that change brings the right number.
+        if (!cancelled && !hasUnsettledWrites()) setTotalItems(count)
+      } catch (error) {
+        console.error("Error counting cart items:", error)
+      }
+    }
+
+    // Loud when the shopper is looking at the sheet, silent when it is
+    // only catching up in the background — a toast about a cart nobody
+    // opened is noise.
     const fetchCartItems = async (visible: boolean) => {
       if (visible) setIsLoading(true)
       try {
@@ -68,8 +146,8 @@ export function CartSidebar() {
           if (visible) toast.error(t("messages.failedToLoad"))
           return
         }
-        const items = await response.json()
-        if (!cancelled) setCartItems(items)
+        const items = (await response.json()) as CartItem[]
+        if (!cancelled) showServerCart(items)
       } catch (error) {
         console.error("Error fetching cart items:", error)
         if (visible) toast.error(t("messages.errorLoading"))
@@ -78,63 +156,111 @@ export function CartSidebar() {
       }
     }
 
-    fetchCartItems(isOpen)
-    const stop = onCartChanged(() => fetchCartItems(false))
+    // Opening loads the lines (the skeleton only the first time; after
+    // that the known list stays while it refreshes). Closing loads nothing.
+    if (isOpen) fetchCartItems(serverItemsRef.current.length === 0)
+    else fetchCount()
+    // Something else on the page changed the cart (added a product,
+    // completed an order): the badge catches up, and the lines too if
+    // the shopper is looking at them.
+    const stop = onCartChanged(() => (isOpen ? fetchCartItems(false) : fetchCount()))
     return () => {
       cancelled = true
       stop()
     }
-  }, [isOpen, isSignedIn, userId, t])
+  }, [isOpen, isSignedIn, userId, t, showServerCart])
 
-  const updateQuantity = async (itemId: string, newQuantity: number) => {
-    if (newQuantity < 1) return
+  // A click made just before the header unmounts (a full navigation) is
+  // still sent — fire and forget, kept alive past the page — instead of
+  // being lost with its timer.
+  useEffect(() => {
+    const timers = timersRef.current
+    const pending = pendingRef.current
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer))
+      timers.clear()
+      pending.forEach((quantity, itemId) => {
+        void fetch("/api/cart", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ itemId, quantity }),
+          keepalive: true,
+        }).catch(() => {})
+      })
+      pending.clear()
+    }
+  }, [])
 
-    const previousItems = [...cartItems]
-    setCartItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === itemId
-          ? {
-            ...item,
-            quantity: newQuantity,
-            // `discount` is a rate (0.13 = 13%). Dividing it by 100 again
-            // charged 0.13% and disagreed with the server's total.
-            totalPrice: priceLine({ unitPrice: item.price, quantity: newQuantity, discountRate: item.discount }).total,
-          }
-          : item,
-      ),
-    )
-
-    setIsUpdating(itemId)
+  // Sends a line's settled quantity. The response is the whole cart
+  // repriced, so nothing has to be fetched again; clicks made while it
+  // was in flight are sent as soon as it returns.
+  const flushQuantity = async (itemId: string) => {
+    if (inFlightRef.current.has(itemId)) return
+    const quantity = pendingRef.current.get(itemId)
+    if (quantity === undefined) return
+    pendingRef.current.delete(itemId)
+    inFlightRef.current.set(itemId, quantity)
+    const owner = userIdRef.current
     try {
       const response = await fetch("/api/cart", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemId, quantity: newQuantity }),
+        body: JSON.stringify({ itemId, quantity }),
       })
-
+      if (userIdRef.current !== owner) return
+      // This line's answer confirms its own quantity: nothing to lay over.
+      inFlightRef.current.delete(itemId)
       if (response.ok) {
-        const updatedItem = await response.json()
-        setCartItems((prevItems) => prevItems.map((item) => (item.id === itemId ? updatedItem : item)))
-        localStorage.setItem(`quantity-${itemId}`, newQuantity.toString())
-        notifyCartChanged()
+        showServerCart((await response.json()) as CartItem[])
         toast.success(t("messages.quantityUpdated"))
       } else {
-        setCartItems(previousItems)
+        pendingRef.current.delete(itemId)
+        showServerCart(serverItemsRef.current)
         toast.error(t("messages.failedToUpdate"))
       }
     } catch {
-      setCartItems(previousItems)
+      if (userIdRef.current !== owner) return
+      pendingRef.current.delete(itemId)
+      showServerCart(serverItemsRef.current)
       toast.error(t("messages.failedToUpdate"))
     } finally {
-      setIsUpdating(null)
+      inFlightRef.current.delete(itemId)
+      if (userIdRef.current === owner && pendingRef.current.has(itemId)) void flushQuantity(itemId)
     }
   }
 
+  const updateQuantity = async (itemId: string, newQuantity: number) => {
+    if (newQuantity < 1) return
+
+    // Shown at once; sent when the clicking stops.
+    const next = cartItems.map((item) => (item.id === itemId ? withQuantity(item, newQuantity) : item))
+    setCartItems(next)
+    setTotalItems(countOf(next))
+    pendingRef.current.set(itemId, newQuantity)
+    const timer = timersRef.current.get(itemId)
+    if (timer) clearTimeout(timer)
+    timersRef.current.set(
+      itemId,
+      setTimeout(() => {
+        timersRef.current.delete(itemId)
+        void flushQuantity(itemId)
+      }, QUANTITY_SETTLE_MS),
+    )
+  }
+
   const removeItem = async (itemId: string) => {
-    const previousItems = [...cartItems]
-    setCartItems((prevItems) => prevItems.filter((item) => item.id !== itemId))
+    // A quantity still waiting to be sent for this line is moot now.
+    const timer = timersRef.current.get(itemId)
+    if (timer) clearTimeout(timer)
+    timersRef.current.delete(itemId)
+    pendingRef.current.delete(itemId)
+    removingRef.current.add(itemId)
+    const next = cartItems.filter((item) => item.id !== itemId)
+    setCartItems(next)
+    setTotalItems(countOf(next))
 
     setIsUpdating(itemId)
+    const owner = userIdRef.current
     try {
       const response = await fetch("/api/cart", {
         method: "DELETE",
@@ -142,16 +268,20 @@ export function CartSidebar() {
         body: JSON.stringify({ itemId }),
       })
 
+      if (userIdRef.current !== owner) return
+      removingRef.current.delete(itemId)
       if (response.ok) {
-        localStorage.removeItem(`quantity-${itemId}`)
-        notifyCartChanged()
+        // What is left, repriced — a line's removal can change the others' discounts.
+        showServerCart((await response.json()) as CartItem[])
         toast.success(t("messages.itemRemoved"))
       } else {
-        setCartItems(previousItems)
+        showServerCart(serverItemsRef.current)
         toast.error(t("messages.failedToRemove"))
       }
     } catch {
-      setCartItems(previousItems)
+      if (userIdRef.current !== owner) return
+      removingRef.current.delete(itemId)
+      showServerCart(serverItemsRef.current)
       toast.error(t("messages.failedToRemove"))
     } finally {
       setIsUpdating(null)
@@ -162,7 +292,6 @@ export function CartSidebar() {
     setIsOpen(false)
   }
 
-  const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0)
   // The sheet computed this and then never showed it: a cart that adds up
   // to nothing the shopper can see.
   const totalPrice = serializeMoney(sumMoney(cartItems.map((item) => item.totalPrice)))

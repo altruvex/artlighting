@@ -11,7 +11,8 @@ import { getLocaleFromParams } from "@/lib/i18n/utils";
 import { BRANDS } from "@/lib/company";
 import { constructMetadata } from "@/lib/metadata";
 import { formatNumber } from "@/lib/numbers";
-import { ProductService } from "@/lib/services/product.service";
+import { ProductService, productView } from "@/lib/services/product.service";
+import { specNumbersByKey, specsByKey } from "@/lib/spec-groups";
 import { productReviewsSection } from "@/lib/reviews.server";
 import { catalogueCards, relatedCards } from "@/lib/shop.server";
 import type { PagePropsTypes } from "@/types";
@@ -90,6 +91,8 @@ export async function ProductPage({ params, brand }: { params: PagePropsTypes["p
   const path = `/category/${brand}/${familySlug(route.family)}/${route.lightingType}/${product.productId.toLowerCase()}`;
   const lightingTypeName = product.lightingtype?.translations?.[0]?.name ?? product.lightingtype?.name ?? route.lightingType;
   const effectivePrice = serializeMoney(subtractMoney(product.price, applyRate(product.price, product.discount)));
+  const { colorTemperature, cri } = specsByKey(product.specGroups);
+  const { maximumWattage } = specNumbersByKey(product.specGroups);
 
   return (
     <>
@@ -116,10 +119,10 @@ export async function ProductPage({ params, brand }: { params: PagePropsTypes["p
           // The figures a buyer compares fittings by, as data a search or
           // answer engine can quote without parsing the page.
           additionalProperty: [
-            product.maximumWattage && { "@type": "PropertyValue", name: "Power", value: product.maximumWattage, unitCode: "WTT" },
+            maximumWattage && { "@type": "PropertyValue", name: "Power", value: maximumWattage, unitCode: "WTT" },
             product.maxIP && { "@type": "PropertyValue", name: "IP rating", value: `IP${product.maxIP}` },
-            product.colorTemperature && { "@type": "PropertyValue", name: "Colour temperature", value: product.colorTemperature },
-            product.cri && { "@type": "PropertyValue", name: "CRI", value: product.cri },
+            colorTemperature && { "@type": "PropertyValue", name: "Colour temperature", value: colorTemperature },
+            cri && { "@type": "PropertyValue", name: "CRI", value: cri },
           ].filter(Boolean),
           ...(product.ratingCount > 0 && product.ratingAverage !== null
             ? { aggregateRating: { "@type": "AggregateRating", ratingValue: product.ratingAverage.toFixed(1), reviewCount: product.ratingCount } }
@@ -139,7 +142,8 @@ export async function ProductPage({ params, brand }: { params: PagePropsTypes["p
       </div>
       {/* The same for every visitor, so the page is fully prerendered; who is
           looking is asked for by the browser (ProductDetail). */}
-      <ProductDetail product={product} locale={locale} reviews={reviews} />
+      {/* Only the fields the client tree renders; the rest stays server-side. */}
+      <ProductDetail product={productView(product)} locale={locale} reviews={reviews} />
       <ProductContext
         locale={locale}
         productId={product.productId}
@@ -190,8 +194,8 @@ export async function productPageMetadata({
 
   // From the structured specs through the service, not the legacy
   // per-language strings. Absent when nothing is stored.
-  const { colorTemperature, cri } = product;
-  const wattage = product.maximumWattage;
+  const { colorTemperature, cri } = specsByKey(product.specGroups);
+  const wattage = specNumbersByKey(product.specGroups).maximumWattage;
   const watts = wattage ? (ar ? `${formatNumber(wattage, "ar")} وات ` : `${formatNumber(wattage, "en")}W `) : "";
   const lightingTypeName = product.lightingtype?.translations?.[0]?.name ?? product.lightingtype?.name ?? "";
   const outdoor = product.maxIP && product.maxIP >= 65;

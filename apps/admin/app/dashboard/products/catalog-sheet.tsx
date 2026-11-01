@@ -15,7 +15,6 @@ import { cn } from "@repo/ui/lib/utils";
 import type { ImportAction, ImportPlan } from "@repo/catalog";
 import { DownloadIcon, FileSpreadsheetIcon, UploadIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -51,7 +50,6 @@ function saveBase64(filename: string, base64: string) {
 
 export function CatalogSheetActions({ canWrite }: { canWrite: boolean }) {
   const t = useTranslations("Products.sheet");
-  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [open, setOpen] = useState(false);
@@ -99,8 +97,8 @@ export function CatalogSheetActions({ canWrite }: { canWrite: boolean }) {
       toast.success(t("applied", { count: result.data.updated }));
       setOpen(false);
       setFile(null);
+      // applyProductsSheet revalidates this route; no refresh needed.
       setPlan(null);
-      router.refresh();
     });
   }
 

@@ -16,8 +16,18 @@ export default async function OrderIdPage({ params }: { params: Promise<{ orderI
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
-      shippingAddress: true,
-      user: true,
+      shippingAddress: {
+        select: {
+          fullName: true,
+          phoneNumber: true,
+          address: true,
+          city: true,
+          state: true,
+          zipCode: true,
+          country: true,
+        },
+      },
+      user: { select: { id: true, email: true } },
       orderItems: {
         orderBy: { id: "asc" },
         include: {

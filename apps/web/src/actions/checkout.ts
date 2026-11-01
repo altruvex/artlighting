@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth-server";
 import { limitAction } from "@/middleware/ratelimit";
 import { CheckoutError, completeOrder, placeOrder, saveShippingAddress } from "@/lib/checkout.server";
 import { sendOrderConfirmationEmails } from "@/lib/email/order-emails";
-import { CATALOGUE_TAG } from "@/lib/cache.server";
+import { tagsForOrder } from "@/lib/cache.server";
 import { revalidateTag } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
@@ -84,9 +84,9 @@ export async function confirmOrder(orderId: number): Promise<Result<{ orderId: n
   try {
     const result = await completeOrder(orderId, userId);
     if (!result) return { ok: false, error: "not_found" };
-    // Stock moved, and a coupon may have used its last use: the cards'
-    // "few left", "sold out" and the promo bar are built from both.
-    revalidateTag(CATALOGUE_TAG, "max");
+    // Stock moved, and a coupon may have used its last use: each product's
+    // page, and the cards and promo bar only when they now read differently.
+    for (const tag of await tagsForOrder(orderId)) revalidateTag(tag, "max");
     // The receipt to the customer and the copy to the shop go out after
     // the response: the customer sees the thank-you page without waiting
     // on the mail provider, and a mail failure cannot undo the order.

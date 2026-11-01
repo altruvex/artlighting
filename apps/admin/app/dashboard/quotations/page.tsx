@@ -1,30 +1,73 @@
+import { parseTableParams, type SearchParamsInput, toPrismaPagination } from "@/components/data-table";
 import { PageHeader, PageShell } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@repo/ui/components/button";
 import { requirePermissionOrRedirect } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { quotationScope } from "@/lib/quotations/access";
-import type { CustomerSnapshot } from "@/lib/quotations/schema";
+import { QUOTATION_STATUSES, type CustomerSnapshot, type QuotationStatus } from "@/lib/quotations/schema";
 import { expireStaleQuotations } from "@/lib/quotations/server";
 import { toDateInput } from "@/lib/quotations/view";
-import { prisma } from "@repo/database";
+import { type Prisma, prisma } from "@repo/database";
 import { formatMoney, serializeMoney } from "@repo/money";
 import { CheckCircle2Icon, FileTextIcon, PlusIcon, SendIcon, TrophyIcon } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { QuotationsTable, type QuotationRow } from "./quotations-table";
 
-export default async function QuotationsPage() {
+/** Columns a URL may sort by, mapped to what they order on. */
+const SORTABLE = {
+  number: (d: Prisma.SortOrder) => ({ number: d }),
+  status: (d: Prisma.SortOrder) => ({ status: d }),
+  owner: (d: Prisma.SortOrder) => ({ owner: { name: d } }),
+  issueDate: (d: Prisma.SortOrder) => ({ issueDate: d }),
+  validUntil: (d: Prisma.SortOrder) => ({ validUntil: d }),
+  lines: (d: Prisma.SortOrder) => ({ lines: { _count: d } }),
+  total: (d: Prisma.SortOrder) => ({ grandTotal: d }),
+} satisfies Record<string, (d: Prisma.SortOrder) => Prisma.QuotationOrderByWithRelationInput>;
+
+export default async function QuotationsPage({ searchParams }: { searchParams: Promise<SearchParamsInput> }) {
   const admin = await requirePermissionOrRedirect("quotation:read");
   await expireStaleQuotations();
   const [t, locale] = await Promise.all([getTranslations("Quotations"), getLocale()]);
+  const showOwner = can(admin.role, "quotation:readAll");
+
+  const params = parseTableParams(await searchParams, {
+    sortableIds: Object.keys(SORTABLE),
+    filterKeys: showOwner ? ["status", "owner"] : ["status"],
+  });
+  const statusFilter = (params.filters.status ?? []).filter((value): value is QuotationStatus =>
+    (QUOTATION_STATUSES as readonly string[]).includes(value),
+  );
+  const ownerFilter = params.filters.owner ?? [];
 
   // Sales see their own quotations, and the figures above them are theirs too.
   const scope = quotationScope(admin);
-  const [quotations, pipeline, won] = await Promise.all([
+  const where: Prisma.QuotationWhereInput = {
+    ...scope,
+    ...(statusFilter.length > 0 ? { status: { in: statusFilter } } : {}),
+    ...(ownerFilter.length > 0 ? { ownerId: { in: ownerFilter } } : {}),
+    ...(params.q
+      ? {
+          OR: [
+            { number: { contains: params.q, mode: "insensitive" as const } },
+            { subject: { contains: params.q, mode: "insensitive" as const } },
+            { customer: { name: { contains: params.q, mode: "insensitive" as const } } },
+            { customer: { companyName: { contains: params.q, mode: "insensitive" as const } } },
+          ],
+        }
+      : {}),
+  };
+  const orderBy = params.sort
+    ? SORTABLE[params.sort.id as keyof typeof SORTABLE](params.sort.desc ? "desc" : "asc")
+    : { createdAt: "desc" as const };
+
+  const [total, quotations, byStatus, pipeline, won, owners] = await Promise.all([
+    prisma.quotation.count({ where }),
     prisma.quotation.findMany({
-      where: scope,
-      orderBy: { createdAt: "desc" },
+      where,
+      orderBy,
+      ...toPrismaPagination(params),
       select: {
         id: true,
         number: true,
@@ -34,15 +77,25 @@ export default async function QuotationsPage() {
         issueDate: true,
         validUntil: true,
         subject: true,
+        // Read here for the name; the snapshot itself never reaches the browser.
         customerSnapshot: true,
-        createdBy: { select: { name: true } },
         owner: { select: { name: true, email: true } },
         _count: { select: { lines: true } },
       },
     }),
+    // The cards count by status in the database, not by loading every row.
+    prisma.quotation.groupBy({ by: ["status"], where: scope, _count: { _all: true } }),
     // Figures are summed per currency; the cards show EGP, the house currency.
     prisma.quotation.aggregate({ where: { ...scope, status: "SENT", currency: "EGP" }, _sum: { grandTotal: true }, _count: true }),
     prisma.quotation.aggregate({ where: { ...scope, status: "ACCEPTED", currency: "EGP" }, _sum: { grandTotal: true }, _count: true }),
+    // The owner filter lists everyone who owns a quotation.
+    showOwner
+      ? prisma.admin.findMany({
+          where: { ownedQuotations: { some: {} } },
+          orderBy: { name: "asc" },
+          select: { id: true, name: true, email: true },
+        })
+      : Promise.resolve([]),
   ]);
 
   const rows: QuotationRow[] = quotations.map((q) => {
@@ -58,14 +111,14 @@ export default async function QuotationsPage() {
       subject: q.subject,
       customer: customer.companyName || customer.name,
       contact: customer.companyName ? customer.name : null,
-      createdBy: q.createdBy.name,
       owner: q.owner.name || q.owner.email,
       lineCount: q._count.lines,
     };
   });
 
-  const decided = rows.filter((r) => r.status === "ACCEPTED" || r.status === "REJECTED" || r.status === "EXPIRED").length;
-  const accepted = rows.filter((r) => r.status === "ACCEPTED").length;
+  const countOf = (status: QuotationStatus) => byStatus.find((g) => g.status === status)?._count._all ?? 0;
+  const accepted = countOf("ACCEPTED");
+  const decided = accepted + countOf("REJECTED") + countOf("EXPIRED");
   const canWrite = can(admin.role, "quotation:write");
 
   return (
@@ -88,7 +141,7 @@ export default async function QuotationsPage() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
           label={t("stats.drafts")}
-          value={rows.filter((r) => r.status === "DRAFT").length}
+          value={countOf("DRAFT")}
           icon={FileTextIcon}
         />
         <StatCard
@@ -111,7 +164,14 @@ export default async function QuotationsPage() {
         />
       </div>
 
-      <QuotationsTable rows={rows} canWrite={canWrite} showOwner={can(admin.role, "quotation:readAll")} />
+      <QuotationsTable
+        rows={rows}
+        total={total}
+        params={params}
+        owners={owners.map((o) => ({ value: o.id, label: o.name || o.email }))}
+        canWrite={canWrite}
+        showOwner={showOwner}
+      />
     </PageShell>
   );
 }

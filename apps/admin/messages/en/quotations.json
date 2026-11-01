@@ -31,6 +31,7 @@
       "invalid": "Some of the details are not valid.",
       "onLine": "Line {line}: {message}",
       "customerRequired": "Choose a customer.",
+      "productUnavailable": "This product is no longer available to quote.",
       "productMissing": "the product or variant no longer exists.",
       "notEditable": "Only a draft can be edited. Revise it to change a sent quotation.",
       "notFound": "That quotation no longer exists.",

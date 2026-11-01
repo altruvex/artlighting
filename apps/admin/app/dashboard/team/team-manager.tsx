@@ -31,7 +31,6 @@ import { ADMIN_ROLES } from "@/lib/permissions";
 import type { AdminRole } from "@repo/database";
 import { CheckIcon, CopyIcon, UsersIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -57,7 +56,6 @@ function generateSecurePassword(length = 20) {
 }
 
 export default function TeamManager({ admins }: { admins: TeamRow[] }) {
-  const router = useRouter();
   const t = useTranslations("Team");
   const tCommon = useTranslations("Common");
   const format = useFormatter();
@@ -88,7 +86,6 @@ export default function TeamManager({ admins }: { admins: TeamRow[] }) {
           return;
         }
         toast.success(msg);
-        router.refresh();
       } catch (err) {
         // Only transport-level failures reach here now.
         console.error("Team action failed", err);
@@ -117,7 +114,6 @@ export default function TeamManager({ admins }: { admins: TeamRow[] }) {
         setPassword("");
         setRole("SALES");
         toast.success(t("toasts.accountCreated"));
-        router.refresh();
       } catch (err) {
         // Only transport-level failures reach here now.
         console.error("createStaffAccount failed", err);

@@ -1,13 +1,29 @@
-import { orderLinesSelect, summarizeLines } from "@/lib/order-lines";
+import {
+  parseTableParams,
+  type SearchParamsInput,
+  toPrismaPagination,
+} from "@/components/data-table";
+import {
+  loadLineQuantities,
+  orderLinesCount,
+  orderLinesSelect,
+  summarizeLines,
+} from "@/lib/order-lines";
+import { ORDER_STATUSES } from "../../order-status";
 import { EmptyState } from "@/components/empty-state";
-import { formatMoney, serializeMoney, sumMoney } from "@repo/money";
+import { formatMoney, roundMoney, serializeMoney } from "@repo/money";
 import { PageHeader, PageShell } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@repo/ui/components/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/components/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/card";
 import UserAvatar from "@/components/user-avatar";
 import { requirePermissionOrRedirect } from "@/lib/auth";
-import { prisma } from "@repo/database";
+import { type OrderStatus, type Prisma, prisma } from "@repo/database";
 import {
   AlertTriangleIcon,
   ArrowLeftIcon,
@@ -22,7 +38,15 @@ import { notFound } from "next/navigation";
 import { UserClient, type CustomerOrderRow } from "./user-client";
 
 /** One labelled field inside the profile / address cards. */
-function Field({ label, value, ltr }: { label: string; value: string | null; ltr?: boolean }) {
+function Field({
+  label,
+  value,
+  ltr,
+}: {
+  label: string;
+  value: string | null;
+  ltr?: boolean;
+}) {
   return (
     <div className="space-y-0.5">
       <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
@@ -33,9 +57,65 @@ function Field({ label, value, ltr }: { label: string; value: string | null; ltr
   );
 }
 
-const UserPage = async ({ params }: { params: Promise<{ userId: string }> }) => {
+/** Columns the order history may sort by. Product, quantity and status are
+ *  summaries of lines or filters, so they do not sort. */
+const SORTABLE = {
+  order: (desc: Prisma.SortOrder) => ({ id: desc }),
+  total: (desc: Prisma.SortOrder) => ({ totalPrice: desc }),
+  date: (desc: Prisma.SortOrder) => ({ createdAt: desc }),
+} satisfies Record<
+  string,
+  (desc: Prisma.SortOrder) => Prisma.OrderOrderByWithRelationInput
+>;
+
+const UserPage = async ({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ userId: string }>;
+  searchParams: Promise<SearchParamsInput>;
+}) => {
   await requirePermissionOrRedirect("customer:read");
   const resolvedParams = await params;
+
+  const tableParams = parseTableParams(await searchParams, {
+    sortableIds: Object.keys(SORTABLE),
+    filterKeys: ["status"],
+    defaultSort: { id: "date", desc: true },
+    defaultPageSize: 10,
+  });
+  const statusFilter = (tableParams.filters.status ?? []).filter(
+    (value): value is OrderStatus =>
+      (ORDER_STATUSES as readonly string[]).includes(value),
+  );
+  // The table shows every order of the customer, completed or not, as before.
+  const ordersWhere: Prisma.OrderWhereInput = {
+    userId: resolvedParams.userId,
+    ...(statusFilter.length > 0 ? { status: { in: statusFilter } } : {}),
+    ...(tableParams.q
+      ? {
+          OR: [
+            ...(/^\d+$/.test(tableParams.q)
+              ? [{ id: Number.parseInt(tableParams.q, 10) }]
+              : []),
+            {
+              orderItems: {
+                some: {
+                  productName: {
+                    contains: tableParams.q,
+                    mode: "insensitive" as const,
+                  },
+                },
+              },
+            },
+          ],
+        }
+      : {}),
+  };
+  const sortKey = (tableParams.sort?.id ?? "date") as keyof typeof SORTABLE;
+  const orderBy = SORTABLE[sortKey](
+    (tableParams.sort?.desc ?? true) ? "desc" : "asc",
+  );
 
   const [t, tCommon, format, locale] = await Promise.all([
     getTranslations("CustomerDetail"),
@@ -45,39 +125,61 @@ const UserPage = async ({ params }: { params: Promise<{ userId: string }> }) => 
   ]);
 
   let user;
+  let pageOrders;
+  let filteredTotal;
+  let allOrders;
+  let completedOrders;
   try {
-    user = await prisma.user.findUnique({
-      where: { id: resolvedParams.userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phoneNumber: true,
-        createdAt: true,
-        shippingAddress: {
+    // Stats come from aggregates over all of the customer's orders; only the
+    // page of rows being shown is loaded.
+    [user, filteredTotal, pageOrders, allOrders, completedOrders] =
+      await Promise.all([
+        prisma.user.findUnique({
+          where: { id: resolvedParams.userId },
           select: {
-            fullName: true,
+            id: true,
+            name: true,
+            email: true,
             phoneNumber: true,
-            address: true,
-            city: true,
-            state: true,
-            zipCode: true,
-            country: true,
+            createdAt: true,
+            shippingAddress: {
+              select: {
+                fullName: true,
+                phoneNumber: true,
+                address: true,
+                city: true,
+                state: true,
+                zipCode: true,
+                country: true,
+              },
+            },
           },
-        },
-        orders: {
-          orderBy: { createdAt: "desc" },
+        }),
+        prisma.order.count({ where: ordersWhere }),
+        prisma.order.findMany({
+          where: ordersWhere,
+          orderBy,
+          ...toPrismaPagination(tableParams),
           select: {
             id: true,
             orderItems: orderLinesSelect,
+            _count: orderLinesCount,
             totalPrice: true,
             status: true,
-            isCompleted: true,
             createdAt: true,
           },
-        },
-      },
-    });
+        }),
+        prisma.order.aggregate({
+          where: { userId: resolvedParams.userId },
+          _count: { _all: true },
+          _max: { createdAt: true },
+        }),
+        prisma.order.aggregate({
+          where: { userId: resolvedParams.userId, isCompleted: true },
+          _count: { _all: true },
+          _sum: { totalPrice: true },
+        }),
+      ]);
   } catch (error) {
     console.error("Error fetching user:", error);
     return (
@@ -94,19 +196,24 @@ const UserPage = async ({ params }: { params: Promise<{ userId: string }> }) => 
     return notFound();
   }
 
-  const orders: CustomerOrderRow[] = user.orders.map((order) => ({
+  const quantities = await loadLineQuantities(
+    pageOrders.map((order) => order.id),
+  );
+  const orders: CustomerOrderRow[] = pageOrders.map((order) => ({
     id: order.id,
-    ...summarizeLines(order.orderItems),
+    ...summarizeLines(order, quantities),
     total: serializeMoney(order.totalPrice),
     status: order.status,
     createdAt: order.createdAt,
   }));
 
-  const completedOrders = user.orders.filter((order) => order.isCompleted);
-  const lifetimeValue = sumMoney(completedOrders.map((order) => order.totalPrice));
-  const lastOrderAt = user.orders[0]?.createdAt ?? null;
+  const orderCount = allOrders._count._all;
+  const completedCount = completedOrders._count._all;
+  const lifetimeValue = roundMoney(completedOrders._sum.totalPrice ?? 0);
+  const lastOrderAt = allOrders._max.createdAt;
 
-  const fullName = user.shippingAddress?.fullName?.trim() || user.name?.trim() || null;
+  const fullName =
+    user.shippingAddress?.fullName?.trim() || user.name?.trim() || null;
   const phone = user.shippingAddress?.phoneNumber ?? user.phoneNumber ?? null;
   const postalAddress = user.shippingAddress
     ? [
@@ -140,10 +247,14 @@ const UserPage = async ({ params }: { params: Promise<{ userId: string }> }) => 
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label={t("stats.orders")} value={orders.length} icon={ShoppingBagIcon} />
+        <StatCard
+          label={t("stats.orders")}
+          value={orderCount}
+          icon={ShoppingBagIcon}
+        />
         <StatCard
           label={t("stats.completed")}
-          value={completedOrders.length}
+          value={completedCount}
           icon={CircleCheckIcon}
         />
         <StatCard
@@ -154,7 +265,11 @@ const UserPage = async ({ params }: { params: Promise<{ userId: string }> }) => 
         />
         <StatCard
           label={t("stats.lastOrder")}
-          value={lastOrderAt ? format.dateTime(lastOrderAt, { dateStyle: "medium" }) : t("noValue")}
+          value={
+            lastOrderAt
+              ? format.dateTime(lastOrderAt, { dateStyle: "medium" })
+              : t("noValue")
+          }
           icon={CalendarIcon}
         />
       </div>
@@ -168,10 +283,15 @@ const UserPage = async ({ params }: { params: Promise<{ userId: string }> }) => 
             <div className="flex items-center gap-3">
               <UserAvatar name={fullName} email={user.email} size="lg" />
               <div className="min-w-0 leading-tight">
-                <p className="truncate text-sm font-medium">{fullName ?? t("noValue")}</p>
+                <p className="truncate text-sm font-medium">
+                  {fullName ?? t("noValue")}
+                </p>
                 <p className="truncate text-xs text-muted-foreground">
                   {t("memberSince", {
-                    date: format.dateTime(user.createdAt, { month: "short", year: "numeric" }),
+                    date: format.dateTime(user.createdAt, {
+                      month: "short",
+                      year: "numeric",
+                    }),
                   })}
                 </p>
               </div>
@@ -230,9 +350,15 @@ const UserPage = async ({ params }: { params: Promise<{ userId: string }> }) => 
           <h2 id="order-history-heading" className="text-sm font-semibold">
             {t("orderHistory")}
           </h2>
-          <p className="text-xs text-muted-foreground">{t("orderHistoryDescription")}</p>
+          <p className="text-xs text-muted-foreground">
+            {t("orderHistoryDescription")}
+          </p>
         </div>
-        <UserClient orders={orders} />
+        <UserClient
+          orders={orders}
+          total={filteredTotal}
+          params={tableParams}
+        />
       </section>
     </PageShell>
   );

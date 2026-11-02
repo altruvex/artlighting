@@ -17,6 +17,38 @@ import Preview, { type PreviewProduct } from "./preview"
 // The spec keys behind the six figures the screen shows; nothing else is read.
 const FIGURE_KEYS = ["luminousFlux", "colorTemperature", "beamAngle", "cri", "mainMaterial", "lifeTime"] as const
 
+// The kelvin behind each colour option the buy box offers (see the
+// ProductColorTemp enum).
+const KELVIN = { warm: 3000, white: 4000, cool: 6500 } as const
+
+/**
+ * The figures for the option the customer chose, not every variant the
+ * catalogue lists: the colour temperature is the chosen one, and a luminous
+ * flux measured per colour temperature is the one measured at it. The buy
+ * box offers all three options on every product, so the catalogue's list
+ * can name a temperature other than the one ordered.
+ */
+function figuresForChoice<G extends { items: { key: string | null; measurements: { value: unknown; conditionValue: unknown }[] }[] }>(
+  groups: G[],
+  colorTemp: string | null,
+): G[] {
+  const kelvin = colorTemp ? KELVIN[colorTemp as keyof typeof KELVIN] : undefined
+  if (!kelvin) return groups
+  return groups.map((group) => ({
+    ...group,
+    items: group.items.map((item) => {
+      if (item.key === "colorTemperature") {
+        return { ...item, comparator: "EXACT", measurements: [{ value: kelvin, valueMax: null, conditionValue: null, conditionUnit: null }] }
+      }
+      if (item.key === "luminousFlux") {
+        const atChoice = item.measurements.filter((m) => m.conditionValue != null && Number(String(m.conditionValue)) === kelvin)
+        return atChoice.length > 0 ? { ...item, measurements: atChoice } : item
+      }
+      return item
+    }),
+  }))
+}
+
 const Page = async ({ params, searchParams }: PagePropsTypes) => {
   const resolvedParams = await params
   const locale = getLocaleFromParams(resolvedParams)
@@ -101,7 +133,7 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
     }
     // The structured specs, by key. Read here rather than spread: their
     // measurements are Decimals, which cannot cross into a Client Component.
-    const specs = specsByKey(localizeSpecGroups(product.specGroups, locale))
+    const specs = specsByKey(localizeSpecGroups(figuresForChoice(product.specGroups, configuration.colorTemp), locale))
 
     const localizedProduct: PreviewProduct = {
       // The ProductImage table, not the legacy array — see lib/product-images.

@@ -11,7 +11,7 @@ import { z } from "zod";
  * app's cache, so it calls here (apps/admin/lib/storefront.ts) with the
  * shared STOREFRONT_REVALIDATE_SECRET. Without the secret configured the
  * route refuses everything, and the cache still refreshes on its own
- * within the "catalogue" cacheLife (5 minutes).
+ * within the catalogue cache lifetime (CATALOGUE_REVALIDATE, one hour).
  */
 const Body = z.object({ tags: z.array(z.string().max(256)).min(1).max(20) });
 

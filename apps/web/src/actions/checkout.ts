@@ -86,7 +86,9 @@ export async function confirmOrder(orderId: number): Promise<Result<{ orderId: n
     if (!result) return { ok: false, error: "not_found" };
     // Stock moved, and a coupon may have used its last use: each product's
     // page, and the cards and promo bar only when they now read differently.
-    for (const tag of await tagsForOrder(orderId)) revalidateTag(tag, "max");
+    // Expired now rather than "max" (serve stale once, refresh behind it), so
+    // the next shopper already sees the new count.
+    for (const tag of await tagsForOrder(orderId)) revalidateTag(tag, { expire: 0 });
     // The receipt to the customer and the copy to the shop go out after
     // the response: the customer sees the thank-you page without waiting
     // on the mail provider, and a mail failure cannot undo the order.

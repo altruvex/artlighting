@@ -30,14 +30,22 @@ const BRAND = {
 } as const;
 
 /**
- * Every active product of a brand, as its route params — so each product
- * page is prerendered at build. One added later is served its shell on the
- * first visit and prerendered then (partialPrefetching in next.config.ts).
+ * Product pages are not prerendered at build: each is served its shell on
+ * the first visit and prerendered then (partialPrefetching in
+ * next.config.ts), the same path a product added after the build takes.
+ * Prerendering all ~480 pages made each Vercel build wait minutes on the
+ * database, and build CPU minutes are billed for that waiting.
+ * cacheComponents refuses an empty generateStaticParams, so one product
+ * per brand (the first featured one) is still built.
  */
+const PRERENDERED_PER_BRAND = 1;
+
+/** The minimum route params the build needs for a brand's product route. */
 export async function productStaticParams(brand: Brand) {
   const cards = await catalogueCards("en");
   return cards
     .filter((card) => card.brand === brand)
+    .slice(0, PRERENDERED_PER_BRAND)
     .map((card) => ({
       subCategory: familySlug(card.sectionType as Parameters<typeof familySlug>[0]),
       lightingType: card.spotlightType.toLowerCase(),

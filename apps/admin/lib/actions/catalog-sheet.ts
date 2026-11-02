@@ -97,9 +97,13 @@ export async function applyProductsSheet(formData: FormData) {
     const rows = await readSheet(file);
     if (rows.length > MAX_ROWS) throw new ActionError(t("errors.tooManyRows", { max: MAX_ROWS }));
 
-    const result = await catalog.applyImport(rows, admin.id);
-    revalidateStorefront();
-    revalidatePath("/dashboard/products");
-    return result;
+    // Batches commit one by one, so a failure part-way still leaves changed
+    // rows behind: refresh the storefront whether or not the import finished.
+    try {
+      return await catalog.applyImport(rows, admin.id);
+    } finally {
+      revalidateStorefront();
+      revalidatePath("/dashboard/products");
+    }
   });
 }

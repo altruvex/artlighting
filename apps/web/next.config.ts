@@ -55,8 +55,8 @@ const nextConfig: NextConfig = {
     catalogue: { stale: 60, revalidate: 3600, expire: 86400 },
   },
   experimental: {
-    // Every product page is prerendered at build (~480 pages). At the
-    // default concurrency the Neon driver's websockets failed under the
+    // Product pages are prerendered at build (a capped sample, see
+    // productStaticParams). At the default concurrency the Neon driver's websockets failed under the
     // burst of parallel queries and took the build down; retry what fails
     // and keep each worker to a few pages at a time.
     staticGenerationMaxConcurrency: 4,

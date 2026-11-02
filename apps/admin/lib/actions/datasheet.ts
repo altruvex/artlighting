@@ -32,6 +32,10 @@ export async function saveDatasheetToProduct(productId: string, input: Datasheet
       console.error("datasheet write-back failed", error);
       throw new ActionError(t("saveFailed"));
     }
+    // The specs are committed now; the description write below can still fail,
+    // and the storefront must not keep the old specs when it does. The POST
+    // itself runs after the response, so it sees the description too.
+    revalidateStorefront();
 
     // Stored as the product's authored English description, which every
     // generated document prefers over the text composed from its specs.
@@ -43,7 +47,6 @@ export async function saveDatasheetToProduct(productId: string, input: Datasheet
       });
     }
 
-    revalidateStorefront();
     revalidatePath(`/dashboard/products/${productId}`);
     revalidatePath(`/dashboard/products/${productId}/datasheet`);
     return {

@@ -5,7 +5,7 @@ import { after } from "next/server";
 /**
  * Tells the storefront (apps/web) that catalogue data changed, so it drops
  * its cached products, prices, stock and promotions instead of serving them
- * for up to 5 more minutes.
+ * until its one-hour cache lifetime (CATALOGUE_REVALIDATE) runs out.
  *
  * The storefront is a separate Next app: this app's revalidateTag cannot
  * reach its cache, so it is an authenticated POST to its /api/revalidate.
@@ -19,7 +19,12 @@ import { after } from "next/server";
 export function revalidateStorefront(tags: string[] = ["catalogue"]): void {
   const base = process.env.NEXT_PUBLIC_APP_URL;
   const secret = process.env.STOREFRONT_REVALIDATE_SECRET;
-  if (!base || !secret) return;
+  if (!base || !secret) {
+    // Not an error (local dev runs without it), but in production it means
+    // every admin save waits for the storefront's own cache timer.
+    console.warn("Storefront revalidation skipped: NEXT_PUBLIC_APP_URL or STOREFRONT_REVALIDATE_SECRET is not set.");
+    return;
+  }
 
   after(async () => {
     try {

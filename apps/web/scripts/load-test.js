@@ -10,7 +10,7 @@
 // It refuses any BASE other than localhost unless ALLOW_REMOTE=1: pointing
 // it at the live site is a denial-of-service against it. Also check which
 // database the local server reads — Next loads .env.local over .env, and
-// the .env files in this repo point at production (ep-empty-fog); run with
+// the .env files in this repo point at production (ep-soft-glitter since 2026-11-03); run with
 // a .env.local on the Neon dev branch.
 /* global __ENV */
 import http from "k6/http";

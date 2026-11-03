@@ -45,7 +45,12 @@ const nextConfig: NextConfig = {
   // product routes).
   partialPrefetching: true,
   ...(sharedCacheTags && {
-    cacheHandlers: { default: fileURLToPath(new URL("./cache-handler.cjs", import.meta.url)) },
+    // remote too: catalogueCards uses "use cache: remote", and without this
+    // its entries would skip the shared invalidation.
+    cacheHandlers: {
+      default: fileURLToPath(new URL("./cache-handler.cjs", import.meta.url)),
+      remote: fileURLToPath(new URL("./cache-handler.cjs", import.meta.url)),
+    },
   }),
   cacheLife: {
     // Products, prices, stock and promotions. Every admin write, order and

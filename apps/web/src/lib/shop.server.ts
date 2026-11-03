@@ -144,9 +144,16 @@ async function loadCardRows(locale: string) {
  * concurrent visitors that was ~2 pages a second at ~20 s each. Now it
  * is one query per locale per cache lifetime; the admin and the checkout
  * drop it early through the CATALOGUE tag.
+ *
+ * Remote, not in-memory: a plain "use cache" entry lives in one serverless
+ * instance, so every new instance reloaded the whole catalogue. Under a
+ * crawler burst (GPTBot, Nov 2026) that was thousands of full loads and
+ * the database's monthly transfer allowance in hours. The remote entry is
+ * shared by every instance (Vercel's runtime cache; self-hosted, the
+ * handler in next.config.ts).
  */
 export async function catalogueCards(locale: string): Promise<ShopCard[]> {
-  "use cache";
+  "use cache: remote";
   cacheTag(CATALOGUE_TAG, CARDS_TAG);
   await catalogueCacheLife();
   const [rows, t] = await Promise.all([

@@ -43,7 +43,7 @@ const PRERENDERED_PER_BRAND = 1;
 /** The minimum route params the build needs for a brand's product route. */
 export async function productStaticParams(brand: Brand) {
   const cards = await catalogueCards("en");
-  return cards
+  const params = cards
     .filter((card) => card.brand === brand)
     .slice(0, PRERENDERED_PER_BRAND)
     .map((card) => ({
@@ -51,6 +51,10 @@ export async function productStaticParams(brand: Brand) {
       lightingType: card.spotlightType.toLowerCase(),
       ProductId: card.productId.toLowerCase(),
     }));
+  // A brand with no products yet (a fresh database) would leave the list
+  // empty, which fails the build. This placeholder is no family, so the
+  // page answers it with notFound().
+  return params.length > 0 ? params : [{ subCategory: "none", lightingType: "none", ProductId: "none" }];
 }
 
 /** The route's three segments, checked; null for anything that cannot be a product. */

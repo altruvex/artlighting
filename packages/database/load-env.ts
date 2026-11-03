@@ -34,7 +34,7 @@ export function hostOf(url: string | undefined): string {
 }
 
 /** The production Neon endpoint; see docs/UPGRADE_PLAN.md §0. */
-const PRODUCTION_ENDPOINT = "ep-soft-glitter";
+const PRODUCTION_ENDPOINT = "ep-shy-lab";
 
 export function isProductionHost(url: string | undefined): boolean {
   return hostOf(url).includes(PRODUCTION_ENDPOINT);

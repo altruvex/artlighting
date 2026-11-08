@@ -111,9 +111,18 @@
         "withCode": "with code",
         "shop": "Shop the offer",
         "dismiss": "Hide offers",
+        "limited": "Limited-time offer",
+        "shopNow": "Shop now",
         "endsIn": "Ends in",
-        "dh": "{d}d {h}h",
-        "hm": "{h}h {m}m",
+        "until": "Valid until",
+        "untilShort": "Until",
+        "endsOn": "Ends on {date}",
+        "units": {
+            "d": "days",
+            "h": "hrs",
+            "m": "min",
+            "s": "sec"
+        },
         "on": {
             "family": "on all {family}",
             "families": "on all {families}",

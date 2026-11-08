@@ -91,3 +91,12 @@
     mix-blend-mode: normal;
   }
 }
+
+/* The promo bar's figure chip: one pass of light, then a long rest. The
+   pass is the first fifth of the cycle; the element is hidden under
+   prefers-reduced-motion. --sheen-dir is -1 in Arabic, so the light runs
+   with the reading direction. */
+@keyframes promo-sheen {
+  0% { transform: translateX(0); }
+  20%, 100% { transform: translateX(calc(400% * var(--sheen-dir, 1))); }
+}

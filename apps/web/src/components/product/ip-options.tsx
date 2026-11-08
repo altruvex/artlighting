@@ -6,7 +6,6 @@ import { availableIps, calculateIpPriceIncrease } from "@/lib/pricing-rules";
 import { cn } from "@/lib/utils";
 import { money } from "@repo/money";
 import type { ProductIP } from "@repo/database";
-import { Droplets } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -136,18 +135,23 @@ export default function ProductIPButtons({
               aria-checked={isActive}
               onClick={() => handleIpChange(ip)}
               disabled={isUpdating}
-              className={optionChip(isActive)}
+              className={cn(optionChip(isActive), "flex-col gap-0.5 whitespace-nowrap")}
             >
-              <Droplets className={cn("size-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} aria-hidden />
-              <span dir="ltr">{t(`ratings.${ip}.label`)}</span>
+              <span dir="ltr" className="font-semibold">
+                {t(`ratings.${ip}.label`)}
+              </span>
               {money(displayedIncrease).greaterThan(0) && (
-                <span className="text-muted-foreground">
+                <span className="text-[length:var(--text-xs)] font-normal text-muted-foreground">
                   {/* With the currency, as the bulb options print theirs: "+90" beside
                       "+EGP 90" read as two different kinds of figure. */}
                   +{formatNumberWithConversion(money(displayedIncrease).toFixed(2), isRTL ? "ar" : "en")}
                 </span>
               )}
-              {isUpdating && isActive && <ChipSpinner />}
+              {isUpdating && isActive && (
+                <span className="absolute end-2 top-1/2 -translate-y-1/2">
+                  <ChipSpinner />
+                </span>
+              )}
             </button>
           );
         })}

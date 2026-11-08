@@ -1,8 +1,10 @@
 "use client";
 
 import { addToCart } from "@/actions/cart";
+import { usePathname, useRouter } from "@/i18n/navigation";
 import { notifyCartChanged } from "@/lib/cart-events";
 import { useAuth } from "@/lib/auth-hooks";
+import { currentReturnPath, savePendingAdd, signInPath } from "@/lib/pending-cart";
 import { cn } from "@/lib/utils";
 import { Loader2Icon, ShoppingBagIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -27,10 +29,22 @@ export function AddToCartButton({
   const { isSignedIn } = useAuth();
   const t = useTranslations("product-card");
   const tToast = useTranslations("toast");
+  const tAuth = useTranslations("auth");
+  const router = useRouter();
+  const pathname = usePathname();
 
   const handleAddToCart = () => {
     if (!isSignedIn) {
-      toast.error(tToast("signInRequired"));
+      // The tap is kept, not refused: the intent is saved for after sign-in
+      // (completed by PendingCartResumer) and the toast offers the way there,
+      // with this page — filters and all — as the way back.
+      savePendingAdd({ productId, productName: displayName, quantity: 1 });
+      const returnTo = currentReturnPath(pathname);
+      toast(tToast("signInRequired"), {
+        id: "pending-add",
+        description: tToast("addAfterSignIn"),
+        action: { label: tAuth("signIn"), onClick: () => router.push(signInPath(returnTo)) },
+      });
       return;
     }
     startTransition(async () => {

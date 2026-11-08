@@ -1,3 +1,4 @@
+import { ClosingCta } from "@/components/closing-cta";
 import ProductCard from "@/components/product-card/product-card";
 import { SectionHeading } from "@/components/section-heading";
 import { ShopFilters } from "@/components/shop/shop-filters";
@@ -99,6 +100,9 @@ async function ShopForUrl({ params, searchParams }: Props) {
   return <CachedShopView locale={locale} raw={raw} />;
 }
 
+/** Cards whose photos load eagerly: the first row at the widest grid (4 columns). */
+const ABOVE_THE_FOLD = 4;
+
 /** The query keys the shop reads. Anything else (utm_…, fbclid) is not part of the page. */
 const SHOP_KEYS = ["family", "brand", "type", "sale", "min", "max", "sort", "q", "page"] as const;
 
@@ -131,9 +135,10 @@ async function shopView(locale: string, raw: ShopParams) {
   // every visit missed the cache and rendered from scratch.
   setRequestLocale(locale);
   const query = parseShopQuery(raw);
-  const [t, tFamily, result] = await Promise.all([
+  const [t, tFamily, tNav, result] = await Promise.all([
     getTranslations({ locale, namespace: "shop" }),
     getTranslations({ locale, namespace: "family" }),
+    getTranslations({ locale, namespace: "nav" }),
     searchShop(query, locale),
   ]);
 
@@ -161,98 +166,121 @@ async function shopView(locale: string, raw: ShopParams) {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-screen-2xl px-4 pb-24 pt-8 sm:px-6 lg:px-10">
-      <Breadcrumbs
-        locale={locale}
-        className="mb-6"
-        items={
-          family && type
-            ? [
-                { label: t("title"), href: "/products" },
-                { label: tFamily(family), href: `/products?family=${familySlug(family)}` },
-                { label: pick(type.name, locale) },
-              ]
-            : family
-              ? [{ label: t("title"), href: "/products" }, { label: tFamily(family) }]
-              : [{ label: t("title") }]
-        }
-      />
-      <SectionHeading
-        as="h1"
-        eyebrow={type ? pick(FAMILY_INTRO[family!].title, locale) : family ? t("title") : undefined}
-        title={type ? pick(type.search, locale) : family ? pick(FAMILY_INTRO[family].title, locale) : t("heading")}
-        subtitle={t("count", { count: result.total, formatted: formatNumber(result.total, locale === "ar" ? "ar" : "en") })}
-        subtitleLive
-        action={<ShopSort value={query.sort} params={raw} />}
-        className="mb-0 border-b border-border pb-6 lg:mb-0"
-      />
+    <>
+      <div className="mx-auto w-full max-w-screen-2xl px-4 pb-12 pt-5 sm:px-6 md:pt-8 lg:px-10 lg:pb-16">
+        <Breadcrumbs
+          locale={locale}
+          className="mb-3 md:mb-6"
+          items={
+            family && type
+              ? [
+                  { label: t("title"), href: "/products" },
+                  { label: tFamily(family), href: `/products?family=${familySlug(family)}` },
+                  { label: pick(type.name, locale) },
+                ]
+              : family
+                ? [{ label: t("title"), href: "/products" }, { label: tFamily(family) }]
+                : [{ label: t("title") }]
+          }
+        />
+        <SectionHeading
+          as="h1"
+          eyebrow={type ? pick(FAMILY_INTRO[family!].title, locale) : family ? t("title") : undefined}
+          title={type ? pick(type.search, locale) : family ? pick(FAMILY_INTRO[family].title, locale) : t("heading")}
+          subtitle={t("count", { count: result.total, formatted: formatNumber(result.total, locale === "ar" ? "ar" : "en") })}
+          subtitleLive
+          // Below lg the sort sits beside the filter button in the sticky
+          // toolbar (ShopFilters); here it is the desktop's.
+          action={
+            <div className="hidden lg:block">
+              <ShopSort value={query.sort} params={raw} />
+            </div>
+          }
+          // A phone's first screen is for products: the page title one step
+          // down the scale there, the desktop's unchanged.
+          className="mb-0 border-b border-border pb-4 md:pb-6 lg:mb-0 max-md:[&_h1]:text-[length:var(--text-2xl)]"
+        />
 
-      {family && (
-        <FamilyIntro family={family} locale={locale} params={raw} typeFacets={result.facets.type} activeTypes={query.types} />
-      )}
+        {family && (
+          <FamilyIntro family={family} locale={locale} params={raw} typeFacets={result.facets.type} activeTypes={query.types} />
+        )}
 
-      {chips.length > 0 && (
-        <ul className="flex flex-wrap items-center gap-2 pt-5" aria-label={t("activeFilters")}>
-          {chips.map((chip) => (
-            <li key={chip.href + chip.label}>
-              <Link
-                href={chip.href}
-                scroll={false}
-                className="group inline-flex min-h-10 items-center gap-1.5 rounded-full border border-border bg-card pe-2.5 ps-3 text-[length:var(--text-sm)] transition-colors duration-[var(--dur-hover)] ease-[var(--ease-out)] hover:border-primary/60 sm:min-h-8"
-              >
-                {chip.label}
-                <XIcon className="size-3.5 text-muted-foreground group-hover:text-foreground" aria-hidden />
-                <span className="sr-only">{t("remove")}</span>
-              </Link>
-            </li>
-          ))}
-          <li>
-            <Link
-              href={clearFilters(raw)}
-              scroll={false}
-              className="inline-flex min-h-10 items-center px-1 text-[length:var(--text-sm)] font-medium text-muted-foreground underline-offset-4 transition-colors duration-[var(--dur-hover)] hover:text-foreground hover:underline sm:min-h-8"
-            >
-              {t("clearAll")}
-            </Link>
-          </li>
-        </ul>
-      )}
-
-      <div className="grid gap-x-10 pt-8 lg:grid-cols-[16rem_minmax(0,1fr)]">
-        <ShopFilters query={query} facets={result.facets} priceBounds={result.priceBounds} params={raw} />
-
-        <section aria-label={t("results")}>
-          {result.products.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 rounded-md border border-dashed border-border px-6 py-20 text-center">
-              <SearchX className="size-6 text-muted-foreground" strokeWidth={1.5} aria-hidden />
-              <p className="text-[length:var(--text-lg)] font-medium">{t("emptyTitle")}</p>
-              <p className="max-w-sm text-pretty text-muted-foreground">{t("emptyBody")}</p>
+        {chips.length > 0 && (
+          <ul className="flex flex-wrap items-center gap-2 pt-4 md:pt-5" aria-label={t("activeFilters")}>
+            {chips.map((chip) => (
+              <li key={chip.href + chip.label}>
+                <Link
+                  href={chip.href}
+                  scroll={false}
+                  className="group inline-flex min-h-10 items-center gap-1.5 rounded-full border border-border bg-card pe-2.5 ps-3 text-[length:var(--text-sm)] transition-colors duration-[var(--dur-hover)] ease-[var(--ease-out)] hover:border-primary/60 sm:min-h-8"
+                >
+                  {chip.label}
+                  <XIcon className="size-3.5 text-muted-foreground group-hover:text-foreground" aria-hidden />
+                  <span className="sr-only">{t("remove")}</span>
+                </Link>
+              </li>
+            ))}
+            <li>
               <Link
                 href={clearFilters(raw)}
-                className="mt-2 inline-flex min-h-10 items-center rounded-md bg-primary px-5 font-medium text-primary-foreground transition-[background-color,transform] duration-[var(--dur-press)] ease-[var(--ease-out)] hover:bg-primary/90 active:scale-[0.98]"
+                scroll={false}
+                className="inline-flex min-h-10 items-center px-1 text-[length:var(--text-sm)] font-medium text-muted-foreground underline-offset-4 transition-colors duration-[var(--dur-hover)] hover:text-foreground hover:underline sm:min-h-8"
               >
                 {t("clearAll")}
               </Link>
-            </div>
-          ) : (
-            <>
-              <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 md:grid-cols-3 xl:grid-cols-4">
-                {result.products.map((product) => (
-                  <li key={product.id}>
-                    <ProductCard product={product} locale={locale} />
-                  </li>
-                ))}
-              </ul>
-              <ShopPagination
-                page={result.page}
-                pageCount={result.pageCount}
-                params={raw}
-                locale={locale}
-              />
-            </>
-          )}
-        </section>
+            </li>
+          </ul>
+        )}
+
+        <div className="grid gap-x-10 pt-3 md:pt-6 lg:grid-cols-[16rem_minmax(0,1fr)] lg:pt-8">
+          <ShopFilters query={query} facets={result.facets} priceBounds={result.priceBounds} params={raw} />
+
+          <section aria-label={t("results")}>
+            {result.products.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 rounded-md border border-dashed border-border px-6 py-20 text-center">
+                <SearchX className="size-6 text-muted-foreground" strokeWidth={1.5} aria-hidden />
+                <p className="text-[length:var(--text-lg)] font-medium">{t("emptyTitle")}</p>
+                <p className="max-w-sm text-pretty text-muted-foreground">{t("emptyBody")}</p>
+                <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
+                  <Link
+                    href={clearFilters(raw)}
+                    className="inline-flex min-h-10 items-center rounded-md bg-primary px-5 font-medium text-primary-foreground transition-[background-color,transform] duration-[var(--dur-press)] ease-[var(--ease-out)] hover:bg-primary/90 active:scale-[0.98]"
+                  >
+                    {t("clearAll")}
+                  </Link>
+                  {/* A way out that is not another filter: the whole catalogue. */}
+                  <Link
+                    href="/products"
+                    className="inline-flex min-h-10 items-center rounded-md border border-border bg-card px-5 font-medium transition-[border-color,transform] duration-[var(--dur-press)] ease-[var(--ease-out)] hover:border-primary/60 active:scale-[0.98]"
+                  >
+                    {tNav("allProducts")}
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <>
+                <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 md:grid-cols-3 xl:grid-cols-4">
+                  {result.products.map((product, index) => (
+                    <li key={product.id}>
+                      {/* The first row on any width (2 on a phone, up to 4 on
+                          a wide screen) is above the fold: load it now. */}
+                      <ProductCard product={product} locale={locale} eager={index < ABOVE_THE_FOLD} />
+                    </li>
+                  ))}
+                </ul>
+                <ShopPagination
+                  page={result.page}
+                  pageCount={result.pageCount}
+                  params={raw}
+                  locale={locale}
+                />
+              </>
+            )}
+          </section>
+        </div>
       </div>
-    </div>
+      {/* The end of the shelf is not a dead end: a person to ask. */}
+      <ClosingCta locale={locale} />
+    </>
   );
 }

@@ -2,6 +2,7 @@ import { ClosingCta } from "@/components/closing-cta";
 import { Onward } from "@/components/editorial/arrow";
 import { JsonLd } from "@/components/editorial/json-ld";
 import { PageHeader } from "@/components/editorial/page-header";
+import { ShopRail } from "@/components/shop-rail";
 import { SECTION_FRAME } from "@/components/section-heading";
 import { applicationBySlug } from "@/content/applications";
 import { GUIDE, guideBySlug, type GuideBlock } from "@/content/guide";
@@ -14,6 +15,7 @@ import { absoluteUrl, ORGANIZATION_ID } from "@/lib/site";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
@@ -50,6 +52,8 @@ export default async function GuideArticlePage({ params }: Props) {
   const title = pick(article.title, locale);
   const headings = article.body.flatMap((block) => (block.kind === "h2" ? [block] : []));
   const applications = article.related.applications.flatMap((slug) => applicationBySlug(slug) ?? []);
+  const types = [...new Set(applications.flatMap((application) => application.types))];
+  const families = [...new Set(applications.flatMap((application) => application.families ?? []))];
   const index = GUIDE.findIndex((entry) => entry.slug === article.slug);
   const next = GUIDE[(index + 1) % GUIDE.length];
 
@@ -136,6 +140,10 @@ export default async function GuideArticlePage({ params }: Props) {
           <Onward className="size-6 transition-transform duration-[var(--dur-hover)] group-hover:translate-x-1 rtl:group-hover:-translate-x-1" />
         </Link>
       </nav>
+
+      <Suspense fallback={null}>
+        <ShopRail id="guide-shop" locale={locale} types={types} families={families} title={t("shopTitle")} subtitle={t("shopSub")} hrefLabel={t("shopLink")} />
+      </Suspense>
 
       <ClosingCta locale={locale} />
     </>

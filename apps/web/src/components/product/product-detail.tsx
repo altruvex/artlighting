@@ -77,8 +77,9 @@ export default function ProductDetail({
   const colorTemperature = specsByKey(product.specGroups).colorTemperature;
 
   return (
-    // Room at the bottom on a phone for the buy bar that rides along there.
-    <article className="pb-40 md:pb-0">
+    // Room at the bottom on a phone for the one-row buy bar that shows while
+    // the in-page buttons are scrolled away (it covers the end of the page).
+    <article className="pb-24 md:pb-0">
       <RecordView productId={product.productId} />
 
       <div className={`${SECTION_FRAME} pt-4 lg:pt-6`}>

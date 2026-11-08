@@ -4,6 +4,7 @@ import { searchProducts, type SearchHit } from "@/actions/search"
 import { MIN_SEARCH_LENGTH } from "@/actions/search-limits"
 import { familySlug } from "@repo/catalog/families"
 import type { ProductFamily } from "@repo/catalog/families";
+import { BRANDS } from "@/lib/company";
 import { money } from "@repo/money";
 import { Input } from "@repo/ui/components/input"
 import { Link, useRouter } from "@/i18n/navigation"
@@ -28,9 +29,11 @@ const searchable = (term: string) => term.trim().length >= MIN_SEARCH_LENGTH
 interface SearchHeaderProps {
     isMobile?: boolean
     isMobileSheet?: boolean
+    /** Called after a result is picked or the search is submitted (lets a host dialog close). */
+    onNavigate?: () => void
 }
 
-export function SearchHeader({ isMobile = false, isMobileSheet = false }: SearchHeaderProps) {
+export function SearchHeader({ isMobile = false, isMobileSheet = false, onNavigate }: SearchHeaderProps) {
     const [searchTerm, setSearchTerm] = useState("")
     const [debouncedSearchTerm] = useDebounce(searchTerm, 300)
     const [result, setResult] = useState<SearchResult>(EMPTY)
@@ -110,6 +113,7 @@ export function SearchHeader({ isMobile = false, isMobileSheet = false }: Search
     const handleResultClick = () => {
         setShowResults(false)
         setSearchTerm("")
+        onNavigate?.()
     }
 
     // Enter goes to the shop, filtered by the same words — the dropdown
@@ -121,6 +125,7 @@ export function SearchHeader({ isMobile = false, isMobileSheet = false }: Search
         if (!query) return
         setShowResults(false)
         router.push(`/products?q=${encodeURIComponent(query)}`)
+        onNavigate?.()
     }
 
     if (isMobile && !isMobileSheet) {
@@ -229,8 +234,10 @@ function ProductResults({ products, total, onResultClick, searchTerm, t }: {
     searchTerm: string
     t: any
 }) {
+    const locale = useLocale()
     return (
-        <ScrollArea className="h-96 overflow-y-auto">
+        // Radix ScrollArea defaults to dir="ltr", which flipped Arabic rows.
+        <ScrollArea dir={locale === "ar" ? "rtl" : "ltr"} className="h-96 overflow-y-auto">
             <div className="p-2">
                 <div className="space-y-1">
                     {products.map((product) => (
@@ -282,7 +289,9 @@ function ProductItem({ product, onResultClick }: {
                         {product.productName}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                        {product.brand} • {product.spotlightType}
+                        {[BRANDS.find((b) => b.id === product.brand)?.name ?? product.brand, product.typeName]
+                            .filter(Boolean)
+                            .join(" · ")}
                     </p>
 
                     <ProductPrice product={product} />
@@ -295,12 +304,12 @@ function ProductItem({ product, onResultClick }: {
 function ProductPrice({ product }: { product: Product }) {
     const t = useTranslations("product-card")
     if (product.madeToOrder) {
-        return <span className="text-sm font-semibold text-muted-foreground">{t("priceOnRequest")}</span>
+        return <span className="text-sm font-semibold text-foreground">{t("priceOnRequest")}</span>
     }
     if (money(product.discount).greaterThan(0)) {
         return (
             <div className="flex items-center gap-2 tabular-nums">
-                <span className="text-sm text-destructive font-semibold">
+                <span className="text-sm font-semibold">
                     <DiscountPrice
                         price={product.price}
                         discount={product.discount}

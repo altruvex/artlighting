@@ -11,12 +11,13 @@ import {
   Dialog, DialogClose, DialogContent, DialogDescription,
   DialogFooter, DialogHeader, DialogTitle,
 } from "@repo/ui/components/dialog"
-import { useRouter } from "@/i18n/navigation"
+import { usePathname, useRouter } from "@/i18n/navigation"
 import { useAuth } from "@/lib/auth-hooks"
 import { notifyCartChanged } from "@/lib/cart-events"
 import { COMPANY, displayPhone } from "@/lib/company"
 import { telLink, whatsappLink } from "@/lib/contact-links"
 import { formatNumber, formatPercent } from "@/lib/numbers"
+import { currentReturnPath, savePendingAdd, signInPath } from "@/lib/pending-cart"
 import { SHOWROOM_PHONE } from "@/lib/showroom"
 import { cn } from "@/lib/utils"
 import type { ProductPersonalState } from "@/lib/product-personal.server"
@@ -26,7 +27,7 @@ import type { ProductFamily } from "@repo/catalog/families"
 import type { ProductIP as PrismaProductIP, ProductColorTemp } from "@repo/database"
 import { addMoney, applyRate, clampNonNegative, money, multiplyMoney, serializeMoney, subtractMoney } from "@repo/money"
 import { useMutation } from "@tanstack/react-query"
-import { BanknoteIcon, Loader2, ShoppingBag, TruckIcon } from "lucide-react"
+import { BadgeCheckIcon, BanknoteIcon, Loader2, ShoppingBag, TruckIcon } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react"
 import { toast } from "sonner"
@@ -91,7 +92,8 @@ export interface BuyBoxProps {
  *
  * The price sits above the options and moves as they are chosen — the
  * upgrade a shopper is weighing is priced in the same figure they will be
- * charged. On a phone the buttons ride along at the bottom of the screen.
+ * charged. On a phone, once the buttons have scrolled out of view, a
+ * one-row bar with the price and "add to cart" rides along at the bottom.
  */
 export default function BuyBox({
   productName,
@@ -117,7 +119,10 @@ export default function BuyBox({
   const tPdp = useTranslations("pdp")
   const tNotification = useTranslations("product-notifications")
   const tDialog = useTranslations("product-dialog")
+  const tAuth = useTranslations("auth")
+  const tAssurance = useTranslations("assurance")
   const router = useRouter()
+  const pathname = usePathname()
   const locale = useLocale()
 
   const [isPending, startTransition] = useTransition()
@@ -331,12 +336,24 @@ export default function BuyBox({
   }, [soldOut, isSavingConfig, isClicked, ensureConfigId, productId, quantity, saveConfig, tNotification])
 
   const handleAddToBag = useCallback(() => {
-    if (!isSignedIn) {
-      toast.error(tNotification("signInRequired"))
-      return
-    }
+    // A bulk order goes to the sales team whoever is asking: checked before
+    // the guest branch, so a saved intent never carries a quantity the
+    // signed-in path would have turned into this dialog.
     if (quantity >= BULK_ORDER_THRESHOLD) {
       setShowDialog(true)
+      return
+    }
+    if (!isSignedIn) {
+      // The tap is kept, not refused: the intent (this product, this
+      // quantity) is saved for after sign-in — PendingCartResumer completes
+      // it — and the toast offers the way there, with this page as the way back.
+      savePendingAdd({ productId, productName, quantity })
+      const returnTo = currentReturnPath(pathname)
+      toast(tNotification("signInRequired"), {
+        id: "pending-add",
+        description: tNotification("addAfterSignIn"),
+        action: { label: tAuth("signIn"), onClick: () => router.push(signInPath(returnTo)) },
+      })
       return
     }
     startTransition(async () => {
@@ -350,7 +367,23 @@ export default function BuyBox({
         toast.error(tNotification("failedToAdd"))
       }
     })
-  }, [isSignedIn, quantity, productId, tNotification, productName])
+  }, [isSignedIn, quantity, productId, tNotification, productName, pathname, router, tAuth])
+
+  // The phone's buy bar shows only while the in-page buttons are off screen,
+  // in either direction. Hidden until measured, so the prerendered page does
+  // not flash it in and the bar is never shown over the buttons it repeats.
+  const actionsRef = useRef<HTMLDivElement>(null)
+  const [actionsInView, setActionsInView] = useState(true)
+  useEffect(() => {
+    const node = actionsRef.current
+    if (!node || typeof IntersectionObserver === "undefined") return
+    const observer = new IntersectionObserver(([entry]) => {
+      setActionsInView(entry?.isIntersecting ?? true)
+    })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+  const showBar = !actionsInView
 
   const stockLine = soldOut
     ? { tone: "text-danger", dot: "bg-danger", text: tPdp("soldOut") }
@@ -487,9 +520,9 @@ export default function BuyBox({
         {ipNote && !madeToOrder && <p className="text-[length:var(--text-xs)] font-medium text-warning">{ipNote}</p>}
       </div>
 
-      {/* On a phone this rides along at the bottom of the screen; from md up
-          it sits in the column. */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 pb-[max(env(safe-area-inset-bottom),1rem)] pt-3 backdrop-blur md:static md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+      {/* In the column at every size: the quantity and both ways to buy. The
+          phone's bar below repeats only the price and the one action. */}
+      <div ref={actionsRef}>
         {madeToOrder ? (
           <Button onClick={() => setShowQuoteDialog(true)} className="h-12 w-full text-base">
             {t("requestQuote")}
@@ -530,11 +563,61 @@ export default function BuyBox({
         )}
       </div>
 
-      {/* The two promises the business already makes, where the decision is
-          taken rather than three sections further down the page. */}
+      {/* The phone's buy bar: one row, the price as configured and the one
+          action, sliding in only while the block above is scrolled away.
+          Under the dialogs and sheets (z-50); inert while hidden so it is
+          not in the tab order. The same handler and states as the button
+          it stands in for. */}
+      <div
+        aria-hidden={!showBar}
+        inert={!showBar}
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 backdrop-blur md:hidden",
+          "transition-transform duration-[var(--dur-sheet)] ease-[var(--ease-out)] motion-reduce:transition-none",
+          showBar ? "translate-y-0" : "translate-y-full",
+        )}
+      >
+        {madeToOrder ? (
+          <Button onClick={() => setShowQuoteDialog(true)} className="h-12 w-full text-base">
+            {t("requestQuote")}
+          </Button>
+        ) : (
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate font-[family-name:var(--font-display-face)] text-[length:var(--text-lg)] font-semibold leading-tight tabular-nums">
+                {hasDiscount ? (
+                  <DiscountPrice
+                    price={price}
+                    discount={discount}
+                    quantity={quantity}
+                    priceIncrease={priceIncrease}
+                    lampPriceIncrease={lampPriceIncrease}
+                  />
+                ) : (
+                  <NormalPrice price={totalPriceBeforeDiscount} quantity={quantity} />
+                )}
+              </span>
+              {hasDiscount && (
+                <s className="truncate text-[length:var(--text-xs)] tabular-nums text-muted-foreground">
+                  <NormalPrice price={totalPriceBeforeDiscount} quantity={quantity} />
+                </s>
+              )}
+            </div>
+            <Button disabled={isPending || soldOut} onClick={handleAddToBag} className="h-12 shrink-0 px-5 text-base">
+              {isPending ? <Loader2 className="size-5 animate-spin" aria-hidden /> : <ShoppingBag className="size-5" aria-hidden />}
+              {isPending ? t("adding") : tPdp("addToCart")}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* The promises the business already makes, where the decision is
+          taken rather than three sections further down the page: the two
+          from the checkout and the certification line from the strip under
+          the header. */}
       {/* Not promised for made-to-order: it is built, not shipped from stock. */}
       {!madeToOrder && (
-        <ul className="grid gap-3 border-t border-border pt-5 text-[length:var(--text-sm)] text-muted-foreground sm:grid-cols-2">
+        <ul className="flex flex-wrap gap-x-6 gap-y-3 border-t border-border pt-5 text-[length:var(--text-sm)] text-muted-foreground">
           <li className="flex items-center gap-2.5">
             <TruckIcon className="size-4 shrink-0 text-foreground/70" aria-hidden />
             {t("delivery")}
@@ -542,6 +625,10 @@ export default function BuyBox({
           <li className="flex items-center gap-2.5">
             <BanknoteIcon className="size-4 shrink-0 text-foreground/70" aria-hidden />
             {t("cod")}
+          </li>
+          <li className="flex items-center gap-2.5">
+            <BadgeCheckIcon className="size-4 shrink-0 text-foreground/70" aria-hidden />
+            {tAssurance("certified")}
           </li>
         </ul>
       )}

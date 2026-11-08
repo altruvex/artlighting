@@ -259,6 +259,18 @@ async function cachedShop(query: ShopQuery, locale: string): Promise<ShopResult>
   return shopPage(await catalogueCards(locale), query, locale);
 }
 
+/**
+ * How directly a card can be bought: 0 = price shown and in stock, 1 = made
+ * to order (price on request, a quote), 2 = sold out. Every "best first"
+ * order puts the lower tier first, so a shopper meets prices and an add-to-bag
+ * button before quote-only or unavailable products. Array sort is stable, so
+ * within a tier the existing order (featured, then newest) is kept.
+ */
+function buyTier(card: ShopCard): number {
+  if (card.quantity === 0) return 2;
+  return card.madeToOrder ? 1 : 0;
+}
+
 function shopPage(all: ShopCard[], query: ShopQuery, locale: string): ShopResult {
 
   const needle = query.q.toLocaleLowerCase(locale);
@@ -310,8 +322,9 @@ function shopPage(all: ShopCard[], query: ShopQuery, locale: string): ShopResult
       case "newest":
         return b.createdAt.localeCompare(a.createdAt);
       default:
-        // The admin's featured flag first; the query already ordered the rest.
-        return Number(b.featured) - Number(a.featured);
+        // Buyable before quote-only and sold out, then the admin's featured
+        // flag; the query already ordered the rest.
+        return buyTier(a) - buyTier(b) || Number(b.featured) - Number(a.featured);
     }
   });
 
@@ -377,7 +390,8 @@ export async function homeData(locale: string, perRail = 10): Promise<HomeData> 
       .slice(0, perRail),
     // Falls back to the newest when nothing is flagged, rather than an
     // empty rail on a fresh catalogue.
-    featured: (featured.length ? featured : all).slice(0, perRail),
+    // Buyable first, so the rail opens on prices rather than quote-only rows.
+    featured: [...(featured.length ? featured : all)].sort((a, b) => buyTier(a) - buyTier(b)).slice(0, perRail),
     newest: [...all].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, perRail),
   };
 }
@@ -401,7 +415,7 @@ export async function relatedCards(
   );
 
   const rank = (card: ShopCard) =>
-    (lightingTypeSlug && card.lightingTypeSlug === lightingTypeSlug ? 0 : 1) + (card.quantity !== 0 ? 0 : 2);
+    (lightingTypeSlug && card.lightingTypeSlug === lightingTypeSlug ? 0 : 1) + buyTier(card) * 2;
 
   return [...cards].sort((a, b) => rank(a) - rank(b)).slice(0, limit);
 }
@@ -439,7 +453,7 @@ export async function applicationCards(
     familyCounts[family] = (familyCounts[family] ?? 0) + 1;
   }
 
-  const rank = (card: ShopCard) => Number(!card.featured) + (card.quantity !== 0 ? 0 : 2);
+  const rank = (card: ShopCard) => Number(!card.featured) + buyTier(card) * 2;
   const groups = [
     ...types.map((type) => all.filter((card) => card.lightingTypeSlug === type)),
     ...families.map((family) => all.filter((card) => card.sectionType === family)),

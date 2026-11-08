@@ -1,4 +1,5 @@
 import { PromoBar } from "@/components/promo-bar"
+import { PendingCartResumer } from "@/components/cart/pending-cart-resumer"
 import { activePromotions, byStrength } from "@/lib/promotions.server"
 import Footer from "@/components/footer/footer"
 import HeaderWrapper from "@/components/header/header-wrapper"
@@ -32,6 +33,8 @@ export default async function MainLayout({
       <AssuranceStrip />
       <main id="main">{children}</main>
       <Footer />
+      {/* Completes an add-to-cart a guest started before signing in. */}
+      <PendingCartResumer />
     </>
   );
 }

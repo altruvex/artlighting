@@ -7,6 +7,7 @@ import type { Facet, ShopQuery } from "@/lib/shop.server";
 import { removeParams, setParam, toggleParam, type ShopParams } from "@/lib/shop-url";
 import { useScrollEdges } from "@/lib/use-scroll-edges";
 import { cn } from "@/lib/utils";
+import { ShopSort } from "./shop-sort";
 import { SlidersHorizontalIcon, XIcon } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
@@ -47,21 +48,30 @@ export function ShopFilters(props: Props) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="mb-6 inline-flex items-center gap-2 self-start rounded-md border border-border bg-card px-4 py-2 font-medium transition-colors duration-[var(--dur-hover)] hover:border-primary/60 lg:hidden"
-        aria-expanded={open}
-        aria-controls="shop-filters"
-      >
-        <SlidersHorizontalIcon className="size-4" aria-hidden />
-        {t("filter")}
-        {activeCount > 0 && (
-          <span className="grid min-w-5 place-items-center rounded-full bg-primary px-1.5 text-[length:var(--text-2xs)] tabular-nums text-primary-foreground">
-            {activeCount}
-          </span>
-        )}
-      </button>
+      {/* Phone and tablet: filter and sort on one row that stays just under
+          the sticky header (h-16), full-bleed over the page gutter, so the
+          cards scroll beneath it. Two stacked rows cost the first screen its
+          first products. */}
+      <div className="sticky top-16 z-30 -mx-4 mb-5 flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-2.5 sm:-mx-6 sm:px-6 lg:hidden">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="inline-flex h-10 shrink-0 items-center gap-2 rounded-md border border-border bg-card px-4 font-medium transition-colors duration-[var(--dur-hover)] hover:border-primary/60"
+          aria-expanded={open}
+          aria-controls="shop-filters"
+        >
+          <SlidersHorizontalIcon className="size-4" aria-hidden />
+          {t("filter")}
+          {activeCount > 0 && (
+            <span className="grid min-w-5 place-items-center rounded-full bg-primary px-1.5 text-[length:var(--text-2xs)] tabular-nums text-primary-foreground">
+              {activeCount}
+            </span>
+          )}
+        </button>
+        <div className="min-w-0">
+          <ShopSort value={props.query.sort} params={props.params} compact />
+        </div>
+      </div>
 
       {open && (
         <div

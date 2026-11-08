@@ -39,6 +39,8 @@
         "offers": "العروض",
         "all-products": "كل المنتجات",
         "menu": "القائمة",
+        "search": "بحث",
+        "closeSearch": "إغلاق البحث",
         "browse": "تصفّح حسب النوع",
         "see-offers": "كل المنتجات المخفّضة حاليًا",
         "models": "كل الموديلات",
@@ -92,6 +94,7 @@
     },
     "toast": {
         "signInRequired": "يرجى تسجيل الدخول أولاً",
+        "addAfterSignIn": "سيُضاف إلى سلتك بمجرد تسجيل الدخول.",
         "addToCartSuccess": "تم إضافة {productName} للسلة بنجاح",
         "addToCartError": "فشل في إضافة المنتج للسلة، حاول مرة أخرى"
     },

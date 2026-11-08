@@ -48,22 +48,32 @@ export async function FamilyIntro({
   ];
 
   return (
-    <section aria-label={pick(intro.title, locale)} className="border-b border-border py-8">
-      <p className="max-w-3xl text-pretty text-muted-foreground">{pick(intro.body, locale)}</p>
+    <section aria-label={pick(intro.title, locale)} className="border-b border-border py-5 md:py-8">
+      {/* On a phone the paragraph is held to three lines, so the products
+          start on the first screen; the full text stays in the page. */}
+      <p className="max-w-3xl text-pretty text-muted-foreground max-md:line-clamp-3 max-md:text-[length:var(--text-sm)]">
+        {pick(intro.body, locale)}
+      </p>
 
       {types.length > 0 && (
         // Filter buttons that look like buttons. A quiet row of names with
         // rules over them read as headings, not as something to press —
         // on a phone especially. These are the shape every shop uses for a
         // filter: a bordered button, the chosen one filled with a tick, all
-        // of them visible (they wrap rather than scroll, so the chosen one
-        // is never off the edge). The chosen type's job is spelled out
+        // of them visible (from md up they wrap rather than scroll, so the
+        // chosen one is never off the edge). The chosen type's job is spelled out
         // underneath.
-        <div className="mt-8">
+        <div className="mt-5 md:mt-8">
           <p id="shop-by-type" className="text-[length:var(--text-sm)] font-medium">
             {t("shopByType")}
           </p>
-          <ul aria-labelledby="shop-by-type" className="mt-3 flex flex-wrap gap-2">
+          {/* On a phone, one row that scrolls sideways instead of four
+              that wrap: the chosen type is also a removable chip above and
+              spelled out below, so one past the edge is not lost. */}
+          <ul
+            aria-labelledby="shop-by-type"
+            className="mt-3 flex gap-2 max-md:-mx-4 max-md:overflow-x-auto max-md:overscroll-x-contain max-md:px-4 max-md:pb-1 max-md:[scrollbar-width:none] sm:max-md:-mx-6 sm:max-md:px-6 md:flex-wrap"
+          >
             <li>
               <TypeChip href={setParam(params, "type", null)} active={activeTypes.length === 0} name={t("allTypes")} />
             </li>
@@ -96,7 +106,7 @@ export async function FamilyIntro({
       )}
 
       {applications.length > 0 && (
-        <p className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[length:var(--text-sm)]">
+        <p className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[length:var(--text-sm)] md:mt-6">
           <span className="font-medium">{t("usedIn")}</span>
           {applications.map((application) => (
             <Link

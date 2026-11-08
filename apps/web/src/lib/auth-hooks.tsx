@@ -1,7 +1,7 @@
 "use client";
 
 import { authClient } from "./auth-client";
-import Link from "next/link";
+import { Link, usePathname } from "@/i18n/navigation";
 import { useSyncExternalStore, type ReactNode } from "react";
 
 const noSubscribe = () => () => {};
@@ -48,18 +48,39 @@ export function SignedOut({ children }: { children: ReactNode }) {
   return isLoaded && !isSignedIn ? <>{children}</> : null;
 }
 
-/** Sign-in / sign-up buttons linking to the app's own auth pages. */
-export function SignInButton({ children }: { children: ReactNode }) {
+/**
+ * Where the auth page should send the customer afterwards: the page they
+ * are on, unless it is the home page (the default anyway) or an auth page.
+ * A locale-less path, as the i18n router hands out and takes back.
+ */
+function useReturnPath(override?: string): string | undefined {
+  const pathname = usePathname();
+  if (override !== undefined) return override;
+  if (pathname === "/" || pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up")) return undefined;
+  return pathname;
+}
+
+function authHref(page: "/sign-in" | "/sign-up", returnTo: string | undefined) {
+  return returnTo ? { pathname: page, query: { redirect: returnTo } } : page;
+}
+
+/**
+ * Sign-in / sign-up buttons linking to the app's own auth pages, in the
+ * current locale, with the way back to this page in `redirect`.
+ */
+export function SignInButton({ children, redirect }: { children: ReactNode; redirect?: string }) {
+  const returnTo = useReturnPath(redirect);
   return (
-    <Link href="/sign-in" className="contents">
+    <Link href={authHref("/sign-in", returnTo)} className="contents">
       {children}
     </Link>
   );
 }
 
-export function SignUpButton({ children }: { children: ReactNode }) {
+export function SignUpButton({ children, redirect }: { children: ReactNode; redirect?: string }) {
+  const returnTo = useReturnPath(redirect);
   return (
-    <Link href="/sign-up" className="contents">
+    <Link href={authHref("/sign-up", returnTo)} className="contents">
       {children}
     </Link>
   );

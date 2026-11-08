@@ -59,6 +59,15 @@
         "3010"
       ],
       "port": 3010
+    },
+    {
+      "name": "web-prod-read",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd apps/web && DATABASE_URL=\"$(grep '^DATABASE_URL=' .env | cut -d= -f2-)\" exec pnpm exec next dev --turbopack --port 3011"
+      ],
+      "port": 3011
     }
   ]
 }

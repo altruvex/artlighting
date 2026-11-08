@@ -13,7 +13,16 @@ const OPTIONS: Sort[] = ["featured", "price-asc", "price-desc", "discount", "new
  * picker, it needs no script to be reachable by keyboard, and a sort has
  * five options — nothing a custom listbox would add is worth its weight.
  */
-export function ShopSort({ value, params }: { value: Sort; params: ShopParams }) {
+export function ShopSort({
+  value,
+  params,
+  compact = false,
+}: {
+  value: Sort;
+  params: ShopParams;
+  /** In the phone toolbar the label is read out but not shown: the select's value says what it is. */
+  compact?: boolean;
+}) {
   const t = useTranslations("shop");
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -21,7 +30,10 @@ export function ShopSort({ value, params }: { value: Sort; params: ShopParams })
 
   return (
     <div className="flex items-center gap-2">
-      <label htmlFor={id} className="text-[length:var(--text-sm)] text-muted-foreground">
+      <label
+        htmlFor={id}
+        className={compact ? "sr-only sm:not-sr-only sm:text-[length:var(--text-sm)] sm:text-muted-foreground" : "text-[length:var(--text-sm)] text-muted-foreground"}
+      >
         {t("sortBy")}
       </label>
       <select
@@ -34,7 +46,7 @@ export function ShopSort({ value, params }: { value: Sort; params: ShopParams })
             router.push(setParam(params, "sort", next === "featured" ? null : next), { scroll: false });
           })
         }
-        className="h-10 rounded-md border border-input bg-card pe-8 ps-3 font-medium transition-colors duration-[var(--dur-hover)] hover:border-primary/60 disabled:opacity-60 sm:h-9"
+        className="h-10 max-w-full rounded-md border border-input bg-card pe-8 ps-3 font-medium transition-colors duration-[var(--dur-hover)] hover:border-primary/60 disabled:opacity-60 sm:h-9"
       >
         {OPTIONS.map((option) => (
           <option key={option} value={option}>

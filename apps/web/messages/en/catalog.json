@@ -111,6 +111,7 @@
     },
     "product-notifications": {
         "signInRequired": "Please sign in to add items to your cart.",
+        "addAfterSignIn": "It will be added to your cart once you sign in.",
         "addedToCart": "{productName} has been added to your cart",
         "failedToAdd": "Failed to add item to cart. Please try again.",
         "orderError": "There was an error with your order. Please refresh the page and try again.",

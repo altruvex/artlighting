@@ -1,3 +1,5 @@
+import { ShopRail } from "@/components/shop-rail"
+import { RecentlyViewed } from "@/components/recently-viewed"
 import { auth } from "@/lib/auth-server"
 import { orderForCustomer, toOrderView } from "@/lib/checkout.server"
 import { getLocaleFromParams } from "@/lib/i18n/utils"
@@ -6,6 +8,7 @@ import { PagePropsTypes } from "@/types"
 import type { Metadata } from "next"
 import { getTranslations } from "next-intl/server"
 import { notFound } from "next/navigation"
+import { Suspense } from "react"
 import ThankYou from "./thank-you"
 
 // Everything here is the signed-in customer's own order — nothing is shared
@@ -28,7 +31,17 @@ export default async function Page({ params, searchParams }: PagePropsTypes) {
   // Not confirmed yet: the review step is where it is confirmed.
   if (!order.isCompleted) redirect({ href: `/complete?orderId=${order.id}`, locale })
 
-  return <ThankYou order={toOrderView(order, locale)} />
+  const t = await getTranslations({ locale, namespace: "thankYou" })
+
+  return (
+    <>
+      <ThankYou order={toOrderView(order, locale)} />
+      <Suspense fallback={null}>
+        <ShopRail id="more" locale={locale} title={t("moreTitle")} subtitle={t("moreSub")} hrefLabel={t("moreLink")} />
+      </Suspense>
+      <RecentlyViewed locale={locale} />
+    </>
+  )
 }
 
 export async function generateMetadata({ params }: PagePropsTypes): Promise<Metadata> {

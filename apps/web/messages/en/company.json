@@ -88,7 +88,12 @@
         "date": "Date",
         "supplier": "Art Lighting",
         "gallery": "Project photographs",
-        "more": "More in {sector}"
+        "more": "More in {sector}",
+        "shopType": "Shop this kind of lighting",
+        "shopTypeSub": "Fittings of the type used here",
+        "shopCollection": "Shop the collection",
+        "shopCollectionSub": "Picked by the showroom",
+        "shopLink": "Shop all"
     },
     "faq": {
         "title": "Lighting questions, answered",
@@ -113,7 +118,10 @@
         "articleMetaTitle": "{title} | Art Lighting lighting guide",
         "applyIt": "Where this applies",
         "next": "Next article",
-        "nextLabel": "Next article"
+        "nextLabel": "Next article",
+        "shopTitle": "Shop the lighting",
+        "shopSub": "Put the guide to use",
+        "shopLink": "Shop all"
     },
     "applications": {
         "metaTitle": "Lighting by space — homes, hotels, offices, outdoor | Art Lighting",

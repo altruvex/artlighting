@@ -2,6 +2,7 @@ import { ClosingCta } from "@/components/closing-cta";
 import { Onward } from "@/components/editorial/arrow";
 import { PageHeader } from "@/components/editorial/page-header";
 import { ProjectCard } from "@/components/project-card";
+import { ShopRail } from "@/components/shop-rail";
 import { SECTION_FRAME } from "@/components/section-heading";
 import { SECTOR_COPY } from "@/content/company-copy";
 import { pick } from "@/content/l10n";
@@ -16,6 +17,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 type ProjectRecord = {
   ProjectId: string;
@@ -84,6 +86,8 @@ export default async function ProjectPage({ params }: Props) {
   const products = productsHref(project.usedProducts);
   const byId = new Map(projectsFor(locale).map((entry) => [entry.ProjectId, entry]));
   const siblings = (sector?.ids ?? []).filter((id) => id !== project.ProjectId).flatMap((id) => byId.get(id) ?? []).slice(0, 3);
+
+  const usedType = project.usedProducts?.split("/").filter(Boolean).pop()?.toLowerCase();
 
   return (
     <>
@@ -161,6 +165,19 @@ export default async function ProjectPage({ params }: Props) {
           </ul>
         </section>
       )}
+
+      <Suspense fallback={null}>
+        <ShopRail
+          id="shop"
+          locale={locale}
+          types={usedType ? [usedType] : []}
+          title={t("shopType")}
+          subtitle={t("shopTypeSub")}
+          href={products ?? "/products"}
+          hrefLabel={t("shopLink")}
+          fallback={{ title: t("shopCollection"), subtitle: t("shopCollectionSub") }}
+        />
+      </Suspense>
 
       <ClosingCta locale={locale} />
     </>

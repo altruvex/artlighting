@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Link } from "@/i18n/navigation";
+import { useSearchParams } from "next/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 import { User, Mail, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@repo/ui/components/button";
 import { Input } from "@repo/ui/components/input";
@@ -14,6 +15,10 @@ import { authErrorKey } from "@/lib/auth-errors";
 
 export function ThemedSignUp() {
   const router = useRouter();
+  // Same return path as the sign-in form, so switching to "create an
+  // account" halfway does not lose the product the customer was adding.
+  const redirectParam = useSearchParams().get("redirect");
+  const redirectTo = safeRedirectPath(redirectParam);
   const t = useTranslations("auth");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -31,7 +36,7 @@ export function ThemedSignUp() {
       setError(t(authErrorKey(error, "signUpFailed")));
       return;
     }
-    router.push("/");
+    router.push(redirectTo);
     router.refresh();
   }
 
@@ -118,7 +123,10 @@ export function ThemedSignUp() {
 
       <p className="text-center text-[length:var(--text-sm)] text-muted-foreground">
         {t("haveAccount")}{" "}
-        <Link href="/sign-in" className="font-medium text-primary underline-offset-4 hover:underline">
+        <Link
+          href={redirectTo === "/" ? "/sign-in" : { pathname: "/sign-in", query: { redirect: redirectTo } }}
+          className="font-medium text-primary underline-offset-4 hover:underline"
+        >
           {t("signIn")}
         </Link>
       </p>

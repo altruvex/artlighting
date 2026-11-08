@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Link } from "@/i18n/navigation";
+import { useSearchParams } from "next/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 import { Mail, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@repo/ui/components/button";
 import { Input } from "@repo/ui/components/input";
@@ -14,6 +15,10 @@ import { authErrorKey } from "@/lib/auth-errors";
 
 export function ThemedSignIn() {
   const router = useRouter();
+  // Where to go afterwards — the product a guest was adding to the cart,
+  // say. Only a path on this site is honoured; see lib/safe-redirect.
+  const redirectParam = useSearchParams().get("redirect");
+  const redirectTo = safeRedirectPath(redirectParam);
   const t = useTranslations("auth");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,7 +37,7 @@ export function ThemedSignIn() {
       setError(t(authErrorKey(error, "signInFailed")));
       return;
     }
-    router.push("/");
+    router.push(redirectTo);
     router.refresh();
   }
 
@@ -106,7 +111,10 @@ export function ThemedSignIn() {
 
       <p className="text-center text-[length:var(--text-sm)] text-muted-foreground">
         {t("noAccount")}{" "}
-        <Link href="/sign-up" className="font-medium text-primary underline-offset-4 hover:underline">
+        <Link
+          href={redirectTo === "/" ? "/sign-up" : { pathname: "/sign-up", query: { redirect: redirectTo } }}
+          className="font-medium text-primary underline-offset-4 hover:underline"
+        >
           {t("signUp")}
         </Link>
       </p>

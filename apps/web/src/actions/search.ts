@@ -26,6 +26,8 @@ export interface SearchHit {
   image: string | null;
   sectionType: ShopCard["sectionType"];
   spotlightType: string;
+  /** The lighting type's name in this locale, for the row's subtitle. */
+  typeName: string | null;
 }
 
 export async function searchProducts(
@@ -61,6 +63,7 @@ export async function searchProducts(
       image: card.productImages[0] ?? null,
       sectionType: card.sectionType,
       spotlightType: card.spotlightType,
+      typeName: card.lightingTypeName ?? null,
     })),
     // The real number of matches, for "view all".
     total: matched.length,

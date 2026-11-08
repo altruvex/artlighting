@@ -37,6 +37,12 @@ interface Product {
 interface ProductCardProps {
   product: Product;
   locale?: string;
+  /**
+   * Above the fold: load the photo now, at high priority, instead of
+   * lazily. Only the first row or so of a page — every eager image competes
+   * with the others for the same bandwidth.
+   */
+  eager?: boolean;
 }
 
 /** Below this, the card says how many are left — scarcity that is real. */
@@ -59,7 +65,7 @@ const LOW_STOCK = 5;
  * one, which is the look a carousel was reaching for at a tenth of the
  * weight.
  */
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, eager = false }: ProductCardProps) {
   const locale = useLocale();
   const t = useTranslations("product-card");
 
@@ -100,6 +106,9 @@ export default function ProductCard({ product }: ProductCardProps) {
             alt={displayName}
             fill
             sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 48vw"
+            // Next 16: `priority` is deprecated, and `preload` is for a single
+            // LCP image — a grid row is several, so eager + high priority.
+            {...(eager ? { loading: "eager", fetchPriority: "high" } as const : {})}
             className="object-cover"
           />
           {hover && (
@@ -160,7 +169,10 @@ export default function ProductCard({ product }: ProductCardProps) {
         <div className="mt-auto space-y-0.5 pt-1.5">
           <div className="flex flex-wrap items-baseline gap-x-2">
             {madeToOrder ? (
-              <span className="text-[length:var(--text-lg)] font-semibold text-muted-foreground">{t("priceOnRequest")}</span>
+              // Said as an answer, not left as a gap: the same weight and
+              // size as a figure, in the foreground colour — a muted grey
+              // read as a price that had failed to load.
+              <span className="text-[length:var(--text-base)] font-semibold text-foreground">{t("priceOnRequest")}</span>
             ) : (
               <span data-price className="text-[length:var(--text-lg)] font-semibold tabular-nums">
                 {pricing.current}

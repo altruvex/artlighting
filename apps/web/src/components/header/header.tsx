@@ -16,8 +16,9 @@ import { familySlug, type ProductFamily } from "@repo/catalog/families"
 import { cn } from "@/lib/utils"
 import type { Application } from "@/content/applications"
 import { pick } from "@/content/l10n"
-import { MenuIcon, TagIcon, XIcon } from "lucide-react"
+import { MenuIcon, SearchIcon, TagIcon, XIcon } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
+import { useState } from "react"
 import Image from "next/image"
 import { CartSidebar } from "../cart-sidebar"
 import LanguageSwitcher from "../language-switcher"
@@ -52,6 +53,7 @@ export default function Header({ applications }: { applications: MenuApplication
   const locale = useLocale()
   const pathname = usePathname()
   const isRTL = locale === "ar"
+  const [searchOpen, setSearchOpen] = useState(false)
 
   const isCurrent = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
 
@@ -179,10 +181,38 @@ export default function Header({ applications }: { applications: MenuApplication
           {/* The controls, outside the navigation list — a `<ul>` may only
               hold `<li>`, and the browser moving these out of it was the
               hydration mismatch. */}
-          <div className="ms-auto flex items-center gap-2">
+          <div className="ms-auto flex items-center gap-1 sm:gap-2">
             <div className="hidden lg:block">
               <SearchHeader />
             </div>
+            <Sheet open={searchOpen} onOpenChange={setSearchOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-11 lg:hidden" aria-label={t("search")}>
+                  <SearchIcon className="size-5" aria-hidden />
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                side="top"
+                showCloseButton={false}
+                className="gap-0 px-4 pt-3 pb-4"
+                onOpenAutoFocus={(event) => {
+                  event.preventDefault()
+                  const input = (event.target as HTMLElement | null)?.querySelector<HTMLInputElement>("input[type=search]")
+                  input?.focus()
+                }}
+              >
+                <div className="flex items-center justify-between gap-3 pb-3">
+                  <SheetHeader className="px-0 py-0">
+                    <SheetTitle className="text-[length:var(--text-base)]">{t("search")}</SheetTitle>
+                  </SheetHeader>
+                  <SheetClose className="grid size-11 cursor-pointer place-items-center rounded-md transition-colors duration-[var(--dur-hover)] hover:bg-accent">
+                    <XIcon className="size-5" aria-hidden />
+                    <span className="sr-only">{t("closeSearch")}</span>
+                  </SheetClose>
+                </div>
+                <SearchHeader isMobileSheet onNavigate={() => setSearchOpen(false)} />
+              </SheetContent>
+            </Sheet>
             <AuthSectionWrapper>
               <AuthSection />
             </AuthSectionWrapper>

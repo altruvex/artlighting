@@ -15,6 +15,8 @@ import type { AbstractIntlMessages } from "next-intl";
 export const CLIENT_NAMESPACES = [
   "ProductBulbButtons",
   "a11y",
+  // The buy box repeats the certification line from the strip under the header.
+  "assurance",
   "auth",
   "auth-section",
   "cart",

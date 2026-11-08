@@ -57,7 +57,8 @@
         "was": "كان",
         "soldOut": "نفدت الكمية",
         "fewLeft": "{count, plural, one{متبقّي قطعة واحدة} two{متبقّي قطعتان} few{متبقّي # قطع} other{متبقّي # قطعة}}",
-        "addToCartNamed": "أضف {name} إلى السلة"
+        "addToCartNamed": "أضف {name} إلى السلة",
+        "priceOnRequest": "السعر حسب الطلب"
     },
     "product-main-info": {
         "title": "معلومات المنتج الرئيسية",
@@ -74,7 +75,9 @@
         "off": "خصم",
         "save": "وفّر",
         "delivery": "التوصيل خلال ٤ أيام عمل",
-        "cod": "الدفع عند الاستلام"
+        "cod": "الدفع عند الاستلام",
+        "priceOnRequest": "السعر حسب الطلب",
+        "requestQuote": "اطلب عرض سعر"
     },
     "product-description": {
         "fixture": "وحدة إضاءة",
@@ -121,7 +124,13 @@
         "bulkOrderTitle": "إشعار طلب بالجملة",
         "bulkOrderDescription": "لاحظنا أنك تطلب ١٠ أو أكثر من هذا المنتج. للحصول على أفضل عرض، يرجى الاتصال بفريق المبيعات لدينا.",
         "close": "إغلاق",
-        "contactSalesTeam": "اتصل بفريق المبيعات"
+        "contactSalesTeam": "اتصل بفريق المبيعات",
+        "madeToOrderTitle": "يُصنع حسب مواصفاتك",
+        "madeToOrderDescription": "هذا المنتج يُصنع حسب مواصفاتك، ويتحدد سعره حسب المواصفات والكمية. تواصل معنا لمعرفة التفاصيل.",
+        "call": "اتصال",
+        "whatsapp": "واتساب",
+        "callNumber": "اتصل على {number}",
+        "whatsappNumber": "راسلنا على واتساب {number}"
     },
     "product-ip": {
         "title": "الحماية من الماء والغبار (IP)",

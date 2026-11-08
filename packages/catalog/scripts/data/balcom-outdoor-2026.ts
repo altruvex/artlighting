@@ -86,7 +86,7 @@ const wattage = (watts: string): SpecAddition => ({ groupName: ELECTRICAL, key: 
 const lampCount = (count: string) =>
   text(ELECTRICAL, "No. of lamps", "عدد اللمبات", count, toArabicDigits(count));
 const ip65: SpecAddition = { groupName: PHYSICAL, key: "ip", value: "65" };
-const dieCastAluminum: SpecAddition = { groupName: PHYSICAL, key: "mainMaterial", value: "Die-Casting Aluminum" };
+const dieCastAluminum: SpecAddition = { groupName: PHYSICAL, key: "mainMaterial", value: "Die-Casting Aluminum", valueAr: "ألمنيوم مصبوب بالقالب" };
 const steel: SpecAddition = { groupName: PHYSICAL, key: "mainMaterial", value: "Steel", valueAr: "صلب" };
 const diffuser = (en: string, ar: string) => text(PHYSICAL, "Diffuser", "الناشر", en, ar);
 const glass = diffuser("Glass", "زجاج");

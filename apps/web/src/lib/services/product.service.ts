@@ -33,6 +33,8 @@ export interface LocalizedProductData {
   sectionType: ProductFamily;
   /** Units a customer may buy; null when the product is not tracked (no limit). */
   quantity: number | null;
+  /** Built to the customer's specification: priced on request, quoted by the sales team. */
+  madeToOrder: boolean;
   /** The average of this product's reviews, or null with none yet. */
   ratingAverage: number | null;
   ratingCount: number;
@@ -69,6 +71,7 @@ export function productView(product: ProductDetailRecord): LocalizedProductData 
     bulbChoices: product.bulbChoices,
     sectionType: product.sectionType,
     quantity: product.quantity,
+    madeToOrder: product.madeToOrder,
     ratingAverage: product.ratingAverage,
     ratingCount: product.ratingCount,
     maxIP: product.maxIP,
@@ -92,6 +95,7 @@ function productDetailSelect(language: string) {
     sectionType: true,
     spotlightType: true,
     trackInventory: true,
+    madeToOrder: true,
     ratingAverage: true,
     ratingCount: true,
     isActive: true,
@@ -160,6 +164,7 @@ export function transformToLocalizedProduct(
     sectionType: product.sectionType,
     spotlightType: product.spotlightType,
     quantity: sellableFrom(product, product.variants[0]?.inventory),
+    madeToOrder: product.madeToOrder,
     ratingAverage: product.ratingAverage !== null && product.ratingAverage !== undefined ? Number(product.ratingAverage) : null,
     ratingCount: product.ratingCount ?? 0,
     isActive: product.isActive ?? true,

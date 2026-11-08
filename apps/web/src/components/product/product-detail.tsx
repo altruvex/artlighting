@@ -107,6 +107,7 @@ export default function ProductDetail({
             stock={product.quantity}
             ratingAverage={product.ratingAverage}
             ratingCount={product.ratingCount}
+            madeToOrder={product.madeToOrder}
           />
         </div>
       </div>

@@ -293,6 +293,10 @@ function ProductItem({ product, onResultClick }: {
 }
 
 function ProductPrice({ product }: { product: Product }) {
+    const t = useTranslations("product-card")
+    if (product.madeToOrder) {
+        return <span className="text-sm font-semibold text-muted-foreground">{t("priceOnRequest")}</span>
+    }
     if (money(product.discount).greaterThan(0)) {
         return (
             <div className="flex items-center gap-2 tabular-nums">

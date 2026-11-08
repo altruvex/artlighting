@@ -14,6 +14,8 @@ import {
 import { useRouter } from "@/i18n/navigation"
 import { useAuth } from "@/lib/auth-hooks"
 import { notifyCartChanged } from "@/lib/cart-events"
+import { COMPANY, displayPhone } from "@/lib/company"
+import { telLink, whatsappLink } from "@/lib/contact-links"
 import { formatNumber, formatPercent } from "@/lib/numbers"
 import { SHOWROOM_PHONE } from "@/lib/showroom"
 import { cn } from "@/lib/utils"
@@ -75,6 +77,11 @@ export interface BuyBoxProps {
   /** The average of this product's reviews, or null with none yet. */
   ratingAverage: number | null
   ratingCount: number
+  /**
+   * Built to the customer's specification: no price, no cart, no order —
+   * one button that opens the sales team's numbers.
+   */
+  madeToOrder?: boolean
 }
 
 /**
@@ -104,6 +111,7 @@ export default function BuyBox({
   stock,
   ratingAverage,
   ratingCount,
+  madeToOrder = false,
 }: BuyBoxProps) {
   const t = useTranslations("product-main-info")
   const tPdp = useTranslations("pdp")
@@ -114,6 +122,7 @@ export default function BuyBox({
 
   const [isPending, startTransition] = useTransition()
   const [showDialog, setShowDialog] = useState(false)
+  const [showQuoteDialog, setShowQuoteDialog] = useState(false)
   const [quantity, setQuantity] = useState(1)
   const [isClicked, setIsClicked] = useState(false)
   const [configuration, setConfiguration] = useState<Configuration | undefined>(undefined)
@@ -390,47 +399,55 @@ export default function BuyBox({
       </header>
 
       <div className="space-y-2 border-y border-border py-5">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          {/* Keyed on the figure, so the one piece of motion on the page
-              plays exactly when the price changes and at no other time. */}
-          <span
-            key={priceKey}
-            className={cn(priceKey !== firstPriceKey && "price-tick", "font-[family-name:var(--font-display-face)] text-[length:var(--text-2xl)] font-semibold tabular-nums")}
-          >
-            {hasDiscount ? (
-              <DiscountPrice
-                price={price}
-                discount={discount}
-                quantity={quantity}
-                priceIncrease={priceIncrease}
-                lampPriceIncrease={lampPriceIncrease}
-              />
-            ) : (
-              <NormalPrice price={totalPriceBeforeDiscount} quantity={quantity} />
-            )}
-          </span>
-          {hasDiscount && (
-            <>
-              <s className="text-[length:var(--text-base)] tabular-nums text-muted-foreground">
-                <NormalPrice price={totalPriceBeforeDiscount} quantity={quantity} />
-              </s>
-              {/* Outlined, not filled: the price is the figure to read, the
-                  rate only qualifies it. */}
-              <span className="self-center rounded-sm border border-primary/40 px-1.5 py-0.5 text-[length:var(--text-xs)] font-semibold tabular-nums text-primary">
-                {formatPercent(discount, locale)} {t("off")}
-              </span>
-            </>
-          )}
-        </div>
-        {money(savingTotal).greaterThan(0) && (
-          <p className="text-[length:var(--text-sm)] font-medium tabular-nums text-primary">
-            {t("save")} <NormalPrice price={savingTotal} />
+        {madeToOrder ? (
+          <p className="font-[family-name:var(--font-display-face)] text-[length:var(--text-2xl)] font-semibold text-muted-foreground">
+            {t("priceOnRequest")}
           </p>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              {/* Keyed on the figure, so the one piece of motion on the page
+                  plays exactly when the price changes and at no other time. */}
+              <span
+                key={priceKey}
+                className={cn(priceKey !== firstPriceKey && "price-tick", "font-[family-name:var(--font-display-face)] text-[length:var(--text-2xl)] font-semibold tabular-nums")}
+              >
+                {hasDiscount ? (
+                  <DiscountPrice
+                    price={price}
+                    discount={discount}
+                    quantity={quantity}
+                    priceIncrease={priceIncrease}
+                    lampPriceIncrease={lampPriceIncrease}
+                  />
+                ) : (
+                  <NormalPrice price={totalPriceBeforeDiscount} quantity={quantity} />
+                )}
+              </span>
+              {hasDiscount && (
+                <>
+                  <s className="text-[length:var(--text-base)] tabular-nums text-muted-foreground">
+                    <NormalPrice price={totalPriceBeforeDiscount} quantity={quantity} />
+                  </s>
+                  {/* Outlined, not filled: the price is the figure to read, the
+                      rate only qualifies it. */}
+                  <span className="self-center rounded-sm border border-primary/40 px-1.5 py-0.5 text-[length:var(--text-xs)] font-semibold tabular-nums text-primary">
+                    {formatPercent(discount, locale)} {t("off")}
+                  </span>
+                </>
+              )}
+            </div>
+            {money(savingTotal).greaterThan(0) && (
+              <p className="text-[length:var(--text-sm)] font-medium tabular-nums text-primary">
+                {t("save")} <NormalPrice price={savingTotal} />
+              </p>
+            )}
+            <p className={cn("flex items-center gap-2 pt-1 text-[length:var(--text-sm)] font-medium", stockLine.tone)}>
+              <span aria-hidden className={cn("size-2 rounded-full", stockLine.dot)} />
+              {stockLine.text}
+            </p>
+          </>
         )}
-        <p className={cn("flex items-center gap-2 pt-1 text-[length:var(--text-sm)] font-medium", stockLine.tone)}>
-          <span aria-hidden className={cn("size-2 rounded-full", stockLine.dot)} />
-          {stockLine.text}
-        </p>
       </div>
 
       <div className="space-y-5">
@@ -451,7 +468,8 @@ export default function BuyBox({
           productColorTemp={selectedColorTemp}
           onColorTempChange={setSelectedColorTemp}
         />
-        {brand === "balcom" && (
+        {/* A made-to-order fixture is quoted with its IP; the picker's price steps would not apply. */}
+        {brand === "balcom" && !madeToOrder && (
           <IpOptions
             key={`ip-${savedVersion}`}
             ensureConfigId={ensureConfigId}
@@ -465,58 +483,67 @@ export default function BuyBox({
         )}
         {/* A limit of the fixture, not an error: the status tone for a
             heads-up, not the red the site keeps for things that failed. */}
-        {ipNote && <p className="text-[length:var(--text-xs)] font-medium text-warning">{ipNote}</p>}
+        {ipNote && !madeToOrder && <p className="text-[length:var(--text-xs)] font-medium text-warning">{ipNote}</p>}
       </div>
 
       {/* On a phone this rides along at the bottom of the screen; from md up
           it sits in the column. */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 pb-[max(env(safe-area-inset-bottom),1rem)] pt-3 backdrop-blur md:static md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
-        <div className="flex flex-col gap-2.5">
-          <div className="flex items-center gap-3">
-            <QuantitySelector
-              quantity={quantity}
-              onIncrease={() => setQuantity((value) => value + 1)}
-              onDecrease={() => setQuantity((value) => Math.max(1, value - 1))}
-              size="lg"
-              rtlSupport
-              minQuantity={1}
-              disabled={soldOut}
-            />
-            <Button disabled={isPending || soldOut} onClick={handleAddToBag} className="h-12 flex-1 text-base">
-              {isPending ? <Loader2 className="size-5 animate-spin" aria-hidden /> : <ShoppingBag className="size-5" aria-hidden />}
-              {isPending ? t("adding") : tPdp("addToCart")}
+        {madeToOrder ? (
+          <Button onClick={() => setShowQuoteDialog(true)} className="h-12 w-full text-base">
+            {t("requestQuote")}
+          </Button>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            <div className="flex items-center gap-3">
+              <QuantitySelector
+                quantity={quantity}
+                onIncrease={() => setQuantity((value) => value + 1)}
+                onDecrease={() => setQuantity((value) => Math.max(1, value - 1))}
+                size="lg"
+                rtlSupport
+                minQuantity={1}
+                disabled={soldOut}
+              />
+              <Button disabled={isPending || soldOut} onClick={handleAddToBag} className="h-12 flex-1 text-base">
+                {isPending ? <Loader2 className="size-5 animate-spin" aria-hidden /> : <ShoppingBag className="size-5" aria-hidden />}
+                {isPending ? t("adding") : tPdp("addToCart")}
+              </Button>
+            </div>
+            <Button
+              disabled={soldOut || isClicked || isSavingConfig}
+              variant="outline"
+              onClick={handleOrderNow}
+              className="h-12 w-full bg-transparent text-base"
+            >
+              {isClicked || isSavingConfig ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  {t("processingOrder")}
+                </>
+              ) : (
+                t("orderNow")
+              )}
             </Button>
           </div>
-          <Button
-            disabled={soldOut || isClicked || isSavingConfig}
-            variant="outline"
-            onClick={handleOrderNow}
-            className="h-12 w-full bg-transparent text-base"
-          >
-            {isClicked || isSavingConfig ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                {t("processingOrder")}
-              </>
-            ) : (
-              t("orderNow")
-            )}
-          </Button>
-        </div>
+        )}
       </div>
 
       {/* The two promises the business already makes, where the decision is
           taken rather than three sections further down the page. */}
-      <ul className="grid gap-3 border-t border-border pt-5 text-[length:var(--text-sm)] text-muted-foreground sm:grid-cols-2">
-        <li className="flex items-center gap-2.5">
-          <TruckIcon className="size-4 shrink-0 text-foreground/70" aria-hidden />
-          {t("delivery")}
-        </li>
-        <li className="flex items-center gap-2.5">
-          <BanknoteIcon className="size-4 shrink-0 text-foreground/70" aria-hidden />
-          {t("cod")}
-        </li>
-      </ul>
+      {/* Not promised for made-to-order: it is built, not shipped from stock. */}
+      {!madeToOrder && (
+        <ul className="grid gap-3 border-t border-border pt-5 text-[length:var(--text-sm)] text-muted-foreground sm:grid-cols-2">
+          <li className="flex items-center gap-2.5">
+            <TruckIcon className="size-4 shrink-0 text-foreground/70" aria-hidden />
+            {t("delivery")}
+          </li>
+          <li className="flex items-center gap-2.5">
+            <BanknoteIcon className="size-4 shrink-0 text-foreground/70" aria-hidden />
+            {t("cod")}
+          </li>
+        </ul>
+      )}
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent>
@@ -538,6 +565,49 @@ export default function BuyBox({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {madeToOrder && (
+        <Dialog open={showQuoteDialog} onOpenChange={setShowQuoteDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{tDialog("madeToOrderTitle")}</DialogTitle>
+              <DialogDescription>{tDialog("madeToOrderDescription")}</DialogDescription>
+            </DialogHeader>
+            <ul className="divide-y divide-border border-y border-border">
+              {COMPANY.phones.madeToOrderSales.map((phone) => {
+                const number = displayPhone(phone)
+                return (
+                  <li key={phone} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                    <span dir="ltr" className="font-medium tabular-nums">{number}</span>
+                    <div className="flex gap-2">
+                      <Button asChild variant="outline" size="sm">
+                        <a href={telLink(phone)} aria-label={tDialog("callNumber", { number })}>
+                          {tDialog("call")}
+                        </a>
+                      </Button>
+                      <Button asChild variant="outline" size="sm">
+                        <a
+                          href={whatsappLink(undefined, phone)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={tDialog("whatsappNumber", { number })}
+                        >
+                          {tDialog("whatsapp")}
+                        </a>
+                      </Button>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="secondary">{tDialog("close")}</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }

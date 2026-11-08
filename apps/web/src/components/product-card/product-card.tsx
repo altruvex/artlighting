@@ -22,6 +22,8 @@ interface Product {
   /** What can be bought now; absent where a caller does not know it. */
   /** Units a customer may buy; null when the product is not tracked (never sold out). */
   quantity?: number | null;
+  /** Priced by specification and quantity: no figure, no quick add. */
+  madeToOrder?: boolean;
   /** The average of this product's reviews, or null with none yet. */
   ratingAverage?: number | null;
   ratingCount?: number;
@@ -65,9 +67,10 @@ export default function ProductCard({ product }: ProductCardProps) {
   // Already the name in this locale (catalogueCards).
   const displayName = product.productName;
 
+  const madeToOrder = product.madeToOrder === true;
   const saving = applyRate(product.price, product.discount);
   const pricing = {
-    onSale: money(product.discount).greaterThan(0),
+    onSale: !madeToOrder && money(product.discount).greaterThan(0),
     current: formatNumberWithConversion(serializeMoney(subtractMoney(product.price, saving)), locale),
     list: formatNumberWithConversion(product.price, locale),
     saving: formatNumberWithConversion(serializeMoney(saving), locale),
@@ -121,7 +124,8 @@ export default function ProductCard({ product }: ProductCardProps) {
           </span>
         )}
 
-        <AddToCartButton productId={product.productId} displayName={displayName} soldOut={soldOut} />
+        {/* Made to order is quoted from the product page, not added from here. */}
+        {!madeToOrder && <AddToCartButton productId={product.productId} displayName={displayName} soldOut={soldOut} />}
       </figure>
 
       <div className="flex flex-1 flex-col gap-1.5 pt-3">
@@ -155,9 +159,13 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         <div className="mt-auto space-y-0.5 pt-1.5">
           <div className="flex flex-wrap items-baseline gap-x-2">
-            <span data-price className="text-[length:var(--text-lg)] font-semibold tabular-nums">
-              {pricing.current}
-            </span>
+            {madeToOrder ? (
+              <span className="text-[length:var(--text-lg)] font-semibold text-muted-foreground">{t("priceOnRequest")}</span>
+            ) : (
+              <span data-price className="text-[length:var(--text-lg)] font-semibold tabular-nums">
+                {pricing.current}
+              </span>
+            )}
             {pricing.onSale && (
               <s className="text-[length:var(--text-sm)] tabular-nums text-muted-foreground">
                 <span className="sr-only">{t("was")} </span>

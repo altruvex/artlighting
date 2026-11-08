@@ -59,6 +59,7 @@ function productSelect() {
     brand: true,
     isActive: true,
     trackInventory: true,
+    madeToOrder: true,
     categoryId: true,
     lightingtypeId: true,
     productIp: true,
@@ -239,6 +240,8 @@ export async function placeOrder(
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
   const drafts = await draftsFor(userId, source);
   if (drafts.some((draft) => !draft.product.isActive)) throw new CheckoutError("unavailable");
+  // Priced by specification and quantity: quoted by the sales team, never ordered here.
+  if (drafts.some((draft) => draft.product.madeToOrder)) throw new CheckoutError("unavailable");
   // Said now, before the customer types an address. The binding check is
   // the reservation when they confirm; this only spares them the form.
   for (const draft of drafts) {

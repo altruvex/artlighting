@@ -29,7 +29,7 @@ export async function addToCart(productId: string, quantity: number = 1) {
     // — Better Auth writes it directly to this table at sign-up.
     const product = await prisma.product.findUnique({
       where: { productId },
-      select: { id: true, isActive: true },
+      select: { id: true, isActive: true, madeToOrder: true },
     });
     if (!product) {
       throw new Error("Product not found");
@@ -38,6 +38,10 @@ export async function addToCart(productId: string, quantity: number = 1) {
     // anyway (CheckoutError "unavailable"), with every line held hostage.
     if (!product.isActive) {
       throw new Error("Product is not available");
+    }
+    // Priced by specification and quantity: quoted by the sales team, not sold from the cart.
+    if (product.madeToOrder) {
+      throw new Error("Product is made to order");
     }
     let cart = await prisma.cart.findUnique({
       where: { userId },

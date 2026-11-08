@@ -1,11 +1,12 @@
 import { COMPANY } from "@/lib/company";
 
 /**
- * A WhatsApp link to the showroom with the first line already written, so a
- * project enquiry or a question about a product arrives with its context.
+ * A WhatsApp link to the showroom (or another of the company's numbers) with
+ * the first line already written, so a project enquiry or a question about a
+ * product arrives with its context.
  */
-export function whatsappLink(message?: string) {
-  const base = `https://wa.me/${COMPANY.phones.showroom.replace(/^\+/, "")}`;
+export function whatsappLink(message?: string, to: string = COMPANY.phones.showroom) {
+  const base = `https://wa.me/${to.replace(/^\+/, "")}`;
   return message ? `${base}?text=${encodeURIComponent(message)}` : base;
 }
 

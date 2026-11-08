@@ -103,6 +103,7 @@ function cardSelect(locale: string) {
     featured: true,
     createdAt: true,
     trackInventory: true,
+    madeToOrder: true,
     // productDiscountRates scopes discounts by these.
     categoryId: true,
     lightingtypeId: true,
@@ -186,6 +187,8 @@ function toCard(row: CardRow, locale: string, rate: string, t: DescriptionTransl
     discount: rate,
     // null: not tracked, never sold out — see sellableFrom.
     quantity: sellableFrom(row, row.variants[0]?.inventory),
+    // Priced by specification and quantity: the card shows "price on request", no quick add.
+    madeToOrder: row.madeToOrder,
     ratingAverage: row.ratingAverage !== null && row.ratingAverage !== undefined ? Number(row.ratingAverage) : null,
     ratingCount: row.ratingCount,
     featured: row.featured,

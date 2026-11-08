@@ -21,6 +21,8 @@ export interface SearchHit {
   /** Serialized money (see @repo/money). */
   price: string;
   discount: string;
+  /** Priced on request: the row shows that instead of a figure. */
+  madeToOrder: boolean;
   image: string | null;
   sectionType: ShopCard["sectionType"];
   spotlightType: string;
@@ -55,6 +57,7 @@ export async function searchProducts(
       brand: card.brand,
       price: card.price,
       discount: card.discount,
+      madeToOrder: card.madeToOrder,
       image: card.productImages[0] ?? null,
       sectionType: card.sectionType,
       spotlightType: card.spotlightType,

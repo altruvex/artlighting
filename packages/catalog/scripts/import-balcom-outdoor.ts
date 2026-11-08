@@ -177,11 +177,12 @@ for (const product of products) {
           },
           tx
         );
-        // Made to order: without this a product with no stock counted
-        // shows as sold out.
+        // Made to order: without trackInventory off a product with no stock
+        // counted shows as sold out; madeToOrder hides the placeholder price
+        // and swaps the buy buttons for the "contact us" dialog.
         await tx.product.update({
           where: { id: row.id },
-          data: { maxIP: 65, productIp: "IP65", trackInventory: false },
+          data: { maxIP: 65, productIp: "IP65", trackInventory: false, madeToOrder: true },
         });
         await tx.productVariant.updateMany({ where: { productId: row.id }, data: { wattage: product.wattage } });
         await tx.productTranslation.createMany({

@@ -57,7 +57,8 @@
         "was": "Was",
         "soldOut": "Sold out",
         "fewLeft": "{count, plural, one{Only # left} other{Only # left}}",
-        "addToCartNamed": "Add {name} to bag"
+        "addToCartNamed": "Add {name} to bag",
+        "priceOnRequest": "Price on request"
     },
     "product-main-info": {
         "title": "Product Main Info",
@@ -74,7 +75,9 @@
         "off": "OFF",
         "save": "Save",
         "delivery": "Delivered in four working days",
-        "cod": "Cash on delivery"
+        "cod": "Cash on delivery",
+        "priceOnRequest": "Price on request",
+        "requestQuote": "Request a quote"
     },
     "product-description": {
         "fixture": "light fixture",
@@ -121,7 +124,13 @@
         "bulkOrderTitle": "Ordering in bulk",
         "bulkOrderDescription": "We noticed that you're ordering 10 or more of this product. For the best offer, please contact our sales team.",
         "close": "Close",
-        "contactSalesTeam": "Contact our sales team"
+        "contactSalesTeam": "Contact our sales team",
+        "madeToOrderTitle": "Made to your specification",
+        "madeToOrderDescription": "This product is made to your specification, so its price depends on the specification and the quantity. Contact us to know the details.",
+        "call": "Call",
+        "whatsapp": "WhatsApp",
+        "callNumber": "Call {number}",
+        "whatsappNumber": "WhatsApp {number}"
     },
     "product-ip": {
         "title": "Water resistance (IP rating)",

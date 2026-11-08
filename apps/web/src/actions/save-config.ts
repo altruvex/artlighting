@@ -53,10 +53,12 @@ export async function saveConfig({
 
     const product = await prisma.product.findUnique({
       where: { productId: config.productId },
-      select: { productId: true, price: true, priceIncrease: true, isActive: true },
+      select: { productId: true, price: true, priceIncrease: true, isActive: true, madeToOrder: true },
     })
     if (!product) throw new Error("Product not found")
     if (!product.isActive) throw new Error("Product is not available")
+    // Priced by specification and quantity: quoted by the sales team, never ordered here.
+    if (product.madeToOrder) throw new Error("Product is made to order")
 
     const priceIncrease = config.priceIncrease ?? product.priceIncrease ?? 0
     const lampPriceIncrease = config.lampPriceIncrease ?? 0

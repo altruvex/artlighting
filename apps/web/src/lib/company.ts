@@ -29,6 +29,8 @@ export const COMPANY = {
     showroom: "+201154466259",
     salesManager: "+201102131731",
     landline: "+20222693008",
+    /** The sales mobiles (also on WhatsApp) that quote made-to-order products. */
+    madeToOrderSales: ["+201148999028", "+201148999042"],
   },
   /** Saturday to Thursday, 09:30–17:30 (Africa/Cairo). */
   hours: { days: ["Sa", "Su", "Mo", "Tu", "We", "Th"], opens: "09:30", closes: "17:30" },

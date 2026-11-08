@@ -8,6 +8,7 @@ import { getLocaleFromParams } from "@/lib/i18n/utils"
 import { PagePropsTypes } from "@/types"
 import { prisma } from "@repo/database"
 import type { Metadata } from "next"
+import { connection } from "next/server"
 import { constructMetadata } from "@/lib/metadata"
 import { notFound, unstable_rethrow } from "next/navigation"
 import { redirect } from "@/i18n/navigation"
@@ -162,6 +163,8 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
     // configuration when it was first created: placeOrder prices the order
     // with the live engine, so a promotion that started or ended since
     // would show one figure here and charge another.
+    // The engine reads the clock (date windows): render per request.
+    await connection()
     const rates = await productDiscountRates([product], prisma)
     const discount = rates[product.id] ?? serializeRate(0)
 

@@ -16,7 +16,7 @@ import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { CommandGroup, CommandItem } from "@repo/ui/components/command";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/select";
-import { formatMoney, formatRateAsPercent } from "@/lib/money";
+import { formatMoney, formatRateAsPercent, percentToRate, rateToPercent } from "@/lib/money";
 import { cn } from "@repo/ui/lib/utils";
 import type { DiscountInput } from "@repo/catalog";
 import type { AppliedDiscount, PricingResult, RejectedDiscount } from "@repo/pricing";
@@ -147,7 +147,7 @@ export function DiscountsManager({
       families: row.families,
     });
     // The admin thinks in percent; the engine takes a rate.
-    setPercentInput(row.rate ? String(Number(row.rate) * 100) : "");
+    setPercentInput(rateToPercent(row.rate));
     // Name the chosen products without the page loading the catalogue.
     const missing = row.productIds.filter((id) => !productNames[id]);
     if (missing.length > 0) {
@@ -182,9 +182,7 @@ export function DiscountsManager({
       ...form,
       // Converted at this one boundary, so the 0.13-versus-13 confusion has
       // exactly one place it could live.
-      rate: form.type === "PERCENTAGE" && percentInput.trim() !== ""
-        ? (Number(percentInput) / 100).toFixed(4)
-        : undefined,
+      rate: form.type === "PERCENTAGE" ? (percentToRate(percentInput) ?? undefined) : undefined,
       amount: form.type === "FIXED" ? form.amount : undefined,
       code: form.mode === "COUPON" ? form.code : null,
     };

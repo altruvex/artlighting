@@ -14,7 +14,7 @@ import {
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/select";
-import { formatMoney } from "@/lib/money";
+import { formatMoney, percentToRate } from "@/lib/money";
 import { cn } from "@repo/ui/lib/utils";
 import type { BulkPriceOperation, BulkPricePreviewRow } from "@repo/catalog";
 import { ArrowRightIcon, TagIcon } from "lucide-react";
@@ -59,9 +59,9 @@ export function BulkPriceDialog({ selected, clear }: { selected: ProductRow[]; c
     if (trimmed === "") return null;
     if (isPercent) {
       // The admin types a percent; the service takes a rate (0.13 = 13%).
-      const asRate = Number(trimmed) / 100;
-      if (!Number.isFinite(asRate)) return null;
-      return { mode, rate: asRate.toFixed(4) } as BulkPriceOperation;
+      const rate = percentToRate(trimmed);
+      if (rate === null) return null;
+      return { mode, rate } as BulkPriceOperation;
     }
     return { mode, amount: trimmed } as BulkPriceOperation;
   }

@@ -2,7 +2,7 @@
 
 import { useId, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { formatMoney, formatRateAsPercent } from "@/lib/money";
+import { formatMoney, rateToPercent } from "@/lib/money";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
@@ -89,15 +89,14 @@ type Variant = {
   price: string | null;
   isDefault: boolean;
 };
+/** A discount the storefront applies to one unit of this product right now. */
 type Discount = {
   id: string;
   name: string;
-  type: "PERCENTAGE" | "FIXED";
-  /** A rate: "0.1300" is 13%. Null unless the type is PERCENTAGE. */
-  rate: string | null;
-  /** Serialized money. Null unless the type is FIXED. */
-  amount: string | null;
   code: string | null;
+  scope: "PRODUCTS" | "CATEGORIES" | "FAMILIES" | "CART";
+  /** Serialized money: what it takes off one unit. */
+  amount: string;
 };
 type PriceHistoryEntry = {
   id: string;
@@ -140,6 +139,8 @@ interface Props {
     featured: boolean;
     /** Whether orders reserve and sell this product's stock. */
     trackInventory: boolean;
+    /** Priced per request: the storefront shows no price and sells nothing online. */
+    madeToOrder: boolean;
     deletedAt: Date | null;
     categoryId: string;
     lightingtypeId: string;
@@ -158,6 +159,9 @@ interface Props {
   topCategories: Category[];
   childCategories: Category[];
   discounts: Discount[];
+  /** The storefront's effective rate ("0.2000" is 20%) and price; null when nothing applies. */
+  discountRate: string | null;
+  effectivePrice: string | null;
   priceHistory: PriceHistoryEntry[];
   isOwner: boolean;
   /** Absolute storefront URL, or null when the product isn't linkable yet. */
@@ -180,6 +184,8 @@ export default function ProductEditor({
   topCategories,
   childCategories,
   discounts,
+  discountRate,
+  effectivePrice,
   priceHistory,
   isOwner,
   storefrontUrl,
@@ -187,6 +193,7 @@ export default function ProductEditor({
 }: Props) {
   const t = useTranslations("ProductEditor");
   const tProducts = useTranslations("Products");
+  const tDiscounts = useTranslations("Discounts");
   const tCommon = useTranslations("Common");
   const format = useFormatter();
   const locale = useLocale();
@@ -199,6 +206,7 @@ export default function ProductEditor({
   const [isActive, setIsActive] = useState(product.isActive);
   const [featured, setFeatured] = useState(product.featured);
   const [trackInventory, setTrackInventory] = useState(product.trackInventory);
+  const [madeToOrder, setMadeToOrder] = useState(product.madeToOrder);
   const [categoryId, setCategoryId] = useState(product.categoryId);
   const [lightingtypeId, setLightingtypeId] = useState(product.lightingtypeId);
   const [productColor, setProductColor] = useState(product.productColor);
@@ -217,13 +225,6 @@ export default function ProductEditor({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmPptxDownload, setConfirmPptxDownload] = useState(false);
 
-  const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
-  const [discountScope, setDiscountScope] = useState<"product" | "category" | "global">(
-    "product"
-  );
-  const [discountValue, setDiscountValue] = useState("");
-  const [discountCode, setDiscountCode] = useState("");
-
   const availableChildren = childCategories.filter((c) => c.parentId === categoryId);
   const isDeleted = product.deletedAt !== null;
 
@@ -234,6 +235,7 @@ export default function ProductEditor({
       isActive,
       featured,
       trackInventory,
+      madeToOrder,
       categoryId,
       lightingtypeId,
       productColor,
@@ -250,6 +252,7 @@ export default function ProductEditor({
       isActive,
       featured,
       trackInventory,
+      madeToOrder,
       categoryId,
       lightingtypeId,
       productColor,
@@ -269,6 +272,7 @@ export default function ProductEditor({
       isActive: product.isActive,
       featured: product.featured,
       trackInventory: product.trackInventory,
+      madeToOrder: product.madeToOrder,
       categoryId: product.categoryId,
       lightingtypeId: product.lightingtypeId,
       productColor: product.productColor,
@@ -296,6 +300,7 @@ export default function ProductEditor({
     setIsActive(savedDetails.isActive);
     setFeatured(savedDetails.featured);
     setTrackInventory(savedDetails.trackInventory);
+    setMadeToOrder(savedDetails.madeToOrder);
     setCategoryId(savedDetails.categoryId);
     setLightingtypeId(savedDetails.lightingtypeId);
     setProductColor(savedDetails.productColor);
@@ -338,6 +343,7 @@ export default function ProductEditor({
           isActive,
           featured,
           trackInventory,
+          madeToOrder,
           categoryId,
           lightingtypeId,
           productColor: productColor as never,
@@ -811,6 +817,15 @@ export default function ProductEditor({
                 onLabel={t("visibility.tracked")}
                 offLabel={t("visibility.untracked")}
               />
+              <Separator />
+              <ToggleRow
+                label={t("visibility.madeToOrderLabel")}
+                hint={t("visibility.madeToOrderHint")}
+                pressed={madeToOrder}
+                onPressedChange={setMadeToOrder}
+                onLabel={t("visibility.madeToOrderOn")}
+                offLabel={t("visibility.madeToOrderOff")}
+              />
             </div>
           </Section>
 
@@ -892,28 +907,43 @@ export default function ProductEditor({
               drift. Creating and editing happens on the discounts page.
             */}
             <div className="space-y-3">
-              {discounts.length === 0 ? (
+              {discounts.length === 0 || discountRate === null || effectivePrice === null ? (
                 <p className="text-sm text-muted-foreground">{t("discounts.none")}</p>
               ) : (
-                <ul className="divide-y rounded-lg border">
-                  {discounts.map((discount) => (
-                    <li key={discount.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-                      <span className="min-w-0 text-sm">
-                        <span className="font-medium">{discount.name}</span>
-                        {discount.code && (
-                          <span className="ms-2 font-mono text-xs text-muted-foreground" dir="ltr">
-                            {discount.code}
+                <>
+                  {/* The figure the storefront shows: struck list price, then
+                      what one unit costs after every applied rule. */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/40 px-3 py-2">
+                    <span className="text-sm font-medium">{t("discounts.effective")}</span>
+                    <span className="tabular-nums text-sm whitespace-nowrap">
+                      <s className="me-2 text-muted-foreground">{formatMoney(product.price, { locale })}</s>
+                      <span className="font-medium">{formatMoney(effectivePrice, { locale })}</span>
+                      <span className="ms-2 text-xs text-muted-foreground">
+                        {t("discounts.percentOff", { value: rateToPercent(discountRate) })}
+                      </span>
+                    </span>
+                  </div>
+                  <ul className="divide-y rounded-lg border">
+                    {discounts.map((discount) => (
+                      <li key={discount.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                        <span className="grid min-w-0 text-sm leading-tight">
+                          <span className="font-medium">
+                            {discount.name}
+                            {discount.code && (
+                              <span className="ms-2 font-mono text-xs text-muted-foreground" dir="ltr">
+                                {discount.code}
+                              </span>
+                            )}
                           </span>
-                        )}
-                      </span>
-                      <span className="tabular-nums text-sm whitespace-nowrap">
-                        {discount.type === "PERCENTAGE"
-                          ? formatRateAsPercent(discount.rate ?? 0, { locale })
-                          : formatMoney(discount.amount ?? 0, { locale })}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                          <span className="text-xs text-muted-foreground">{tDiscounts(`scope.${discount.scope}`)}</span>
+                        </span>
+                        <span className="tabular-nums text-sm whitespace-nowrap" dir="ltr">
+                          −{formatMoney(discount.amount, { locale })}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
               )}
               <Button asChild variant="outline" size="sm">
                 <Link href="/dashboard/discounts">{t("discounts.manage")}</Link>

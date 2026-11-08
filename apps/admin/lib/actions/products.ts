@@ -39,6 +39,7 @@ export async function updateProductGeneral(
     isActive?: boolean;
     featured?: boolean;
     trackInventory?: boolean;
+    madeToOrder?: boolean;
     categoryId?: string;
     lightingtypeId?: string;
     maxIP?: number | null;
@@ -53,10 +54,11 @@ export async function updateProductGeneral(
   return run(async () => {
     await requirePermission("product:write");
 
-    const product = await prisma.product.update({ where: { id: productId }, data });
+    const product = await prisma.product.update({ where: { id: productId }, data, select: { id: true } });
     revalidateStorefront();
     revalidatePath("/dashboard/products");
     revalidatePath(`/dashboard/products/${productId}`);
+    // The id only: the row carries Decimal money, which cannot cross to the client.
     return product;
   });
 }

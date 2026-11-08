@@ -2,8 +2,9 @@
 
 import { updateProductIP } from "@/actions/product-ip";
 import { formatNumberWithConversion } from "@/lib/numbers";
+import { availableIps, calculateIpPriceIncrease } from "@/lib/pricing-rules";
 import { cn } from "@/lib/utils";
-import { Decimal, money, type MoneyInput, serializeMoney } from "@repo/money";
+import { money } from "@repo/money";
 import type { ProductIP } from "@repo/database";
 import { Droplets } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -11,41 +12,30 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ChipSpinner, OptionGroup, optionChip } from "./option-group";
 
-const PRODUCT_IP_LABEL_MAP = {
+// Labels only: the price steps live in lib/pricing-rules, the same table
+// the server charges from.
+export const PRODUCT_IP_LABEL_MAP = {
   IP20: {
     label: "IP 20",
     description: "Protected against solid objects over 12mm",
-    increaseOnPricePercent: 0,
   },
   IP44: {
     label: "IP 44",
     description: "Protected against water splashes from all directions",
-    increaseOnPricePercent: 0.02,
   },
   IP54: {
     label: "IP 54",
     description: "Protected against dust and water splashes",
-    increaseOnPricePercent: 0.04,
   },
   IP65: {
     label: "IP 65",
     description: "Dust tight and protected against water jets",
-    increaseOnPricePercent: 0.06,
   },
   IP68: {
     label: "IP 68",
     description: "Dust tight and protected against long periods of immersion",
-    increaseOnPricePercent: 0.08,
   },
-} satisfies Record<ProductIP, { label: string; description: string; increaseOnPricePercent: number }>;
-
-const IP_NUMERIC_MAP = {
-  IP20: 20,
-  IP44: 44,
-  IP54: 54,
-  IP65: 65,
-  IP68: 68,
-} satisfies Record<ProductIP, number>;
+} satisfies Record<ProductIP, { label: string; description: string }>;
 
 interface ProductIPButtonsProps {
   /** The visitor's configuration id, created on first use. */
@@ -81,14 +71,12 @@ export default function ProductIPButtons({
   const locale = useLocale();
   const isRTL = locale === "ar";
 
+  // The server's own formula (lib/pricing-rules): the step from the
+  // fixture's rating, not from IP20, so the figure beside the chip is the
+  // one the configuration stores.
   const calculatePriceIncrease = useCallback(
-    (ip: ProductIP) => {
-      const { increaseOnPricePercent } = PRODUCT_IP_LABEL_MAP[ip];
-      // Decimal, rounded up to the piastre — the old Math.ceil rounded to
-      // whole pounds and drifted from the amount the server stored.
-      return serializeMoney(money(basePrice).times(increaseOnPricePercent).toDecimalPlaces(2, Decimal.ROUND_UP));
-    },
-    [basePrice]
+    (ip: ProductIP) => calculateIpPriceIncrease(basePrice, ip, baseIp),
+    [basePrice, baseIp]
   );
 
   useEffect(() => {
@@ -127,30 +115,17 @@ export default function ProductIPButtons({
   );
 
 
-  // The legacy spec column stores "20", not "IP20", and has been passed in
-  // here before. An unrecognised floor must not empty the list — that takes
-  // the choice away entirely.
-  const baseNumericIP = IP_NUMERIC_MAP[baseIp] ?? IP_NUMERIC_MAP.IP20;
-
-
-  const effectiveMaxIP = Math.max(baseNumericIP, maxIP);
-
-  const availableEntries = (
-    Object.entries(PRODUCT_IP_LABEL_MAP) as [
-      ProductIP,
-      { label: string; description: string; increaseOnPricePercent: number }
-    ][]
-  ).filter(([ip]) => {
-    const numeric = IP_NUMERIC_MAP[ip];
-    return numeric >= baseNumericIP && numeric <= effectiveMaxIP;
-  });
+  // The same list the server accepts (lib/pricing-rules): from the
+  // fixture's rating up to its maximum, with an unrecognised floor read as
+  // IP20 so the list is never empty.
+  const availableEntries = availableIps(baseIp, maxIP);
 
   // The rating's meaning under the chips, not in a tooltip: a tooltip
   // never opens on a phone, which is where most of these are chosen.
   return (
     <div className="space-y-2">
       <OptionGroup label={t("title")} selected={t(`ratings.${selectedIp}.label`)} className="grid-cols-2 sm:grid-cols-3">
-        {availableEntries.map(([ip]) => {
+        {availableEntries.map((ip) => {
           const displayedIncrease = calculatePriceIncrease(ip);
           const isActive = selectedIp === ip;
           return (

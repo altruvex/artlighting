@@ -11,7 +11,9 @@ import type { Metadata } from "next"
 import { constructMetadata } from "@/lib/metadata"
 import { notFound, unstable_rethrow } from "next/navigation"
 import { redirect } from "@/i18n/navigation"
+import { productDiscountRates } from "@repo/catalog"
 import { familySlug } from "@repo/catalog/families"
+import { serializeRate } from "@repo/money"
 import Preview, { type PreviewProduct } from "./preview"
 
 // The spec keys behind the six figures the screen shows; nothing else is read.
@@ -108,6 +110,13 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
     const product = await prisma.product.findUnique({
       where: { productId: configuration.productId },
       select: {
+        // What productDiscountRates scopes a discount by; `price` stays
+        // in this Server Component and never reaches the browser.
+        id: true,
+        price: true,
+        categoryId: true,
+        lightingtypeId: true,
+        sectionType: true,
         productName: true,
         images: productImageSelect(),
         translations: { where: { language: locale }, select: { name: true }, take: 1 },
@@ -149,9 +158,16 @@ const Page = async ({ params, searchParams }: PagePropsTypes) => {
       cri: specs.cri,
     }
 
+    // The rate the engine gives now, not the one snapshotted onto the
+    // configuration when it was first created: placeOrder prices the order
+    // with the live engine, so a promotion that started or ended since
+    // would show one figure here and charge another.
+    const rates = await productDiscountRates([product], prisma)
+    const discount = rates[product.id] ?? serializeRate(0)
+
     return (
       <Preview
-        configuration={toViewConfiguration(configuration)}
+        configuration={{ ...toViewConfiguration(configuration), discount }}
         productId={configuration.productId}
         product={localizedProduct}
       />

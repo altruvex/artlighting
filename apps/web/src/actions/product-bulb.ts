@@ -48,6 +48,7 @@ export const chooseBulb = async ({
         price: true,
         hNumber: true,
         isActive: true,
+        madeToOrder: true,
         bulbs: {
           select: { isDefault: true, bulb: { select: { id: true, price: true, isActive: true } } },
         },
@@ -55,6 +56,10 @@ export const chooseBulb = async ({
     });
     if (!product || !product.isActive) {
       return { success: false as const, error: "Product not available" };
+    }
+    // Priced by specification and quantity: quoted by the sales team, never configured here.
+    if (product.madeToOrder) {
+      return { success: false as const, error: "Product is made to order" };
     }
 
     const offered = product.bulbs.filter((row) => row.bulb.isActive);

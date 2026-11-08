@@ -343,13 +343,36 @@ export async function productDiscountRates(
 
   const rates: Record<string, string> = {};
   for (const product of products) {
-    const priced = computePricing({ lines: [toCartLine(product)], discounts: rules, now });
-    const subtotal = money(priced.subtotal);
-    if (subtotal.isZero()) continue;
-    const rate = money(priced.discountTotal).dividedBy(subtotal);
-    if (rate.greaterThan(0)) rates[product.id] = rate.toFixed(4);
+    const rate = effectiveRate(computePricing({ lines: [toCartLine(product)], discounts: rules, now }));
+    if (rate) rates[product.id] = rate;
   }
   return rates;
+}
+
+/** discountTotal / subtotal as a 4-place rate, or null when nothing came off. */
+function effectiveRate(priced: ReturnType<typeof computePricing>): string | null {
+  const subtotal = money(priced.subtotal);
+  if (subtotal.isZero()) return null;
+  const rate = money(priced.discountTotal).dividedBy(subtotal);
+  return rate.greaterThan(0) ? rate.toFixed(4) : null;
+}
+
+/**
+ * One product's advertised discount with its working: the rate
+ * productDiscountRates would give it, and the automatic rules that produced
+ * it (each with what it took off a single unit). For the admin's product
+ * page, so what it lists is what the storefront charges — not every rule
+ * that names the product, some of which are outranked, expired or not yet
+ * started.
+ */
+export async function productDiscountBreakdown(
+  product: Parameters<typeof toCartLine>[0],
+  db: Db = prisma,
+  now = new Date(),
+) {
+  const rules = await discountsForCart(null, db, { at: now });
+  const priced = computePricing({ lines: [toCartLine(product)], discounts: rules, now });
+  return { rate: effectiveRate(priced), applied: priced.applied };
 }
 
 /** How many times this customer has already used each discount, on confirmed orders. */

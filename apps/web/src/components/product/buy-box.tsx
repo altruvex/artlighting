@@ -460,6 +460,7 @@ export default function BuyBox({
             choices={bulbChoices}
             selectedBulbId={selectedBulbId}
             onBulbChange={handleBulbChange}
+            showPrices={!madeToOrder}
           />
         )}
         <ColorTempOptions

@@ -28,6 +28,7 @@ export default function ProductBulbButtons({
   choices,
   selectedBulbId,
   onBulbChange,
+  showPrices = true,
 }: {
   /** The visitor's configuration id, created on first use. */
   ensureConfigId: () => Promise<string | null>;
@@ -35,6 +36,8 @@ export default function ProductBulbButtons({
   selectedBulbId?: string | null;
   /** Reports the id and what it adds, both as the server computed them. */
   onBulbChange: (bulbId: string, lampPriceIncrease: string) => void;
+  /** Off for a made-to-order fixture: it is priced on request, so no figure beside a bulb either. */
+  showPrices?: boolean;
 }) {
   const t = useTranslations("ProductBulbButtons");
   const locale = useLocale();
@@ -104,15 +107,17 @@ export default function ProductBulbButtons({
             </span>
             <span className="flex shrink-0 items-center gap-2 text-muted-foreground">
               {saving === choice.id && <ChipSpinner />}
-              {included
-                ? t("included")
-                : /* The page's own formatter: Intl with numberingSystem
-                     "arab", so the amount reads ١٢٠ beside a price that
-                     already does, not 120. */
-                  `${Number(choice.increase) < 0 ? "−" : "+"}${formatNumberWithConversion(
-                    Math.abs(Number(choice.increase)).toFixed(2),
-                    locale,
-                  )}`}
+              {!showPrices
+                ? null
+                : included
+                  ? t("included")
+                  : /* The page's own formatter: Intl with numberingSystem
+                       "arab", so the amount reads ١٢٠ beside a price that
+                       already does, not 120. */
+                    `${Number(choice.increase) < 0 ? "−" : "+"}${formatNumberWithConversion(
+                      Math.abs(Number(choice.increase)).toFixed(2),
+                      locale,
+                    )}`}
             </span>
           </button>
         );

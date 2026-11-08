@@ -4,6 +4,8 @@
     "heading": "Products ({count})",
     "newProduct": "New product",
     "featured": "Featured",
+    "madeToOrder": "Made to order",
+    "afterDiscount": "{percent} off",
     "columns": {
       "product": "Product",
       "category": "Category",
@@ -155,7 +157,11 @@
       "trackInventoryLabel": "Track inventory",
       "trackInventoryHint": "When off, orders don't reserve stock and the product never shows as sold out or \"only N left\". For products made or bought in to order.",
       "tracked": "Tracked",
-      "untracked": "Not tracked"
+      "untracked": "Not tracked",
+      "madeToOrderLabel": "Made to order",
+      "madeToOrderHint": "When on, the storefront hides the price and online buying; the buy buttons open a contact dialog instead. For products priced per request and quantity.",
+      "madeToOrderOn": "Made to order",
+      "madeToOrderOff": "Sold online"
     },
     "translations": {
       "title": "Localized content",
@@ -273,14 +279,15 @@
       "code": "Coupon code (optional)",
       "create": "Create discount",
       "created": "Discount created",
-      "none": "No discount covers this product.",
+      "none": "No discount applies to this product right now.",
+      "effective": "Storefront price",
       "percentOff": "{value}% off",
       "amountOff": "{amount} off",
       "withCode": "code {code}",
       "deactivate": "Deactivate",
       "deactivated": "Discount deactivated",
       "activeTitle": "Active discounts",
-      "description": "Discounts that cover this product. Create and edit them on the discounts page.",
+      "description": "What the storefront applies to one unit right now — by product, category, family or the whole order, within its dates. Create and edit discounts on the discounts page.",
       "manage": "Manage discounts"
     },
     "datasheet": {

@@ -119,15 +119,21 @@ export async function ProductPage({ params, brand }: { params: PagePropsTypes["p
           category: `${tFamily(route.family)} / ${lightingTypeName}`,
           image: product.productImages.slice(0, 4).map(assetUrl),
           url: absoluteUrl(locale, path),
-          offers: {
-            "@type": "Offer",
-            priceCurrency: "EGP",
-            price: effectivePrice,
-            url: absoluteUrl(locale, path),
-            availability: product.quantity === 0 ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
-            itemCondition: "https://schema.org/NewCondition",
-            seller: { "@id": ORGANIZATION_ID },
-          },
+          // No Offer at all for a made-to-order fixture: it is priced on
+          // request, and an Offer without a price is invalid to Google.
+          ...(product.madeToOrder
+            ? {}
+            : {
+                offers: {
+                  "@type": "Offer",
+                  priceCurrency: "EGP",
+                  price: effectivePrice,
+                  url: absoluteUrl(locale, path),
+                  availability: product.quantity === 0 ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+                  itemCondition: "https://schema.org/NewCondition",
+                  seller: { "@id": ORGANIZATION_ID },
+                },
+              }),
           // The figures a buyer compares fittings by, as data a search or
           // answer engine can quote without parsing the page.
           additionalProperty: [

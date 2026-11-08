@@ -1,7 +1,7 @@
 import { ilikeContains, parseTableParams, type SearchParamsInput, toPrismaPagination } from "@/components/data-table";
 import { PageHeader, PageShell } from "@/components/page-header";
-import { serializeMoney } from "@repo/money";
-import { availableFrom, inventorySelect } from "@repo/catalog";
+import { applyRate, serializeMoney, subtractMoney } from "@repo/money";
+import { availableFrom, inventorySelect, pricedProductSelect, productDiscountRates } from "@repo/catalog";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@repo/ui/components/button";
 import { requireAdminOrRedirect } from "@/lib/auth";
@@ -80,11 +80,13 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   };
 
   const select = {
-    id: true,
+    // id, price, categoryId, lightingtypeId and sectionType: what the
+    // discount engine scopes by.
+    ...pricedProductSelect(),
     productId: true,
     productName: true,
-    price: true,
     trackInventory: true,
+    madeToOrder: true,
     isActive: true,
     featured: true,
     translations: { where: { language: locale }, select: { name: true } },
@@ -172,23 +174,34 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
     }),
   ]);
 
-  const rows: ProductRow[] = products.map((product) => ({
-    id: product.id,
-    sku: product.productId,
-    name: product.translations[0]?.name ?? product.productName,
-    categoryId: product.category.id,
-    categoryLabel: [
-      product.category.translations[0]?.name ?? product.category.name,
-      product.lightingtype.translations[0]?.name ?? product.lightingtype.name,
-    ].join(" / "),
-    price: serializeMoney(product.price),
-    stock: availableFrom(product.variants[0]?.inventory),
-    lowStockThreshold: LOW_STOCK_THRESHOLD,
-    trackInventory: product.trackInventory,
-    isActive: product.isActive,
-    featured: product.featured,
-    imageUrl: product.images[0]?.url ?? null,
-  }));
+  // The same engine and the same call the storefront cards use, so the
+  // figure here is the one a customer sees. One query for the page.
+  const discountRates = await productDiscountRates(products, prisma);
+
+  const rows: ProductRow[] = products.map((product) => {
+    const rate = discountRates[product.id];
+    return {
+      id: product.id,
+      sku: product.productId,
+      name: product.translations[0]?.name ?? product.productName,
+      categoryId: product.category.id,
+      categoryLabel: [
+        product.category.translations[0]?.name ?? product.category.name,
+        product.lightingtype.translations[0]?.name ?? product.lightingtype.name,
+      ].join(" / "),
+      price: serializeMoney(product.price),
+      // price − round2(price × rate): the storefront card's arithmetic.
+      effectivePrice: rate ? serializeMoney(subtractMoney(product.price, applyRate(product.price, rate))) : null,
+      discountRate: rate ?? null,
+      stock: availableFrom(product.variants[0]?.inventory),
+      lowStockThreshold: LOW_STOCK_THRESHOLD,
+      trackInventory: product.trackInventory,
+      madeToOrder: product.madeToOrder,
+      isActive: product.isActive,
+      featured: product.featured,
+      imageUrl: product.images[0]?.url ?? null,
+    };
+  });
 
   return (
     <PageShell>

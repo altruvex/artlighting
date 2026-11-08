@@ -1,7 +1,7 @@
 "use client";
 
 import { type AdminColumn, ServerDataTable, type TableParams } from "@/components/data-table";
-import { formatMoney, moneySortKey } from "@/lib/money";
+import { formatMoney, formatRateAsPercent, moneySortKey } from "@/lib/money";
 import { EmptyState } from "@/components/empty-state";
 import { BulkPriceDialog } from "./bulk-price-dialog";
 import { BulkTrackInventory } from "./bulk-track-inventory";
@@ -21,10 +21,16 @@ export interface ProductRow extends Record<string, unknown> {
   categoryLabel: string;
   /** Serialized money (see @repo/money): a string, never a float. */
   price: string;
+  /** What the storefront charges after automatic discounts; null when none applies. */
+  effectivePrice: string | null;
+  /** The rate behind effectivePrice ("0.2000" is 20%); null when none applies. */
+  discountRate: string | null;
   stock: number;
   lowStockThreshold: number;
   /** False: made or bought in to order; orders do not reserve its stock. */
   trackInventory: boolean;
+  /** Priced per request: the storefront shows no price and sells nothing online. */
+  madeToOrder: boolean;
   isActive: boolean;
   featured: boolean;
   imageUrl: string | null;
@@ -107,11 +113,27 @@ export function ProductsTable({
         meta: { align: "end" },
         accessorFn: (row) => moneySortKey(row.price),
         header: tCommon("price"),
-        cell: ({ row }) => (
-          <span className="tabular-nums">
-            {formatMoney(row.original.price, { locale })}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const { price, effectivePrice, discountRate } = row.original;
+          // Struck list price over the discounted one, as the storefront
+          // card shows it (and as the bulk price preview draws a change).
+          if (effectivePrice === null || discountRate === null) {
+            return <span className="tabular-nums">{formatMoney(price, { locale })}</span>;
+          }
+          return (
+            <span className="grid justify-items-end leading-tight tabular-nums">
+              <span className="text-xs text-muted-foreground">
+                <s>{formatMoney(price, { locale })}</s>
+              </span>
+              <span className="font-medium">
+                {formatMoney(effectivePrice, { locale })}
+                <span className="ms-1 text-xs font-normal text-muted-foreground">
+                  {t("afterDiscount", { percent: formatRateAsPercent(discountRate, { locale }) })}
+                </span>
+              </span>
+            </span>
+          );
+        },
       },
       {
         id: "stock",
@@ -143,6 +165,7 @@ export function ProductsTable({
               {row.original.isActive ? tCommon("active") : tCommon("inactive")}
             </StatusBadge>
             {row.original.featured && <StatusBadge tone="info">{t("featured")}</StatusBadge>}
+            {row.original.madeToOrder && <StatusBadge tone="info">{t("madeToOrder")}</StatusBadge>}
           </div>
         ),
       },

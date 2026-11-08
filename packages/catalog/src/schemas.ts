@@ -115,6 +115,8 @@ export const updateProductGeneralSchema = z.object({
   isActive: z.boolean().optional(),
   featured: z.boolean().optional(),
   trackInventory: z.boolean().optional(),
+  /** Priced per request: the storefront shows no price and sells nothing online. */
+  madeToOrder: z.boolean().optional(),
   maxIP: z.number().int().min(0).max(100).nullable().optional(),
   hNumber: z.number().int().min(0).max(1000).nullable().optional(),
   chandelierLightingType: z.string().trim().max(80).nullable().optional(),

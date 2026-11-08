@@ -4,7 +4,6 @@ import * as catalog from "@repo/catalog";
 import { computePricing } from "@repo/pricing";
 import { prisma } from "@repo/database";
 import { requirePermission } from "@/lib/auth";
-import { serializeMoney } from "@repo/money";
 import { getTranslations } from "next-intl/server";
 import { revalidatePath } from "next/cache";
 import { revalidateStorefront } from "@/lib/storefront";
@@ -80,7 +79,7 @@ export async function previewCart(input: { productId: string; quantity: number; 
 
     const product = await prisma.product.findUnique({
       where: { id: input.productId },
-      select: { id: true, productName: true, price: true, categoryId: true, lightingtypeId: true },
+      select: { ...catalog.pricedProductSelect(), productName: true },
     });
     if (!product) throw new ActionError(t("productNotFound"));
 
@@ -94,15 +93,9 @@ export async function previewCart(input: { productId: string; quantity: number; 
       productName: product.productName,
       quantity,
       result: computePricing({
-        lines: [
-          {
-            id: "preview",
-            productId: product.id,
-            categoryIds: [product.categoryId, product.lightingtypeId],
-            unitPrice: serializeMoney(product.price),
-            quantity,
-          },
-        ],
+        // The same line the storefront prices (categories, lighting type
+        // and family), so a FAMILIES discount previews as it will apply.
+        lines: [catalog.toCartLine(product, { id: "preview", quantity })],
         discounts: rules,
         coupon: input.coupon ?? null,
         now: new Date(),

@@ -1,4 +1,4 @@
-import { prisma, type Prisma } from "@repo/database";
+import { prisma, type Prisma, type ProductIP } from "@repo/database";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
 import { sellableFrom, inventorySelect, productBulbSelect, productDiscountRates, type ProductFamily } from "@repo/catalog";
 import { bulbChoices, type BulbChoice } from "@repo/catalog/bulb-pricing";
@@ -247,6 +247,9 @@ export class ProductService {
           guestToken: userId ? null : (guestToken ?? null),
           configPrice: serializeMoney(product.price),
           priceIncrease: serializeMoney(product.priceIncrease),
+          // The fixture's own rating, not the column default (IP20): an
+          // order placed without touching the chips records what was built.
+          productIp: (product.productIp as ProductIP | null) ?? "IP20",
           shippingPrice: 69,
           // The rate the engine gives right now, snapshotted onto the
           // configuration — not a rate read off the product row.

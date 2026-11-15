@@ -1,3 +1,4 @@
+import { SHOP_LANDING_PATHS } from "@/lib/shop-crawl";
 import { SITE_URL } from "@/lib/site";
 import type { MetadataRoute } from "next";
 
@@ -9,21 +10,23 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: "/",
-        disallow: [...PRIVATE,
-          // Shop sort/price/search/sale combinations: each is an uncached
-          // render for the same products (canonicals already fold them).
-          // family, type, brand and page stay crawlable.
+        allow: ["/", ...["", "/en", "/ar"].flatMap((prefix) =>
+          SHOP_LANDING_PATHS.filter((path) => path.includes("?")).map((path) => `${prefix}${path}$`),
+        )],
+        disallow: [...PRIVATE, "/products?", "/*/products?",
+          // Only the finite landing pages above are crawlable. Canonicals alone
+          // do not stop crawlers traversing every checkbox permutation.
           "/*?*sort=", "/*?*min=", "/*?*max=", "/*?*q=", "/*?*sale="],
       },
       {
-        // GPTBot walked every family/type/brand/page combination of the shop
-        // (~65k uncached renders a day, Nov 2026). It keeps every page without
-        // a query string (products, categories, the shop itself) but no
-        // filtered URL. A crawler obeys only its own group, so PRIVATE repeats here.
+        // Specific groups do not inherit the wildcard group's exclusions.
         userAgent: "GPTBot",
         allow: "/",
         disallow: [...PRIVATE, "/*?"],
+      },
+      {
+        userAgent: ["SERankingBacklinksBot", "GoogleOther"],
+        disallow: [...PRIVATE, "/products", "/*/products"],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,

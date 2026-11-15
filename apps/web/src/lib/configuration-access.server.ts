@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@repo/database";
 import { auth } from "@/lib/auth-server";
 import { ownsConfiguration, readGuestToken } from "@/lib/guest-token";
+import { limitAction } from "@/middleware/ratelimit";
 
 /**
  * The id of a configuration the current visitor may change, or null.
@@ -15,8 +16,9 @@ import { ownsConfiguration, readGuestToken } from "@/lib/guest-token";
  */
 export async function editableConfigurationId(configId: string): Promise<string | null> {
   if (typeof configId !== "string" || configId.length === 0 || configId.length > 64) return null;
-  const [{ userId }, guestToken, row] = await Promise.all([
-    auth(),
+  const { userId } = await auth();
+  if (!(await limitAction("write", userId))) return null;
+  const [guestToken, row] = await Promise.all([
     readGuestToken(),
     prisma.configuration.findUnique({
       where: { id: configId },

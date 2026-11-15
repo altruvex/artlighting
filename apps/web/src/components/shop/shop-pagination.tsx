@@ -1,3 +1,4 @@
+import { shopLinkRel } from "@/lib/shop-crawl";
 import { Link } from "@/i18n/navigation";
 import { formatNumber } from "@/lib/numbers";
 import { setParam, type ShopParams } from "@/lib/shop-url";
@@ -117,7 +118,7 @@ function PageLink({
   }
 
   return (
-    <Link href={href} aria-label={label} aria-current={current ? "page" : undefined} className={shared}>
+    <Link prefetch={false} rel={shopLinkRel(href)} href={href} aria-label={label} aria-current={current ? "page" : undefined} className={shared}>
       {children}
     </Link>
   );

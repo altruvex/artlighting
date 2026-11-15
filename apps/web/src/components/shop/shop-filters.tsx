@@ -1,5 +1,6 @@
 "use client";
 
+import { shopLinkRel } from "@/lib/shop-crawl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { familySlug, type ProductFamily } from "@repo/catalog/families";
 import { formatNumber } from "@/lib/numbers";
@@ -240,6 +241,8 @@ function Option({
   }
   return (
     <Link
+      prefetch={false}
+      rel={shopLinkRel(href)}
       href={href}
       scroll={false}
       role="checkbox"

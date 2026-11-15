@@ -1,3 +1,5 @@
+import { normalizeShopParams } from "./shop-query";
+
 /**
  * Building shop URLs from the current query.
  *
@@ -28,10 +30,13 @@ function resetPage(map: Map<string, string[]>): Map<string, string[]> {
 }
 
 function toHref(map: Map<string, string[]>): string {
-  const search = new URLSearchParams();
+  const params: ShopParams = {};
   for (const [key, values] of map) {
-    if (values.length === 0) continue;
-    search.set(key, LIST_KEYS.has(key) ? values.join(",") : values[0]!);
+    if (values.length) params[key] = LIST_KEYS.has(key) ? values.join(",") : values[0];
+  }
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(normalizeShopParams(params))) {
+    search.set(key, String(value));
   }
   const query = search.toString();
   return query ? `/products?${query}` : "/products";

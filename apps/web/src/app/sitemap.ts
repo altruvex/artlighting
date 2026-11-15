@@ -1,11 +1,11 @@
 import { APPLICATIONS } from "@/content/applications";
 import { GUIDE } from "@/content/guide";
-import { LIGHTING_TYPES } from "@/content/lighting-types";
+import { SHOP_LANDING_PATHS } from "@/lib/shop-crawl";
 import { POLICIES } from "@/lib/company";
 import { projectsFor } from "@/lib/projects";
 import { absoluteUrl, LOCALES } from "@/lib/site";
 import { prisma } from "@repo/database";
-import { familySlug, productFamilies } from "@repo/catalog/families";
+import { familySlug } from "@repo/catalog/families";
 import type { MetadataRoute } from "next";
 import { cacheLife, cacheTag } from "next/cache";
 
@@ -28,11 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const pages: [string, number][] = [
     ["/", 1],
-    ["/products", 0.9],
-    // The shop's family and lighting-type views are the category pages:
-    // each has its own title and canonical (see products/page.tsx).
-    ...productFamilies.map((family): [string, number] => [`/products?family=${familySlug(family)}`, 0.8]),
-    ...LIGHTING_TYPES.map((type): [string, number] => [`/products?family=${familySlug(type.family)}&type=${type.id}`, 0.8]),
+    ...SHOP_LANDING_PATHS.map((path): [string, number] => [path, path === "/products" ? 0.9 : 0.8]),
     ["/applications", 0.8],
     ["/services", 0.8],
     ["/about-us", 0.8],

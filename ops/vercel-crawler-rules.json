@@ -1,0 +1,242 @@
+[
+  {
+    "action": {
+      "mitigate": {
+        "action": "deny"
+      }
+    },
+    "active": true,
+    "conditionGroup": [
+      {
+        "conditions": [
+          {
+            "op": "re",
+            "type": "path",
+            "value": "^/(en/|ar/)?products/?$"
+          },
+          {
+            "op": "re",
+            "type": "user_agent",
+            "value": "(GPTBot|OAI-SearchBot|ClaudeBot|Claude-SearchBot|anthropic-ai|PerplexityBot|Bytespider|meta-externalagent|Amazonbot|CCBot|cohere-ai|Diffbot|PetalBot|SemrushBot|AhrefsBot|MJ12bot|DotBot|DataForSeoBot|Timpibot|ImagesiftBot)"
+          }
+        ]
+      }
+    ],
+    "description": "Stop bulk AI and SEO crawling of the shop, including locale-less /products. Product detail pages remain available.",
+    "id": "rule_block_gpt_bot_on_shop_filters_BkWMnh",
+    "name": "Block AI crawlers on shop filters"
+  },
+  {
+    "action": {
+      "mitigate": {
+        "action": "deny"
+      }
+    },
+    "active": true,
+    "conditionGroup": [
+      {
+        "conditions": [
+          {
+            "op": "re",
+            "type": "path",
+            "value": "^/(en/|ar/)?products/?$"
+          },
+          {
+            "op": "re",
+            "type": "user_agent",
+            "value": "(SERankingBacklinksBot|GoogleOther)"
+          }
+        ]
+      }
+    ],
+    "description": "Only the two observed bulk crawlers on the products listing. No customer, API, asset, product-detail or Googlebot traffic is targeted.",
+    "id": "rule_block_bulk_seo_and_non_search_crawlers_vTYNcW",
+    "name": "Stop observed bulk crawlers on shop"
+  },
+  {
+    "action": {
+      "mitigate": {
+        "action": "deny"
+      }
+    },
+    "active": true,
+    "conditionGroup": [
+      {
+        "conditions": [
+          {
+            "op": "re",
+            "type": "path",
+            "value": "^/(en/|ar/)?products/?$"
+          },
+          {
+            "op": "re",
+            "type": "user_agent",
+            "value": "(bot|crawler|spider)"
+          },
+          {
+            "key": "brand",
+            "op": "ex",
+            "type": "query"
+          }
+        ]
+      },
+      {
+        "conditions": [
+          {
+            "op": "re",
+            "type": "path",
+            "value": "^/(en/|ar/)?products/?$"
+          },
+          {
+            "op": "re",
+            "type": "user_agent",
+            "value": "(bot|crawler|spider)"
+          },
+          {
+            "key": "q",
+            "op": "ex",
+            "type": "query"
+          }
+        ]
+      },
+      {
+        "conditions": [
+          {
+            "op": "re",
+            "type": "path",
+            "value": "^/(en/|ar/)?products/?$"
+          },
+          {
+            "op": "re",
+            "type": "user_agent",
+            "value": "(bot|crawler|spider)"
+          },
+          {
+            "key": "min",
+            "op": "ex",
+            "type": "query"
+          }
+        ]
+      },
+      {
+        "conditions": [
+          {
+            "op": "re",
+            "type": "path",
+            "value": "^/(en/|ar/)?products/?$"
+          },
+          {
+            "op": "re",
+            "type": "user_agent",
+            "value": "(bot|crawler|spider)"
+          },
+          {
+            "key": "max",
+            "op": "ex",
+            "type": "query"
+          }
+        ]
+      },
+      {
+        "conditions": [
+          {
+            "op": "re",
+            "type": "path",
+            "value": "^/(en/|ar/)?products/?$"
+          },
+          {
+            "op": "re",
+            "type": "user_agent",
+            "value": "(bot|crawler|spider)"
+          },
+          {
+            "key": "sort",
+            "op": "ex",
+            "type": "query"
+          }
+        ]
+      },
+      {
+        "conditions": [
+          {
+            "op": "re",
+            "type": "path",
+            "value": "^/(en/|ar/)?products/?$"
+          },
+          {
+            "op": "re",
+            "type": "user_agent",
+            "value": "(bot|crawler|spider)"
+          },
+          {
+            "key": "sale",
+            "op": "ex",
+            "type": "query"
+          }
+        ]
+      },
+      {
+        "conditions": [
+          {
+            "op": "re",
+            "type": "path",
+            "value": "^/(en/|ar/)?products/?$"
+          },
+          {
+            "op": "re",
+            "type": "user_agent",
+            "value": "(bot|crawler|spider)"
+          },
+          {
+            "key": "page",
+            "op": "ex",
+            "type": "query"
+          }
+        ]
+      },
+      {
+        "conditions": [
+          {
+            "op": "re",
+            "type": "path",
+            "value": "^/(en/|ar/)?products/?$"
+          },
+          {
+            "op": "re",
+            "type": "user_agent",
+            "value": "(bot|crawler|spider)"
+          },
+          {
+            "key": "family",
+            "op": "re",
+            "type": "query",
+            "value": "(,|%2c)"
+          }
+        ]
+      },
+      {
+        "conditions": [
+          {
+            "op": "re",
+            "type": "path",
+            "value": "^/(en/|ar/)?products/?$"
+          },
+          {
+            "op": "re",
+            "type": "user_agent",
+            "value": "(bot|crawler|spider)"
+          },
+          {
+            "key": "type",
+            "op": "re",
+            "type": "query",
+            "value": "(,|%2c)"
+          }
+        ]
+      }
+    ],
+    "description": "Crawlers may read the shop and single family/type landing pages, not duplicate filter combinations. Includes locale-less /products.",
+    "id": "rule_stop_crawler_shop_filter_explosion_A9bqhU",
+    "name": "Stop crawler shop filter explosion"
+  }
+]

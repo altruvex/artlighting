@@ -3,7 +3,6 @@ import "server-only";
 import { prisma } from "@repo/database";
 import {
   sellableFrom,
-  familyFromSlug,
   inventorySelect,
   productBulbSelect,
   productDiscountRates,
@@ -36,49 +35,8 @@ import { getTranslations } from "next-intl/server";
  * every relation, once per request.
  */
 
-export type ShopSort = "featured" | "price-asc" | "price-desc" | "discount" | "newest";
-
-export interface ShopQuery {
-  page: number;
-  families: ProductFamily[];
-  brands: string[];
-  types: string[];
-  onSale: boolean;
-  priceMin: number | null;
-  priceMax: number | null;
-  sort: ShopSort;
-  q: string;
-}
-
-const SORTS: ShopSort[] = ["featured", "price-asc", "price-desc", "discount", "newest"];
-
-/** Reads the URL. Anything unrecognised is dropped rather than trusted. */
-export function parseShopQuery(params: Record<string, string | string[] | undefined>): ShopQuery {
-  const list = (key: string) =>
-    ([] as string[])
-      .concat(params[key] ?? [])
-      .flatMap((value) => value.split(","))
-      .map((value) => value.trim())
-      .filter(Boolean);
-  const number = (key: string) => {
-    const raw = list(key)[0];
-    const value = raw === undefined ? NaN : Number(raw);
-    return Number.isFinite(value) && value >= 0 ? value : null;
-  };
-  const sort = list("sort")[0] as ShopSort | undefined;
-  const page = Math.max(1, Math.trunc(number("page") ?? 1) || 1);
-  return {
-    page,
-    families: list("family").map(familyFromSlug).filter((f): f is ProductFamily => f !== null),
-    brands: list("brand").filter((b) => b === "balcom" || b === "mister-led"),
-    types: list("type"),
-    onSale: list("sale")[0] === "1",
-    priceMin: number("min"),
-    priceMax: number("max"),
-    sort: sort && SORTS.includes(sort) ? sort : "featured",
-    q: (list("q")[0] ?? "").slice(0, 80),
-  };
-}
+import { isCacheableShopQuery, type ShopQuery } from "./shop-query";
+export { parseShopQuery, type ShopQuery, type ShopSort } from "./shop-query";
 
 /**
  * Only what a card, the facets and the sorts read. It used to `include`
@@ -232,19 +190,9 @@ export interface ShopResult {
   facets: { family: Facet[]; brand: Facet[]; type: Facet[]; sale: number };
 }
 
-/**
- * Free text and price bounds can take any value, so caching on them would
- * write a new cache entry for every visitor's search. Those are filtered
- * per request over the cached catalogue instead; the finite shelves
- * (family, brand, type, sale, sort, page) stay cached.
- */
-export function isOpenEndedQuery(query: ShopQuery): boolean {
-  return query.q !== "" || query.priceMin !== null || query.priceMax !== null;
-}
-
 /** One page of the shop for a query. */
 export async function searchShop(query: ShopQuery, locale: string): Promise<ShopResult> {
-  if (isOpenEndedQuery(query)) return shopPage(await catalogueCards(locale), query, locale);
+  if (!isCacheableShopQuery(query)) return shopPage(await catalogueCards(locale), query, locale);
   return cachedShop(query, locale);
 }
 

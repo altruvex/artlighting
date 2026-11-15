@@ -1,3 +1,4 @@
+import { shopLinkRel } from "@/lib/shop-crawl";
 import ProductCard from "@/components/product-card/product-card";
 import { SectionHeading } from "@/components/section-heading";
 import { ShopFilters } from "@/components/shop/shop-filters";
@@ -7,7 +8,8 @@ import { Link } from "@/i18n/navigation";
 import { getLocaleFromParams } from "@/lib/i18n/utils";
 import { constructMetadata } from "@/lib/metadata";
 import { formatNumber } from "@/lib/numbers";
-import { isOpenEndedQuery, parseShopQuery, searchShop } from "@/lib/shop.server";
+import { parseShopQuery, searchShop } from "@/lib/shop.server";
+import { isCacheableShopQuery, normalizeShopParams } from "@/lib/shop-query";
 import { clearFilters, removeParams, setParam, toggleParam, type ShopParams } from "@/lib/shop-url";
 import { SearchX, XIcon } from "lucide-react";
 import { Breadcrumbs } from "@/components/editorial/page-header";
@@ -29,7 +31,9 @@ type Props = {
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const locale = getLocaleFromParams(await params);
-  const query = parseShopQuery(await searchParams);
+  const raw = normalizeShopParams(await searchParams);
+  const query = parseShopQuery(raw);
+  const noIndex = !isCacheableShopQuery(query);
   const t = await getTranslations({ locale, namespace: "shop" });
   // A single family is a page in its own right — its own title, its own
   // canonical. Every other combination of filters canonicalises to it or
@@ -43,6 +47,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     // the family.
     return constructMetadata({
       locale,
+      noIndex,
       path: `/products?family=${familySlug(family)}&type=${type.id}`,
       title: t("typeMetaTitle", { type: pick(type.search, locale) }),
       description: t("typeMetaDescription", {
@@ -55,12 +60,13 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     const intro = FAMILY_INTRO[family];
     return constructMetadata({
       locale,
+      noIndex,
       path: `/products?family=${familySlug(family)}`,
       title: t("familyMetaTitle", { family: pick(intro.title, locale) }),
       description: pick(intro.body, locale).slice(0, 160),
     });
   }
-  return constructMetadata({ locale, path: "/products", title: t("metaTitle"), description: t("metaDescription") });
+  return constructMetadata({ locale, noIndex, path: "/products", title: t("metaTitle"), description: t("metaDescription") });
 }
 
 /** The lighting type a family view is narrowed to, when it is exactly one the catalogue describes. */
@@ -91,33 +97,24 @@ export default function ShopPage({ params, searchParams }: Props) {
 
 async function ShopForUrl({ params, searchParams }: Props) {
   const locale = getLocaleFromParams(await params);
-  const raw = shopParamsOnly(await searchParams);
+  const raw = normalizeShopParams(await searchParams);
   // Free text and price bounds can take any value: caching on them would
   // add a cache entry per visitor's search. Those render per request (over
   // the cached catalogue); every finite shelf is still cached.
-  if (isOpenEndedQuery(parseShopQuery(raw))) return shopView(locale, raw);
+  if (!isCacheableShopQuery(parseShopQuery(raw))) return shopView(locale, raw);
   return <CachedShopView locale={locale} raw={raw} />;
 }
 
-/** The query keys the shop reads. Anything else (utm_…, fbclid) is not part of the page. */
-const SHOP_KEYS = ["family", "brand", "type", "sale", "min", "max", "sort", "q", "page"] as const;
-
-function shopParamsOnly(raw: ShopParams): ShopParams {
-  const kept: ShopParams = {};
-  for (const key of SHOP_KEYS) if (raw[key] !== undefined) kept[key] = raw[key];
-  return kept;
-}
-
 /**
- * The shop for one finite query, rendered once and cached (`"use cache"`
+ * The shop for one finite query, rendered once and cached (`"use cache: remote"`
  * keys on its arguments). The search params make the page itself per
  * request, but a hundred visitors on the same shelf — the first page, a
- * family, a sort — now share one render instead of each paying for 24
+ * family, a lighting type — now share one render instead of each paying for 24
  * cards and the facets. Tracking parameters are dropped first so they do
  * not split the cache.
  */
 async function CachedShopView({ locale, raw }: { locale: string; raw: ShopParams }) {
-  "use cache";
+  "use cache: remote";
   cacheTag(CATALOGUE_TAG, CARDS_TAG);
   await catalogueCacheLife();
   return shopView(locale, raw);
@@ -196,6 +193,8 @@ async function shopView(locale: string, raw: ShopParams) {
           {chips.map((chip) => (
             <li key={chip.href + chip.label}>
               <Link
+                    prefetch={false}
+                rel={shopLinkRel(chip.href)}
                 href={chip.href}
                 scroll={false}
                 className="group inline-flex min-h-10 items-center gap-1.5 rounded-full border border-border bg-card pe-2.5 ps-3 text-[length:var(--text-sm)] transition-colors duration-[var(--dur-hover)] ease-[var(--ease-out)] hover:border-primary/60 sm:min-h-8"
@@ -208,6 +207,8 @@ async function shopView(locale: string, raw: ShopParams) {
           ))}
           <li>
             <Link
+                    prefetch={false}
+              rel={shopLinkRel(clearFilters(raw))}
               href={clearFilters(raw)}
               scroll={false}
               className="inline-flex min-h-10 items-center px-1 text-[length:var(--text-sm)] font-medium text-muted-foreground underline-offset-4 transition-colors duration-[var(--dur-hover)] hover:text-foreground hover:underline sm:min-h-8"
@@ -228,6 +229,8 @@ async function shopView(locale: string, raw: ShopParams) {
               <p className="text-[length:var(--text-lg)] font-medium">{t("emptyTitle")}</p>
               <p className="max-w-sm text-pretty text-muted-foreground">{t("emptyBody")}</p>
               <Link
+                    prefetch={false}
+                rel={shopLinkRel(clearFilters(raw))}
                 href={clearFilters(raw)}
                 className="mt-2 inline-flex min-h-10 items-center rounded-md bg-primary px-5 font-medium text-primary-foreground transition-[background-color,transform] duration-[var(--dur-press)] ease-[var(--ease-out)] hover:bg-primary/90 active:scale-[0.98]"
               >

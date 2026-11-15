@@ -1,22 +1,22 @@
 {
     "products": {
         "indoor": {
-            "title": "اضاءة داخلية",
+            "title": "إضاءة داخلية",
             "strip": "شريط ليد",
             "linear": "الإضاءة الخطية",
             "track-light": "تراك لايت",
-            "cob": "COB",
+            "cob": "سبوت لايت COB",
             "panel-light": "بانل لايت",
-            "double-spotlight": "الكشاف المزدوج"
+            "double-spotlight": "سبوت لايت مزدوج"
         },
         "outdoor": {
-            "title": "اضاءة خارجية",
-            "spikes": "الحربات",
-            "uplight": "الإضاءة العلوية",
-            "flood-light": "كشاف الوجهات و الملاعب",
-            "bollard": "العمود الضوئي",
+            "title": "إضاءة خارجية",
+            "spikes": "إضاءة الحدائق",
+            "uplight": "إضاءة أرضية",
+            "flood-light": "كشافات الواجهات والملاعب",
+            "bollard": "إضاءة الممرات",
             "pole": "أعمدة الإنارة",
-            "wall-washer": "اضاءه جدارية"
+            "wall-washer": "إضاءة الواجهات"
         },
         "chandelier": {
             "title": "نجف",
@@ -58,7 +58,12 @@
         "soldOut": "نفدت الكمية",
         "fewLeft": "{count, plural, one{متبقّي قطعة واحدة} two{متبقّي قطعتان} few{متبقّي # قطع} other{متبقّي # قطعة}}",
         "addToCartNamed": "أضف {name} إلى السلة",
-        "priceOnRequest": "السعر حسب الطلب"
+        "priceOnRequest": "السعر حسب الطلب",
+        "askForPrice": "اطلب السعر",
+        "available": "متوفر للطلب",
+        "details": "تفاصيل المنتج",
+        "quoteMessage": "مرحبًا، أود معرفة سعر المنتج {name} وتفاصيل طلبه.",
+        "askForPriceNamed": "اسأل عن سعر {name} على واتساب"
     },
     "product-main-info": {
         "title": "معلومات المنتج الرئيسية",
@@ -216,6 +221,8 @@
         "count": "{count, plural, zero{لا منتجات} one{منتج واحد} two{منتجان} few{{formatted} منتجات} many{{formatted} منتجًا} other{{formatted} منتج}}",
         "results": "المنتجات",
         "activeFilters": "الفلاتر المستخدمة",
+        "categoriesLabel": "تسوق حسب الفئة",
+        "categoryAll": "الكل",
         "remove": "إزالة الفلتر",
         "clearAll": "مسح الكل",
         "filter": "فلترة",
@@ -232,7 +239,7 @@
             "sale": "العروض",
             "family": "الفئة",
             "brand": "العلامة",
-            "price": "السعر",
+            "price": "السعر بالجنيه المصري",
             "type": "النوع"
         },
         "brand": {
@@ -257,33 +264,43 @@
         "shopByType": "تسوّق حسب النوع",
         "typeMetaTitle": "{type} في مصر | آرت لايتنج",
         "typeMetaDescription": "{purpose} تصفّح {type} بالأسعار بالجنيه من معرض آرت لايتنج في القاهرة، مع التوريد للمشروعات في أنحاء مصر.",
-        "heading": "تسوّق إضاءة الليد"
+        "heading": "تسوّق إضاءة الليد",
+        "previousProducts": "المنتجات السابقة",
+        "nextProducts": "المنتجات التالية",
+        "filterDescription": "اختَر القسم أو النوع، أو حدّد نطاق السعر لتصفية المنتجات."
     },
     "pdp": {
         "glance": "بنظرة سريعة",
         "about": "عن المنتج",
         "specs": "المواصفات الفنية",
         "arms": "عدد الأذرع",
-        "colorGuide": "تختار أنهي لون إضاءة؟",
-        "colorGuideSub": "على حسب المكان اللي هيتركّب فيه.",
+        "colorGuide": "اختيار لون الإضاءة",
+        "colorGuideSub": "اختر اللون المناسب لاستخدام المكان.",
         "inStock": "متوفر",
         "soldOut": "نفدت الكمية — تواصل معنا وسنبلغك عند توفره",
         "fewLeft": "{count, plural, one{متبقّي قطعة واحدة} two{متبقّي قطعتان} few{متبقّي {formatted} قطع} many{متبقّي {formatted} قطعة} other{متبقّي {formatted} قطعة}}",
         "addToCart": "أضف إلى السلة",
         "whereEyebrow": "الاستخدام",
         "whereTitle": "أين تُستخدم",
-        "supportTitle": "تحدد هذا المنتج لمشروع؟",
+        "supportTitle": "تحتاج هذا المنتج لمشروع؟",
         "supportBody": "لمشروع، أو لاعتماد من الاستشاري، أو لسؤال لا تجيب عنه المواصفات، يمكن للمعرض أن يساعدك.",
         "datasheet": "حمّل ورقة البيانات",
         "ask": "اسأل عن هذا المنتج",
         "askMessage": "مرحبًا، لدي سؤال عن {name} (كود المنتج {code}).",
+        "askWhatsapp": "اسأل عن المنتج على واتساب",
         "projectQuote": "اطلب عرض سعر لمشروع",
         "projectMessage": "مرحبًا، أحتاج عرض سعر لمشروع للمنتج {code}. الكمية:",
-        "profile": "ملف الشركة (PDF)"
+        "profile": "ملف الشركة (PDF)",
+        "priceLabel": "سعر القطعة",
+        "totalPriceLabel": "{count, plural, two {إجمالي قطعتين} few {إجمالي {formatted} قطع} other {إجمالي {formatted} قطعة}}",
+        "quantity": "الكمية",
+        "guideWarm": "لون دافئ يناسب غرف النوم وأماكن الاسترخاء.",
+        "guideWhite": "لون محايد يناسب المطابخ والمكاتب والاستخدام اليومي.",
+        "guideCool": "لون أبيض بارد للمساحات التي تفضّل فيها إضاءة أكثر برودة."
     },
     "reviews": {
         "title": "تقييمات العملاء",
-        "noReviews": "لسه مفيش تقييمات لهذا المنتج.",
+        "noReviews": "لا توجد تقييمات لهذا المنتج حتى الآن.",
         "beFirst": "كن أول من يقيّمه.",
         "outOf": "من ٥",
         "basedOn": "{count, plural, zero{مفيش تقييمات} one{بناءً على تقييم واحد} two{بناءً على تقييمين} few{بناءً على {formatted} تقييمات} many{بناءً على {formatted} تقييمًا} other{بناءً على {formatted} تقييم}}",
@@ -294,15 +311,15 @@
         "titleLabel": "عنوان (اختياري)",
         "titlePlaceholder": "لخّص تجربتك في جملة",
         "bodyLabel": "تعليقك (اختياري)",
-        "bodyPlaceholder": "إزاي كانت تجربتك مع المنتج؟",
+        "bodyPlaceholder": "كيف كانت تجربتك مع المنتج؟",
         "submit": "انشر التقييم",
         "submitting": "جارٍ النشر...",
         "update": "حدّث التقييم",
         "cancel": "إلغاء",
         "verifiedPurchase": "عملية شراء موثّقة",
-        "signInToReview": "سجّل الدخول عشان تقيّم المنتج",
-        "ratingRequired": "اختار عدد النجوم الأول",
-        "submitError": "حصل خطأ أثناء نشر التقييم، حاول تاني",
+        "signInToReview": "تسجيل الدخول لتقييم المنتج",
+        "ratingRequired": "اختَر عدد النجوم أولًا",
+        "submitError": "تعذّر نشر التقييم. حاول مرة أخرى.",
         "submitSuccess": "شكرًا لك، تم نشر تقييمك",
         "loadMore": "عرض المزيد من التقييمات",
         "you": "أنت"

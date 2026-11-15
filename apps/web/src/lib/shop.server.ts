@@ -1,20 +1,37 @@
 import "server-only";
 
+import { diverseProducts } from "./home-assortment";
+import { lightingType } from "@/content/lighting-types";
+import { pick } from "@/content/l10n";
+
 import { prisma } from "@repo/database";
 import {
   sellableFrom,
-  familyFromSlug,
   inventorySelect,
   productBulbSelect,
   productDiscountRates,
   type ProductFamily,
 } from "@repo/catalog";
 import { bulbChoices } from "@repo/catalog/bulb-pricing";
-import { applyRate, money, serializeMoney, serializeRate, subtractMoney } from "@repo/money";
+import {
+  applyRate,
+  money,
+  serializeMoney,
+  serializeRate,
+  subtractMoney,
+} from "@repo/money";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { localizeSpecGroups, specGroupSelect, specsByKey } from "@/lib/spec-groups";
+import {
+  localizeSpecGroups,
+  specGroupSelect,
+  specsByKey,
+} from "@/lib/spec-groups";
 import { CARD_SPEC_KEYS, cardDescription } from "@/lib/card-description";
-import { CARDS_TAG, CATALOGUE_TAG, catalogueCacheLife } from "@/lib/cache.server";
+import {
+  CARDS_TAG,
+  CATALOGUE_TAG,
+  catalogueCacheLife,
+} from "@/lib/cache.server";
 import { cacheTag } from "next/cache";
 import { getTranslations } from "next-intl/server";
 
@@ -36,49 +53,8 @@ import { getTranslations } from "next-intl/server";
  * every relation, once per request.
  */
 
-export type ShopSort = "featured" | "price-asc" | "price-desc" | "discount" | "newest";
-
-export interface ShopQuery {
-  page: number;
-  families: ProductFamily[];
-  brands: string[];
-  types: string[];
-  onSale: boolean;
-  priceMin: number | null;
-  priceMax: number | null;
-  sort: ShopSort;
-  q: string;
-}
-
-const SORTS: ShopSort[] = ["featured", "price-asc", "price-desc", "discount", "newest"];
-
-/** Reads the URL. Anything unrecognised is dropped rather than trusted. */
-export function parseShopQuery(params: Record<string, string | string[] | undefined>): ShopQuery {
-  const list = (key: string) =>
-    ([] as string[])
-      .concat(params[key] ?? [])
-      .flatMap((value) => value.split(","))
-      .map((value) => value.trim())
-      .filter(Boolean);
-  const number = (key: string) => {
-    const raw = list(key)[0];
-    const value = raw === undefined ? NaN : Number(raw);
-    return Number.isFinite(value) && value >= 0 ? value : null;
-  };
-  const sort = list("sort")[0] as ShopSort | undefined;
-  const page = Math.max(1, Math.trunc(number("page") ?? 1) || 1);
-  return {
-    page,
-    families: list("family").map(familyFromSlug).filter((f): f is ProductFamily => f !== null),
-    brands: list("brand").filter((b) => b === "balcom" || b === "mister-led"),
-    types: list("type"),
-    onSale: list("sale")[0] === "1",
-    priceMin: number("min"),
-    priceMax: number("max"),
-    sort: sort && SORTS.includes(sort) ? sort : "featured",
-    q: (list("q")[0] ?? "").slice(0, 80),
-  };
-}
+import { isCacheableShopQuery, type ShopQuery } from "./shop-query";
+export { parseShopQuery, type ShopQuery, type ShopSort } from "./shop-query";
 
 /**
  * Only what a card, the facets and the sorts read. It used to `include`
@@ -107,18 +83,37 @@ function cardSelect(locale: string) {
     // productDiscountRates scopes discounts by these.
     categoryId: true,
     lightingtypeId: true,
-    translations: { where: { language: locale }, select: { name: true }, take: 1 },
+    translations: {
+      where: { language: locale },
+      select: { name: true },
+      take: 1,
+    },
     // The photo and the one that fades in on hover.
     images: { ...productImageSelect(), take: 2 },
-    variants: { where: { isDefault: true }, select: { inventory: inventorySelect() }, take: 1 },
+    variants: {
+      where: { isDefault: true },
+      orderBy: [{ position: "asc" as const }, { id: "asc" as const }],
+      select: { inventory: inventorySelect() },
+      take: 1,
+    },
     specGroups: {
       ...specs,
       where: { items: { some: cardSpecs } },
-      select: { ...specs.select, items: { ...specs.select.items, where: cardSpecs } },
+      select: {
+        ...specs.select,
+        items: { ...specs.select.items, where: cardSpecs },
+      },
     },
     bulbs: productBulbSelect(),
     lightingtype: {
-      select: { name: true, translations: { where: { language: locale }, select: { name: true }, take: 1 } },
+      select: {
+        name: true,
+        translations: {
+          where: { language: locale },
+          select: { name: true },
+          take: 1,
+        },
+      },
     },
   };
 }
@@ -128,7 +123,7 @@ type DescriptionTranslator = Parameters<typeof cardDescription>[1];
 
 async function loadCardRows(locale: string) {
   return prisma.product.findMany({
-    where: { isActive: true },
+    where: { isActive: true, deletedAt: null },
     select: cardSelect(locale),
     orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
   });
@@ -164,16 +159,28 @@ export async function catalogueCards(locale: string): Promise<ShopCard[]> {
   const rates = await productDiscountRates(rows, prisma);
   // The keys are built at run time (`opening.${family}`), so the typed translator is widened here.
   const describe = t as unknown as DescriptionTranslator;
-  return rows.map((row) => toCard(row, locale, rates[row.id] ?? serializeRate(0), describe));
+  return rows.map((row) =>
+    toCard(row, locale, rates[row.id] ?? serializeRate(0), describe),
+  );
 }
 
 /** One product as every card renders it — no spec tree, no bulbs: the description is built here. */
-function toCard(row: CardRow, locale: string, rate: string, t: DescriptionTranslator) {
+function toCard(
+  row: CardRow,
+  locale: string,
+  rate: string,
+  t: DescriptionTranslator,
+) {
   const translation = row.translations?.[0];
   // What the shopper actually pays — the figure a price sort must use, or a
   // 30%-off chandelier sorts as though it cost its list price.
   const effective = subtractMoney(row.price, applyRate(row.price, rate));
-  const lightingTypeName = row.lightingtype?.translations?.[0]?.name ?? row.lightingtype?.name ?? undefined;
+  const typeCopy = lightingType(row.spotlightType);
+  const lightingTypeName = typeCopy
+    ? pick(typeCopy.name, locale)
+    : (row.lightingtype?.translations?.[0]?.name ??
+      row.lightingtype?.name ??
+      undefined);
   return {
     id: row.id,
     productId: row.productId,
@@ -189,7 +196,10 @@ function toCard(row: CardRow, locale: string, rate: string, t: DescriptionTransl
     quantity: sellableFrom(row, row.variants[0]?.inventory),
     // Priced by specification and quantity: the card shows "price on request", no quick add.
     madeToOrder: row.madeToOrder,
-    ratingAverage: row.ratingAverage !== null && row.ratingAverage !== undefined ? Number(row.ratingAverage) : null,
+    ratingAverage:
+      row.ratingAverage !== null && row.ratingAverage !== undefined
+        ? Number(row.ratingAverage)
+        : null,
     ratingCount: row.ratingCount,
     featured: row.featured,
     createdAt: row.createdAt.toISOString(),
@@ -232,19 +242,13 @@ export interface ShopResult {
   facets: { family: Facet[]; brand: Facet[]; type: Facet[]; sale: number };
 }
 
-/**
- * Free text and price bounds can take any value, so caching on them would
- * write a new cache entry for every visitor's search. Those are filtered
- * per request over the cached catalogue instead; the finite shelves
- * (family, brand, type, sale, sort, page) stay cached.
- */
-export function isOpenEndedQuery(query: ShopQuery): boolean {
-  return query.q !== "" || query.priceMin !== null || query.priceMax !== null;
-}
-
 /** One page of the shop for a query. */
-export async function searchShop(query: ShopQuery, locale: string): Promise<ShopResult> {
-  if (isOpenEndedQuery(query)) return shopPage(await catalogueCards(locale), query, locale);
+export async function searchShop(
+  query: ShopQuery,
+  locale: string,
+): Promise<ShopResult> {
+  if (!isCacheableShopQuery(query))
+    return shopPage(await catalogueCards(locale), query, locale);
   return cachedShop(query, locale);
 }
 
@@ -253,7 +257,10 @@ export async function searchShop(query: ShopQuery, locale: string): Promise<Shop
  * cheap once, but not on every request of every visitor paging through the
  * same shelf.
  */
-async function cachedShop(query: ShopQuery, locale: string): Promise<ShopResult> {
+async function cachedShop(
+  query: ShopQuery,
+  locale: string,
+): Promise<ShopResult> {
   "use cache";
   cacheTag(CATALOGUE_TAG, CARDS_TAG);
   return shopPage(await catalogueCards(locale), query, locale);
@@ -271,16 +278,23 @@ function buyTier(card: ShopCard): number {
   return card.madeToOrder ? 1 : 0;
 }
 
-function shopPage(all: ShopCard[], query: ShopQuery, locale: string): ShopResult {
-
+function shopPage(
+  all: ShopCard[],
+  query: ShopQuery,
+  locale: string,
+): ShopResult {
   const needle = query.q.toLocaleLowerCase(locale);
   const priceOf = (card: ShopCard) => Number(card.effectivePrice);
 
   // Each test is named so a facet can ask "everything but me".
   const tests = {
-    family: (c: ShopCard) => query.families.length === 0 || query.families.includes(c.sectionType as ProductFamily),
-    brand: (c: ShopCard) => query.brands.length === 0 || query.brands.includes(c.brand),
-    type: (c: ShopCard) => query.types.length === 0 || query.types.includes(c.lightingTypeSlug),
+    family: (c: ShopCard) =>
+      query.families.length === 0 ||
+      query.families.includes(c.sectionType as ProductFamily),
+    brand: (c: ShopCard) =>
+      query.brands.length === 0 || query.brands.includes(c.brand),
+    type: (c: ShopCard) =>
+      query.types.length === 0 || query.types.includes(c.lightingTypeSlug),
     sale: (c: ShopCard) => !query.onSale || money(c.discount).greaterThan(0),
     price: (c: ShopCard) =>
       (query.priceMin === null || priceOf(c) >= query.priceMin) &&
@@ -293,13 +307,19 @@ function shopPage(all: ShopCard[], query: ShopQuery, locale: string): ShopResult
   } as const;
   type TestName = keyof typeof tests;
   const passes = (card: ShopCard, except?: TestName) =>
-    (Object.keys(tests) as TestName[]).every((name) => name === except || tests[name](card));
+    (Object.keys(tests) as TestName[]).every(
+      (name) => name === except || tests[name](card),
+    );
 
   const matched = all.filter((card) => passes(card));
 
   // A facet's counts ignore its own selection, so ticking "chandelier" does
   // not make "indoor" read 0 — the standard reading, and the useful one.
-  const tally = (except: TestName, key: (c: ShopCard) => string, label: (c: ShopCard) => string) => {
+  const tally = (
+    except: TestName,
+    key: (c: ShopCard) => string,
+    label: (c: ShopCard) => string,
+  ) => {
     const seen = new Map<string, Facet>();
     for (const card of all) {
       if (!passes(card, except)) continue;
@@ -324,7 +344,9 @@ function shopPage(all: ShopCard[], query: ShopQuery, locale: string): ShopResult
       default:
         // Buyable before quote-only and sold out, then the admin's featured
         // flag; the query already ordered the rest.
-        return buyTier(a) - buyTier(b) || Number(b.featured) - Number(a.featured);
+        return (
+          buyTier(a) - buyTier(b) || Number(b.featured) - Number(a.featured)
+        );
     }
   });
 
@@ -342,22 +364,46 @@ function shopPage(all: ShopCard[], query: ShopQuery, locale: string): ShopResult
     // Not Math.min(...prices, 0): the 0 was meant to guard an empty list and
     // instead made the lower bound 0 every time.
     priceBounds: prices.length
-      ? { min: Math.floor(Math.min(...prices)), max: Math.ceil(Math.max(...prices)) }
+      ? {
+          min: Math.floor(Math.min(...prices)),
+          max: Math.ceil(Math.max(...prices)),
+        }
       : { min: 0, max: 0 },
     facets: {
-      family: tally("family", (c) => c.sectionType, (c) => c.sectionType),
-      brand: tally("brand", (c) => c.brand, (c) => c.brand),
-      type: tally("type", (c) => c.lightingTypeSlug, (c) => c.lightingTypeName ?? c.lightingTypeSlug),
-      sale: all.filter((card) => passes(card, "sale") && money(card.discount).greaterThan(0)).length,
+      family: tally(
+        "family",
+        (c) => c.sectionType,
+        (c) => c.sectionType,
+      ),
+      brand: tally(
+        "brand",
+        (c) => c.brand,
+        (c) => c.brand,
+      ),
+      type: tally(
+        "type",
+        (c) => c.lightingTypeSlug,
+        (c) => c.lightingTypeName ?? c.lightingTypeSlug,
+      ),
+      sale: all.filter(
+        (card) => passes(card, "sale") && money(card.discount).greaterThan(0),
+      ).length,
     },
   };
 }
 
 export interface HomeData {
+  types: {
+    id: string;
+    family: ProductFamily;
+    name: string;
+    count: number;
+    image: string;
+  }[];
   families: { family: ProductFamily; count: number }[];
   /** Biggest saving first — the discount the shopper keeps, not the rate. */
   onSale: ShopCard[];
-  /** The admin's featured flag, not a list of ids written into the page. */
+  /** A varied shelf, respecting the admin's preference within each type. */
   featured: ShopCard[];
   newest: ShopCard[];
 }
@@ -371,28 +417,67 @@ export interface HomeData {
  * come from the data — the featured flag, the live discounts, the newest
  * rows — so the page changes when the catalogue does.
  */
-export async function homeData(locale: string, perRail = 10): Promise<HomeData> {
+export async function homeData(
+  locale: string,
+  perRail = 10,
+): Promise<HomeData> {
   const all = await catalogueCards(locale);
 
-  const saving = (card: ShopCard) => Number(card.price) - Number(card.effectivePrice);
+  const saving = (card: ShopCard) =>
+    Number(card.price) - Number(card.effectivePrice);
   const inStock = (card: ShopCard) => card.quantity !== 0;
 
   const counts = new Map<ProductFamily, number>();
-  for (const card of all) counts.set(card.sectionType as ProductFamily, (counts.get(card.sectionType as ProductFamily) ?? 0) + 1);
+  for (const card of all)
+    counts.set(
+      card.sectionType as ProductFamily,
+      (counts.get(card.sectionType as ProductFamily) ?? 0) + 1,
+    );
 
-  const featured = all.filter((card) => card.featured);
+  // Keep availability order within each type; rotate families so a recent
+  // import of one collection cannot occupy the whole home page.
+  const ranked = [...all].sort(
+    (a, b) =>
+      buyTier(a) - buyTier(b) || Number(b.featured) - Number(a.featured),
+  );
+  const typeGroups = new Map<string, HomeData["types"][number]>();
+  for (const card of ranked) {
+    const key = `${card.sectionType}:${card.lightingTypeSlug}`;
+    const entry = typeGroups.get(key);
+    if (entry) entry.count++;
+    else
+      typeGroups.set(key, {
+        id: card.lightingTypeSlug,
+        family: card.sectionType,
+        name: card.lightingTypeName ?? card.lightingTypeSlug,
+        count: 1,
+        image: card.productImages[0] ?? "/placeholder.svg",
+      });
+  }
+  const onSale = all
+    .filter((card) => !card.madeToOrder && inStock(card) && saving(card) > 0)
+    .sort((a, b) => saving(b) - saving(a))
+    .slice(0, perRail);
+  const saleIds = new Set(onSale.map((card) => card.id));
+  const featured = diverseProducts(
+    ranked.filter((card) => !saleIds.has(card.id)),
+    perRail,
+  );
+  const shownIds = new Set([...onSale, ...featured].map((card) => card.id));
   return {
-    families: [...counts.entries()].map(([family, count]) => ({ family, count })),
-    onSale: all
-      .filter((card) => saving(card) > 0)
-      // Something out of stock is not a deal anyone can take.
-      .sort((a, b) => Number(inStock(b)) - Number(inStock(a)) || saving(b) - saving(a))
-      .slice(0, perRail),
-    // Falls back to the newest when nothing is flagged, rather than an
-    // empty rail on a fresh catalogue.
-    // Buyable first, so the rail opens on prices rather than quote-only rows.
-    featured: [...(featured.length ? featured : all)].sort((a, b) => buyTier(a) - buyTier(b)).slice(0, perRail),
-    newest: [...all].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, perRail),
+    types: [...typeGroups.values()],
+    families: [...counts.entries()].map(([family, count]) => ({
+      family,
+      count,
+    })),
+    onSale,
+    featured,
+    newest: diverseProducts(
+      [...all]
+        .filter((card) => !shownIds.has(card.id))
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+      perRail,
+    ),
   };
 }
 
@@ -406,7 +491,11 @@ export async function homeData(locale: string, perRail = 10): Promise<HomeData> 
  * same lighting type, then the rest of the family.
  */
 export async function relatedCards(
-  { productId, family, lightingTypeSlug }: { productId: string; family: ProductFamily; lightingTypeSlug?: string },
+  {
+    productId,
+    family,
+    lightingTypeSlug,
+  }: { productId: string; family: ProductFamily; lightingTypeSlug?: string },
   locale: string,
   limit = 10,
 ): Promise<ShopCard[]> {
@@ -415,7 +504,8 @@ export async function relatedCards(
   );
 
   const rank = (card: ShopCard) =>
-    (lightingTypeSlug && card.lightingTypeSlug === lightingTypeSlug ? 0 : 1) + buyTier(card) * 2;
+    (lightingTypeSlug && card.lightingTypeSlug === lightingTypeSlug ? 0 : 1) +
+    buyTier(card) * 2;
 
   return [...cards].sort((a, b) => rank(a) - rank(b)).slice(0, limit);
 }
@@ -425,9 +515,14 @@ export async function relatedCards(
  * recently-viewed rail, whose order is the shopper's own. A code that is
  * no longer an active product is simply left out.
  */
-export async function cardsByProductIds(productIds: string[], locale: string): Promise<ShopCard[]> {
+export async function cardsByProductIds(
+  productIds: string[],
+  locale: string,
+): Promise<ShopCard[]> {
   if (productIds.length === 0) return [];
-  const byCode = new Map((await catalogueCards(locale)).map((card) => [card.productId, card]));
+  const byCode = new Map(
+    (await catalogueCards(locale)).map((card) => [card.productId, card]),
+  );
   return productIds.flatMap((code) => byCode.get(code) ?? []);
 }
 
@@ -442,26 +537,39 @@ export async function applicationCards(
   { families = [], types }: { families?: ProductFamily[]; types: string[] },
   locale: string,
   limit = 12,
-): Promise<{ cards: ShopCard[]; typeCounts: Record<string, number>; familyCounts: Partial<Record<ProductFamily, number>> }> {
+): Promise<{
+  cards: ShopCard[];
+  typeCounts: Record<string, number>;
+  familyCounts: Partial<Record<ProductFamily, number>>;
+}> {
   const all = await catalogueCards(locale);
 
   const typeCounts: Record<string, number> = {};
   const familyCounts: Partial<Record<ProductFamily, number>> = {};
   for (const card of all) {
-    typeCounts[card.lightingTypeSlug] = (typeCounts[card.lightingTypeSlug] ?? 0) + 1;
+    typeCounts[card.lightingTypeSlug] =
+      (typeCounts[card.lightingTypeSlug] ?? 0) + 1;
     const family = card.sectionType as ProductFamily;
     familyCounts[family] = (familyCounts[family] ?? 0) + 1;
   }
 
   const rank = (card: ShopCard) => Number(!card.featured) + buyTier(card) * 2;
   const groups = [
-    ...types.map((type) => all.filter((card) => card.lightingTypeSlug === type)),
-    ...families.map((family) => all.filter((card) => card.sectionType === family)),
+    ...types.map((type) =>
+      all.filter((card) => card.lightingTypeSlug === type),
+    ),
+    ...families.map((family) =>
+      all.filter((card) => card.sectionType === family),
+    ),
   ].map((group) => [...group].sort((a, b) => rank(a) - rank(b)));
 
   const cards: ShopCard[] = [];
   const seen = new Set<string>();
-  for (let round = 0; cards.length < limit && groups.some((group) => group.length > round); round++) {
+  for (
+    let round = 0;
+    cards.length < limit && groups.some((group) => group.length > round);
+    round++
+  ) {
     for (const group of groups) {
       const card = group[round];
       if (card && !seen.has(card.id) && cards.length < limit) {

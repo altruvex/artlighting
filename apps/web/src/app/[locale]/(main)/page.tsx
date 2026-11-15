@@ -18,7 +18,9 @@ import { PagePropsTypes } from "@/types";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
-export async function generateMetadata({ params }: PagePropsTypes): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PagePropsTypes): Promise<Metadata> {
   const locale = getLocaleFromParams(await params);
   return constructMetadata({ locale, path: "/" });
 }
@@ -28,25 +30,19 @@ export async function generateMetadata({ params }: PagePropsTypes): Promise<Meta
 export const instant = false;
 
 /**
- * The home page: the company, then the catalogue.
+ * The home page: the catalogue first, then the company.
  *
- * It had been turned into a shop front — offer, categories, three rails —
- * which sold products well and said nothing about who was selling them. The
- * order now follows how a professional customer weighs a supplier, and how
- * a homeowner who is unsure starts: who this is, what they are trying to
- * light, how the company helps, and then the catalogue, with the same
- * rails, offers and recently viewed products as before. Projects are the
- * proof; the guide is what makes the company sound like it knows light.
+ * A company-first order put about four screens of text before the first
+ * price. Now the hero leads into the three families and the offers, then
+ * the trust points, featured and new products; who the company is, what it
+ * has lit and how it helps follow for the visitor who keeps reading.
  */
 export default async function MainPage({ params }: PagePropsTypes) {
   const locale = getLocaleFromParams(await params);
-  const [t, data] = await Promise.all([getTranslations({ locale, namespace: "home.rails" }), homeData(locale)]);
-  const productCount = data.families.reduce((sum, family) => sum + family.count, 0);
-  // With nothing flagged as featured, "featured" falls back to the newest
-  // rows — and two rails of the same ten products read as a mistake. Each
-  // rail shows only what the one above it has not.
-  const featuredIds = new Set(data.featured.map((card) => card.id));
-  const newest = data.newest.filter((card) => !featuredIds.has(card.id));
+  const [t, data] = await Promise.all([
+    getTranslations({ locale, namespace: "home.rails" }),
+    homeData(locale),
+  ]);
 
   return (
     <>
@@ -64,11 +60,21 @@ export default async function MainPage({ params }: PagePropsTypes) {
           },
         }}
       />
-      <HomeHero locale={locale} productCount={productCount} />
-      <Positioning locale={locale} />
-      <ApplicationsIndex locale={locale} />
-      <ServicesOverview locale={locale} />
-      <CategoryTiles locale={locale} families={data.families} />
+      <HomeHero locale={locale} />
+      <CategoryTiles
+        locale={locale}
+        families={data.families}
+        types={data.types}
+      />
+      <ProductRail
+        id="sale"
+        title={t("sale")}
+        subtitle={t("saleSub")}
+        href="/products?sale=1&sort=discount"
+        hrefLabel={t("saleLink")}
+        products={data.onSale}
+        locale={locale}
+      />
       <TrustStrip locale={locale} />
       <ProductRail
         id="featured"
@@ -84,23 +90,17 @@ export default async function MainPage({ params }: PagePropsTypes) {
         title={t("newest")}
         href="/products?sort=newest"
         hrefLabel={t("newestLink")}
-        products={newest}
-        locale={locale}
-      />
-      <ProductRail
-        id="sale"
-        title={t("sale")}
-        subtitle={t("saleSub")}
-        href="/products?sale=1&sort=discount"
-        hrefLabel={t("saleLink")}
-        products={data.onSale}
+        products={data.newest}
         locale={locale}
       />
       {/* Below the fold on purpose: it is filled in from this browser's
           history after the page arrives, and anything it pushes down should
           already be out of view. */}
       <RecentlyViewed locale={locale} />
+      <ApplicationsIndex locale={locale} />
       <ProjectsSection locale={locale} />
+      <ServicesOverview locale={locale} />
+      <Positioning locale={locale} />
       <GuideTeaser locale={locale} />
       <ClosingCta locale={locale} />
     </>

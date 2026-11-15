@@ -10,7 +10,7 @@ import { OptionGroup, optionChip } from "./option-group";
 
 const SECTION_TITLE: Record<SupportedLanguage, string> = {
   en: "Colour temperature",
-  ar: "درجة حرارة اللون",
+  ar: "لون الإضاءة",
 };
 
 /** What each choice looks like lit — a hint beside the word, not a claim. */
@@ -51,12 +51,18 @@ export default function ColorTempOptions({
     // Best-effort: the choice is also carried by the order itself, so a
     // failed save costs nothing the customer would see.
     void ensureConfigId()
-      .then((configId) => (configId ? chooseColorTemp({ configId, colorTemp: next }) : undefined))
+      .then((configId) =>
+        configId ? chooseColorTemp({ configId, colorTemp: next }) : undefined,
+      )
       .catch(() => {});
   };
 
   return (
-    <OptionGroup label={SECTION_TITLE[locale]} selected={labels[active]} className="grid-cols-3">
+    <OptionGroup
+      label={SECTION_TITLE[locale]}
+      selected={labels[active]}
+      className="grid-cols-3"
+    >
       {ORDER.map((temp) => (
         <button
           key={temp}
@@ -66,7 +72,10 @@ export default function ColorTempOptions({
           onClick={() => choose(temp)}
           className={optionChip(active === temp)}
         >
-          <span aria-hidden className={`size-3 shrink-0 rounded-full ring-1 ring-foreground/15 ${SWATCH[temp]}`} />
+          <span
+            aria-hidden
+            className={`size-3 shrink-0 rounded-full ring-1 ring-foreground/15 ${SWATCH[temp]}`}
+          />
           {labels[temp]}
         </button>
       ))}

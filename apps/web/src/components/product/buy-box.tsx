@@ -3,13 +3,21 @@
 import { addToCart } from "@/actions/cart"
 import { ensureConfiguration } from "@/actions/configuration"
 import { updateProductIP } from "@/actions/product-ip"
-import { saveConfig as _saveConfig, type SaveConfigArgs } from "@/actions/save-config"
+import {
+  saveConfig as _saveConfig,
+  type SaveConfigArgs,
+} from "@/actions/save-config"
 import DiscountPrice from "@/components/price/discount-price"
 import NormalPrice from "@/components/price/normal-price"
 import { Button } from "@repo/ui/components/button"
 import {
-  Dialog, DialogClose, DialogContent, DialogDescription,
-  DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@repo/ui/components/dialog"
 import { usePathname, useRouter } from "@/i18n/navigation"
 import { useAuth } from "@/lib/auth-hooks"
@@ -17,29 +25,71 @@ import { notifyCartChanged } from "@/lib/cart-events"
 import { COMPANY, displayPhone } from "@/lib/company"
 import { telLink, whatsappLink } from "@/lib/contact-links"
 import { formatNumber, formatPercent } from "@/lib/numbers"
-import { currentReturnPath, savePendingAdd, signInPath } from "@/lib/pending-cart"
+import {
+  currentReturnPath,
+  savePendingAdd,
+  signInPath,
+} from "@/lib/pending-cart"
 import { SHOWROOM_PHONE } from "@/lib/showroom"
 import { cn } from "@/lib/utils"
 import type { ProductPersonalState } from "@/lib/product-personal.server"
-import { ProductIP, type Configuration, type SupportedCurrency } from "@/types/products"
+import {
+  ProductIP,
+  type Configuration,
+  type SupportedCurrency,
+} from "@/types/products"
 import type { BulbChoice } from "@repo/catalog/bulb-pricing"
 import type { ProductFamily } from "@repo/catalog/families"
-import type { ProductIP as PrismaProductIP, ProductColorTemp } from "@repo/database"
-import { addMoney, applyRate, clampNonNegative, money, multiplyMoney, serializeMoney, subtractMoney } from "@repo/money"
+import type {
+  ProductIP as PrismaProductIP,
+  ProductColorTemp,
+} from "@repo/database"
+import {
+  addMoney,
+  applyRate,
+  clampNonNegative,
+  money,
+  multiplyMoney,
+  serializeMoney,
+  subtractMoney,
+} from "@repo/money"
 import { useMutation } from "@tanstack/react-query"
-import { BadgeCheckIcon, BanknoteIcon, Loader2, ShoppingBag, TruckIcon } from "lucide-react"
+import {
+  BadgeCheckIcon,
+  BanknoteIcon,
+  Loader2,
+  MessageCircle,
+  ShoppingBag,
+  TruckIcon,
+} from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react"
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react"
 import { toast } from "sonner"
 import { useDebounce } from "use-debounce"
 import BulbOptions from "./bulb-options"
 import ColorTempOptions from "./color-temp-options"
 import IpOptions from "./ip-options"
 import { QuantitySelector } from "./quantity-selector"
-import { StarRating, ratingLabel } from "./star-rating"
 
-const PRODUCTS_WITH_IP20_TEXT = ["product-jy-810-10w", "product-jy-810-12w", "product-jy-810-18w", "product-jy-810-30w"]
-const PRODUCTS_WITH_MAX_IP_TEXT = ["product-jy-913-5w", "product-jy-913-8w", "product-jy-913-12w", "product-jy-913-18w"]
+const PRODUCTS_WITH_IP20_TEXT = [
+  "product-jy-810-10w",
+  "product-jy-810-12w",
+  "product-jy-810-18w",
+  "product-jy-810-30w",
+]
+const PRODUCTS_WITH_MAX_IP_TEXT = [
+  "product-jy-913-5w",
+  "product-jy-913-8w",
+  "product-jy-913-12w",
+  "product-jy-913-18w",
+]
 const DEBOUNCE_DELAY = 300
 const BULK_ORDER_THRESHOLD = 10
 /** The same line the product cards draw for "only N left". */
@@ -55,10 +105,6 @@ export interface BuyBoxProps {
   brand: string
   /** Priced for this fixture's arms; empty when it has none. */
   bulbChoices?: BulbChoice[]
-  /** The lighting type's name in this locale, shown above the title. */
-  lightingTypeName?: string
-  /** One line under the title, built from the catalogue. */
-  shortDescription: string
   /**
    * Who is looking, fetched after the prerendered page loads; null until
    * then. The box renders with the defaults and adopts the saved choices
@@ -75,9 +121,6 @@ export interface BuyBoxProps {
   defaultColorTemp: ProductColorTemp
   /** Units a customer may buy; null when the product is not tracked (no limit). */
   stock: number | null
-  /** The average of this product's reviews, or null with none yet. */
-  ratingAverage: number | null
-  ratingCount: number
   /**
    * Built to the customer's specification: no price, no cart, no order —
    * one button that opens the sales team's numbers.
@@ -102,8 +145,6 @@ export default function BuyBox({
   discount,
   brand,
   bulbChoices = [],
-  lightingTypeName,
-  shortDescription,
   personal,
   ip,
   baseIp,
@@ -111,8 +152,6 @@ export default function BuyBox({
   sectionType,
   defaultColorTemp,
   stock,
-  ratingAverage,
-  ratingCount,
   madeToOrder = false,
 }: BuyBoxProps) {
   const t = useTranslations("product-main-info")
@@ -130,7 +169,9 @@ export default function BuyBox({
   const [showQuoteDialog, setShowQuoteDialog] = useState(false)
   const [quantity, setQuantity] = useState(1)
   const [isClicked, setIsClicked] = useState(false)
-  const [configuration, setConfiguration] = useState<Configuration | undefined>(undefined)
+  const [configuration, setConfiguration] = useState<Configuration | undefined>(
+    undefined,
+  )
 
   // The configuration row is created on the first choice, not by the page
   // view: a visitor who only looks never writes. Every option and "order
@@ -159,9 +200,12 @@ export default function BuyBox({
     return pendingConfigRef.current
   }, [productId, locale])
 
-  const [selectedColorTemp, setSelectedColorTemp] = useState<ProductColorTemp>(defaultColorTemp)
+  const [selectedColorTemp, setSelectedColorTemp] =
+    useState<ProductColorTemp>(defaultColorTemp)
 
-  const [selectedProductIp, setSelectProductIp] = useState<PrismaProductIP>(ip ?? "IP20")
+  const [selectedProductIp, setSelectProductIp] = useState<PrismaProductIP>(
+    ip ?? "IP20",
+  )
 
   // Which bulb, not which of two hard-coded wattages. The fixture is sold
   // with one, so the default stands until the customer picks another.
@@ -194,7 +238,8 @@ export default function BuyBox({
       appliedIpRef.current = saved.productIp as string | undefined
       setConfiguration(saved)
       setSelectedColorTemp(saved.colorTemp ?? defaultColorTemp)
-      if (saved.productIp) setSelectProductIp(saved.productIp as unknown as PrismaProductIP)
+      if (saved.productIp)
+        setSelectProductIp(saved.productIp as unknown as PrismaProductIP)
       if (saved.bulbId) setSelectedBulbId(saved.bulbId)
       setPriceIncrease(saved.priceIncrease ?? "0")
       setLampPriceIncrease(saved.lampPriceIncrease ?? "0")
@@ -221,13 +266,27 @@ export default function BuyBox({
 
   // `discount` is a rate (0.13 = 13%), applied in Decimal.
   const discountedUnitPrice = useMemo(
-    () => serializeMoney(clampNonNegative(subtractMoney(totalPriceBeforeDiscount, applyRate(totalPriceBeforeDiscount, discount)))),
+    () =>
+      serializeMoney(
+        clampNonNegative(
+          subtractMoney(
+            totalPriceBeforeDiscount,
+            applyRate(totalPriceBeforeDiscount, discount),
+          ),
+        ),
+      ),
     [totalPriceBeforeDiscount, discount],
   )
 
   /** What the discount takes off this configuration, at this quantity. */
   const savingTotal = useMemo(
-    () => serializeMoney(multiplyMoney(subtractMoney(totalPriceBeforeDiscount, discountedUnitPrice), quantity)),
+    () =>
+      serializeMoney(
+        multiplyMoney(
+          subtractMoney(totalPriceBeforeDiscount, discountedUnitPrice),
+          quantity,
+        ),
+      ),
     [totalPriceBeforeDiscount, discountedUnitPrice, quantity],
   )
 
@@ -239,15 +298,21 @@ export default function BuyBox({
   const showMaxIpText = PRODUCTS_WITH_MAX_IP_TEXT.includes(productId)
   const showOutdoorText = sectionType === "OUTDOOR"
 
-  const handleBulbChange = useCallback((bulbId: string, newLampPriceIncrease: string) => {
-    setSelectedBulbId(bulbId)
-    setLampPriceIncrease(newLampPriceIncrease)
-  }, [])
+  const handleBulbChange = useCallback(
+    (bulbId: string, newLampPriceIncrease: string) => {
+      setSelectedBulbId(bulbId)
+      setLampPriceIncrease(newLampPriceIncrease)
+    },
+    [],
+  )
 
-  const handleProductIPChange = useCallback((newProductIp: PrismaProductIP, newPriceIncrease: string) => {
-    setSelectProductIp(newProductIp)
-    setPriceIncrease(newPriceIncrease)
-  }, [])
+  const handleProductIPChange = useCallback(
+    (newProductIp: PrismaProductIP, newPriceIncrease: string) => {
+      setSelectProductIp(newProductIp)
+      setPriceIncrease(newPriceIncrease)
+    },
+    [],
+  )
 
   const updateProductIPConfig = useCallback(
     async (newProductIp: PrismaProductIP, newPriceIncrease: string) => {
@@ -299,7 +364,8 @@ export default function BuyBox({
   // only then. Listing the selection as a dependency too made this fire on
   // the click itself and put the old value back before it was saved.
   useEffect(() => {
-    const fromConfig = configuration?.productIp as unknown as PrismaProductIP | undefined
+    const fromConfig = configuration?.productIp as unknown as
+      PrismaProductIP | undefined
     if (!fromConfig || appliedIpRef.current === fromConfig) return
     appliedIpRef.current = fromConfig
     setSelectProductIp(fromConfig)
@@ -333,7 +399,16 @@ export default function BuyBox({
       return
     }
     saveConfig({ configId: id, productId, quantity })
-  }, [soldOut, isSavingConfig, isClicked, ensureConfigId, productId, quantity, saveConfig, tNotification])
+  }, [
+    soldOut,
+    isSavingConfig,
+    isClicked,
+    ensureConfigId,
+    productId,
+    quantity,
+    saveConfig,
+    tNotification,
+  ])
 
   const handleAddToBag = useCallback(() => {
     // A bulk order goes to the sales team whoever is asking: checked before
@@ -352,7 +427,10 @@ export default function BuyBox({
       toast(tNotification("signInRequired"), {
         id: "pending-add",
         description: tNotification("addAfterSignIn"),
-        action: { label: tAuth("signIn"), onClick: () => router.push(signInPath(returnTo)) },
+        action: {
+          label: tAuth("signIn"),
+          onClick: () => router.push(signInPath(returnTo)),
+        },
       })
       return
     }
@@ -367,18 +445,29 @@ export default function BuyBox({
         toast.error(tNotification("failedToAdd"))
       }
     })
-  }, [isSignedIn, quantity, productId, tNotification, productName, pathname, router, tAuth])
+  }, [
+    isSignedIn,
+    quantity,
+    productId,
+    tNotification,
+    productName,
+    pathname,
+    router,
+    tAuth,
+  ])
 
-  // The phone's buy bar shows only while the in-page buttons are off screen,
-  // in either direction. Hidden until measured, so the prerendered page does
-  // not flash it in and the bar is never shown over the buttons it repeats.
+  // Show the phone buy bar after the in-page purchase controls have passed.
+  // Keep it hidden during initial reading and while those controls are visible.
   const actionsRef = useRef<HTMLDivElement>(null)
   const [actionsInView, setActionsInView] = useState(true)
   useEffect(() => {
     const node = actionsRef.current
     if (!node || typeof IntersectionObserver === "undefined") return
     const observer = new IntersectionObserver(([entry]) => {
-      setActionsInView(entry?.isIntersecting ?? true)
+      // Keep the bar hidden until the shopper has passed the purchase controls.
+      setActionsInView(
+        !entry || entry.isIntersecting || entry.boundingClientRect.bottom > 0,
+      )
     })
     observer.observe(node)
     return () => observer.disconnect()
@@ -391,7 +480,10 @@ export default function BuyBox({
       ? {
           tone: "text-foreground",
           dot: "bg-warning",
-          text: tPdp("fewLeft", { count: stock, formatted: formatNumber(stock, locale === "ar" ? "ar" : "en") }),
+          text: tPdp("fewLeft", {
+            count: stock,
+            formatted: formatNumber(stock, locale === "ar" ? "ar" : "en"),
+          }),
         }
       : { tone: "text-foreground", dot: "bg-success", text: tPdp("inStock") }
 
@@ -405,33 +497,20 @@ export default function BuyBox({
 
   return (
     <div className="space-y-6">
-      <header className="space-y-3">
-        {lightingTypeName && (
-          <p className="eyebrow">{lightingTypeName}</p>
+      <div className="space-y-2 border-b border-border pb-5">
+        {!madeToOrder && (
+          <p className="text-sm text-muted-foreground">
+            {quantity === 1
+              ? tPdp("priceLabel")
+              : tPdp("totalPriceLabel", {
+                  count: quantity,
+                  formatted: formatNumber(
+                    quantity,
+                    locale === "ar" ? "ar" : "en",
+                  ),
+                })}
+          </p>
         )}
-        <h1 className="font-[family-name:var(--font-display-face)] text-[length:var(--text-3xl)] font-medium leading-[1.08] text-balance ltr:tracking-tight rtl:leading-[1.3]">
-          {productName}
-        </h1>
-        {shortDescription && (
-          <p className="max-w-prose text-pretty leading-relaxed text-muted-foreground">{shortDescription}</p>
-        )}
-        {/* A plain anchor, not the i18n Link: it is a same-page jump to
-            the reviews section, not a route. */}
-        {ratingCount > 0 && ratingAverage !== null && (
-          <a
-            href="#reviews"
-            className="inline-flex min-h-10 items-center gap-2 text-[length:var(--text-sm)] transition-colors md:min-h-0 duration-[var(--dur-hover)] hover:text-primary"
-          >
-            <StarRating value={ratingAverage} />
-            <span className="sr-only">{ratingLabel(ratingAverage, ratingCount, locale)}</span>
-            <span aria-hidden className="tabular-nums text-muted-foreground underline-offset-4 hover:underline">
-              {formatNumber(ratingCount, locale === "ar" ? "ar" : "en")}
-            </span>
-          </a>
-        )}
-      </header>
-
-      <div className="space-y-2 border-y border-border py-5">
         {madeToOrder ? (
           <p className="font-[family-name:var(--font-display-face)] text-[length:var(--text-2xl)] font-semibold text-muted-foreground">
             {t("priceOnRequest")}
@@ -443,7 +522,10 @@ export default function BuyBox({
                   plays exactly when the price changes and at no other time. */}
               <span
                 key={priceKey}
-                className={cn(priceKey !== firstPriceKey && "price-tick", "font-[family-name:var(--font-display-face)] text-[length:var(--text-2xl)] font-semibold tabular-nums")}
+                className={cn(
+                  priceKey !== firstPriceKey && "price-tick",
+                  "font-[family-name:var(--font-display-face)] text-[length:var(--text-2xl)] font-semibold tabular-nums",
+                )}
               >
                 {hasDiscount ? (
                   <DiscountPrice
@@ -454,17 +536,21 @@ export default function BuyBox({
                     lampPriceIncrease={lampPriceIncrease}
                   />
                 ) : (
-                  <NormalPrice price={totalPriceBeforeDiscount} quantity={quantity} />
+                  <NormalPrice
+                    price={totalPriceBeforeDiscount}
+                    quantity={quantity}
+                  />
                 )}
               </span>
               {hasDiscount && (
                 <>
                   <s className="text-[length:var(--text-base)] tabular-nums text-muted-foreground">
-                    <NormalPrice price={totalPriceBeforeDiscount} quantity={quantity} />
+                    <NormalPrice
+                      price={totalPriceBeforeDiscount}
+                      quantity={quantity}
+                    />
                   </s>
-                  {/* Outlined, not filled: the price is the figure to read, the
-                      rate only qualifies it. */}
-                  <span className="self-center rounded-sm border border-primary/40 px-1.5 py-0.5 text-[length:var(--text-xs)] font-semibold tabular-nums text-primary">
+                  <span className="self-center rounded-md bg-accent px-2 py-1 text-[length:var(--text-xs)] font-semibold tabular-nums text-primary">
                     {formatPercent(discount, locale)} {t("off")}
                   </span>
                 </>
@@ -475,8 +561,16 @@ export default function BuyBox({
                 {t("save")} <NormalPrice price={savingTotal} />
               </p>
             )}
-            <p className={cn("flex items-center gap-2 pt-1 text-[length:var(--text-sm)] font-medium", stockLine.tone)}>
-              <span aria-hidden className={cn("size-2 rounded-full", stockLine.dot)} />
+            <p
+              className={cn(
+                "flex items-center gap-2 pt-1 text-[length:var(--text-sm)] font-medium",
+                stockLine.tone,
+              )}
+            >
+              <span
+                aria-hidden
+                className={cn("size-2 rounded-full", stockLine.dot)}
+              />
               {stockLine.text}
             </p>
           </>
@@ -517,33 +611,51 @@ export default function BuyBox({
         )}
         {/* A limit of the fixture, not an error: the status tone for a
             heads-up, not the red the site keeps for things that failed. */}
-        {ipNote && !madeToOrder && <p className="text-[length:var(--text-xs)] font-medium text-warning">{ipNote}</p>}
+        {ipNote && !madeToOrder && (
+          <p className="text-[length:var(--text-xs)] font-medium text-warning">
+            {ipNote}
+          </p>
+        )}
       </div>
 
       {/* In the column at every size: the quantity and both ways to buy. The
           phone's bar below repeats only the price and the one action. */}
       <div ref={actionsRef}>
         {madeToOrder ? (
-          <Button onClick={() => setShowQuoteDialog(true)} className="h-12 w-full text-base">
+          <Button
+            onClick={() => setShowQuoteDialog(true)}
+            className="h-12 w-full text-base"
+          >
             {t("requestQuote")}
           </Button>
         ) : (
           <div className="flex flex-col gap-2.5">
-            <div className="flex items-center gap-3">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <span className="text-sm font-medium">{tPdp("quantity")}</span>
               <QuantitySelector
                 quantity={quantity}
                 onIncrease={() => setQuantity((value) => value + 1)}
-                onDecrease={() => setQuantity((value) => Math.max(1, value - 1))}
+                onDecrease={() =>
+                  setQuantity((value) => Math.max(1, value - 1))
+                }
                 size="lg"
                 rtlSupport
                 minQuantity={1}
                 disabled={soldOut}
               />
-              <Button disabled={isPending || soldOut} onClick={handleAddToBag} className="h-12 flex-1 text-base">
-                {isPending ? <Loader2 className="size-5 animate-spin" aria-hidden /> : <ShoppingBag className="size-5" aria-hidden />}
-                {isPending ? t("adding") : tPdp("addToCart")}
-              </Button>
             </div>
+            <Button
+              disabled={isPending || soldOut}
+              onClick={handleAddToBag}
+              className="h-12 w-full text-base"
+            >
+              {isPending ? (
+                <Loader2 className="size-5 animate-spin" aria-hidden />
+              ) : (
+                <ShoppingBag className="size-5" aria-hidden />
+              )}
+              {isPending ? t("adding") : tPdp("addToCart")}
+            </Button>
             <Button
               disabled={soldOut || isClicked || isSavingConfig}
               variant="outline"
@@ -561,6 +673,23 @@ export default function BuyBox({
             </Button>
           </div>
         )}
+        {/* Not for made-to-order: its block already opens the sales team's WhatsApp. */}
+        {!madeToOrder && (
+          <a
+            href={whatsappLink(
+              tPdp("askMessage", {
+                code: productId.toUpperCase(),
+                name: productName,
+              }),
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex min-h-10 items-center gap-2 text-[length:var(--text-sm)] text-muted-foreground transition-colors duration-[var(--dur-hover)] hover:text-primary"
+          >
+            <MessageCircle className="size-4 shrink-0" aria-hidden />
+            {tPdp("askWhatsapp")}
+          </a>
+        )}
       </div>
 
       {/* The phone's buy bar: one row, the price as configured and the one
@@ -574,11 +703,14 @@ export default function BuyBox({
         className={cn(
           "fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 backdrop-blur md:hidden",
           "transition-transform duration-[var(--dur-sheet)] ease-[var(--ease-out)] motion-reduce:transition-none",
-          showBar ? "translate-y-0" : "translate-y-full",
+          showBar ? "visible translate-y-0" : "invisible translate-y-full",
         )}
       >
         {madeToOrder ? (
-          <Button onClick={() => setShowQuoteDialog(true)} className="h-12 w-full text-base">
+          <Button
+            onClick={() => setShowQuoteDialog(true)}
+            className="h-12 w-full text-base"
+          >
             {t("requestQuote")}
           </Button>
         ) : (
@@ -594,17 +726,31 @@ export default function BuyBox({
                     lampPriceIncrease={lampPriceIncrease}
                   />
                 ) : (
-                  <NormalPrice price={totalPriceBeforeDiscount} quantity={quantity} />
+                  <NormalPrice
+                    price={totalPriceBeforeDiscount}
+                    quantity={quantity}
+                  />
                 )}
               </span>
               {hasDiscount && (
                 <s className="truncate text-[length:var(--text-xs)] tabular-nums text-muted-foreground">
-                  <NormalPrice price={totalPriceBeforeDiscount} quantity={quantity} />
+                  <NormalPrice
+                    price={totalPriceBeforeDiscount}
+                    quantity={quantity}
+                  />
                 </s>
               )}
             </div>
-            <Button disabled={isPending || soldOut} onClick={handleAddToBag} className="h-12 shrink-0 px-5 text-base">
-              {isPending ? <Loader2 className="size-5 animate-spin" aria-hidden /> : <ShoppingBag className="size-5" aria-hidden />}
+            <Button
+              disabled={isPending || soldOut}
+              onClick={handleAddToBag}
+              className="h-12 shrink-0 px-5 text-base"
+            >
+              {isPending ? (
+                <Loader2 className="size-5 animate-spin" aria-hidden />
+              ) : (
+                <ShoppingBag className="size-5" aria-hidden />
+              )}
               {isPending ? t("adding") : tPdp("addToCart")}
             </Button>
           </div>
@@ -619,15 +765,24 @@ export default function BuyBox({
       {!madeToOrder && (
         <ul className="flex flex-wrap gap-x-6 gap-y-3 border-t border-border pt-5 text-[length:var(--text-sm)] text-muted-foreground">
           <li className="flex items-center gap-2.5">
-            <TruckIcon className="size-4 shrink-0 text-foreground/70" aria-hidden />
+            <TruckIcon
+              className="size-4 shrink-0 text-foreground/70"
+              aria-hidden
+            />
             {t("delivery")}
           </li>
           <li className="flex items-center gap-2.5">
-            <BanknoteIcon className="size-4 shrink-0 text-foreground/70" aria-hidden />
+            <BanknoteIcon
+              className="size-4 shrink-0 text-foreground/70"
+              aria-hidden
+            />
             {t("cod")}
           </li>
           <li className="flex items-center gap-2.5">
-            <BadgeCheckIcon className="size-4 shrink-0 text-foreground/70" aria-hidden />
+            <BadgeCheckIcon
+              className="size-4 shrink-0 text-foreground/70"
+              aria-hidden
+            />
             {tAssurance("certified")}
           </li>
         </ul>
@@ -637,7 +792,9 @@ export default function BuyBox({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{tDialog("bulkOrderTitle")}</DialogTitle>
-            <DialogDescription>{tDialog("bulkOrderDescription")}</DialogDescription>
+            <DialogDescription>
+              {tDialog("bulkOrderDescription")}
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>
@@ -646,7 +803,10 @@ export default function BuyBox({
             <Button asChild>
               {/* Was tel:+1154466259 — the Egyptian country code missing,
                   so the call went to a North American number. */}
-              <a href={`tel:${SHOWROOM_PHONE}`} onClick={() => setShowDialog(false)}>
+              <a
+                href={`tel:${SHOWROOM_PHONE}`}
+                onClick={() => setShowDialog(false)}
+              >
                 {tDialog("contactSalesTeam")}
               </a>
             </Button>
@@ -659,23 +819,38 @@ export default function BuyBox({
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{tDialog("madeToOrderTitle")}</DialogTitle>
-              <DialogDescription>{tDialog("madeToOrderDescription")}</DialogDescription>
+              <DialogDescription>
+                {tDialog("madeToOrderDescription")}
+              </DialogDescription>
             </DialogHeader>
             <ul className="divide-y divide-border border-y border-border">
               {COMPANY.phones.madeToOrderSales.map((phone) => {
                 const number = displayPhone(phone)
                 return (
-                  <li key={phone} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                    <span dir="ltr" className="font-medium tabular-nums">{number}</span>
+                  <li
+                    key={phone}
+                    className="flex flex-wrap items-center justify-between gap-3 py-3"
+                  >
+                    <span dir="ltr" className="font-medium tabular-nums">
+                      {number}
+                    </span>
                     <div className="flex gap-2">
                       <Button asChild variant="outline" size="sm">
-                        <a href={telLink(phone)} aria-label={tDialog("callNumber", { number })}>
+                        <a
+                          href={telLink(phone)}
+                          aria-label={tDialog("callNumber", { number })}
+                        >
                           {tDialog("call")}
                         </a>
                       </Button>
                       <Button asChild variant="outline" size="sm">
                         <a
-                          href={whatsappLink(undefined, phone)}
+                          href={whatsappLink(
+                            tPdp("projectMessage", {
+                              code: productId.toUpperCase(),
+                            }),
+                            phone,
+                          )}
                           target="_blank"
                           rel="noopener noreferrer"
                           aria-label={tDialog("whatsappNumber", { number })}

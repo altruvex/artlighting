@@ -41,37 +41,55 @@ export function SectionHeading({
 }) {
   const Heading = as;
   return (
-    <header className={cn("mb-6 flex flex-wrap items-end justify-between gap-4 lg:mb-8", className)}>
+    <header
+      className={cn(
+        "mb-6 flex flex-wrap items-end justify-between gap-4 lg:mb-8",
+        className,
+      )}
+    >
       <div className="min-w-0 space-y-1.5">
-        {eyebrow && (
-          <p className="eyebrow">{eyebrow}</p>
-        )}
+        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
         <Heading
           id={id}
           className={cn(
             "font-[family-name:var(--font-display-face)] font-medium leading-tight ltr:tracking-tight text-balance",
-            as === "h1" ? "text-[length:var(--text-3xl)]" : "text-[length:var(--text-2xl)]",
+            as === "h1"
+              ? "text-[length:var(--text-3xl)]"
+              : "text-[length:var(--text-2xl)]",
           )}
         >
           {title}
         </Heading>
         {subtitle && (
-          <p className="max-w-prose text-pretty text-muted-foreground" aria-live={subtitleLive ? "polite" : undefined}>
+          <p
+            className="max-w-prose text-pretty text-muted-foreground"
+            aria-live={subtitleLive ? "polite" : undefined}
+          >
             {subtitle}
           </p>
         )}
       </div>
-      {href && hrefLabel ? <SectionLink href={href}>{hrefLabel}</SectionLink> : action}
+      {href && hrefLabel ? (
+        <SectionLink href={href}>{hrefLabel}</SectionLink>
+      ) : (
+        action
+      )}
     </header>
   );
 }
 
 /** "See all" — the way onward from a section. */
-export function SectionLink({ href, children }: { href: string; children: ReactNode }) {
+export function SectionLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: ReactNode;
+}) {
   return (
     <Link
       href={href}
-      className="group/link inline-flex shrink-0 items-center gap-1.5 rounded-md text-[length:var(--text-sm)] font-medium text-muted-foreground transition-colors duration-[var(--dur-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="group/link inline-flex shrink-0 items-center gap-1.5 min-h-11 rounded-md text-[length:var(--text-sm)] font-medium text-muted-foreground transition-colors duration-[var(--dur-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {children}
       <ArrowRight
@@ -87,4 +105,5 @@ export function SectionLink({ href, children }: { href: string; children: ReactN
 }
 
 /** The width and gutters every full-width storefront section shares. */
-export const SECTION_FRAME = "mx-auto w-full max-w-screen-2xl px-4 sm:px-6 lg:px-10";
+export const SECTION_FRAME =
+  "mx-auto w-full max-w-screen-2xl px-4 sm:px-6 lg:px-10";

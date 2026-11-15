@@ -21,9 +21,9 @@
         "description": "This won't take long"
     },
     "search": {
-        "placeholder": "Search in products...",
+        "placeholder": "Search by product name or code…",
         "noResults": "No results found",
-        "showingResults": "Showing results for",
+        "showingResults": "Showing {shown} of {total} results",
         "searching": "Searching...",
         "viewAll": "View All",
         "submit": "Search"
@@ -42,12 +42,17 @@
         "search": "Search",
         "closeSearch": "Close search",
         "browse": "Browse by type",
-        "see-offers": "Everything discounted right now",
+        "see-offers": "Shop offers",
         "models": "All models",
         "account": "Account",
         "home": "Art Lighting — home",
         "logo": "Art Lighting",
-        "close": "Close menu"
+        "close": "Close menu",
+        "brandName": "Art Lighting",
+        "brandTagline": "Lighting for homes & projects",
+        "indoorShort": "Indoor",
+        "outdoorShort": "Outdoor",
+        "chandelierShort": "Chandeliers"
     },
     "footer": {
         "brandName": "Art Lighting",
@@ -88,7 +93,7 @@
         "description": "Explore our exquisite collection of lighting fixtures designed to transform any space. Find the ideal illumination for your home or business.",
         "shopAllCollections": "Shop All Collections",
         "getExpertAdvice": "Get Expert Advice",
-        "whatsappSupport": "24/7 WhatsApp Support",
+        "whatsappSupport": "Chat on WhatsApp",
         "address": "49 El Shaheed Sayed Zakaria St, Sheraton Al Matar, El Nozha, Cairo",
         "workingHours": "Saturday - Thursday, 9:30am - 5:30pm"
     },
@@ -101,12 +106,13 @@
     "assurance": {
         "label": "Buying from Art Lighting",
         "shipping": "Delivery in {days} working days",
-        "shippingShort": "{days}-day delivery",
+        "shippingShort": "Delivery: {days} days",
         "shippingDetail": "cash on delivery",
         "returns": "{days}-day returns",
         "returnsDetail": "defects replaced at our cost",
         "certified": "Certified products",
-        "certifiedDetail": "approved by consultants"
+        "certifiedDetail": "approved by consultants",
+        "returnsShort": "{days}-day returns"
     },
     "promo": {
         "label": "Current offers",
@@ -154,7 +160,7 @@
     "closingCta": {
         "eyebrow": "The showroom",
         "title": "Not sure which light fits?",
-        "body": "Send us a photo of the room or its measurements on WhatsApp and the showroom will suggest the right fittings and how many — no obligation.",
+        "body": "Send a photo or dimensions of your space on WhatsApp. Our showroom team can help you choose the right fittings and quantities.",
         "whatsapp": "Message us on WhatsApp",
         "call": "Call the showroom",
         "visit": "Visit the showroom",

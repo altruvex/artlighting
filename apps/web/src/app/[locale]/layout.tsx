@@ -9,45 +9,18 @@ import { SupportedLanguage } from "@/types/products";
 import type { Metadata } from "next";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
-import { fontStack } from "@repo/ui/lib/font-stack";
-import { Alexandria, IBM_Plex_Sans_Arabic, Jost } from "next/font/google";
+import { IBM_Plex_Sans_Arabic, Jost } from "next/font/google";
 import { notFound } from "next/navigation";
 import { locale as rootLocale } from "next/root-params";
 import "./../globals.css";
 
-/**
- * Two families, both carrying Arabic *and* Latin — so neither script falls
- * back to a different face mid-sentence, which is what switching Almarai
- * for Roboto by locale did.
- *
- * The old setup loaded Almarai at weight 400 and nothing else. With one
- * weight there is no hierarchy a heading can have over its paragraph; the
- * ranges below are what the type scale needs.
- *
- * next/font fails the build if a requested subset does not exist, so the
- * "arabic" in each list is checked every time this compiles — not assumed.
- */
-/**
- * Display: Jost for Latin — the face of the approved datasheet and
- * quotation, so the site, the admin and the documents set their titles in
- * one voice — with Alexandria for Arabic, a geometric Arabic drawn as a
- * companion to exactly this kind of Futura-lineage Latin. Jost has no Arabic
- * glyphs, so the stack order does the switching (see fontStack).
- * Light to medium only, as in the documents: no bold display type.
- */
+// One Arabic family across headings and controls keeps mixed-script shopping
+// screens consistent. Jost provides the Latin display face.
 const displayLatin = Jost({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600"],
   display: "swap",
 });
-
-const displayArabic = Alexandria({
-  subsets: ["arabic"],
-  weight: ["300", "400", "500", "600"],
-  display: "swap",
-});
-
-const DISPLAY_STACK = fontStack(displayLatin, displayArabic);
 
 const body = IBM_Plex_Sans_Arabic({
   subsets: ["arabic", "latin"],
@@ -56,7 +29,7 @@ const body = IBM_Plex_Sans_Arabic({
   display: "swap",
 });
 
-type LayoutParams = Promise<{ locale: string }>
+type LayoutParams = Promise<{ locale: string }>;
 
 // `locale` sets `<html lang/dir>` before anything else renders, so it can't
 // move behind Suspense — this layout blocks instead of sharing a prefetch.
@@ -97,7 +70,7 @@ export default async function RootLayout({
 
   return (
     <html
-      lang={locale}
+      lang={locale === "ar" ? "ar-EG" : "en"}
       suppressHydrationWarning
       dir={locale === "ar" ? "rtl" : "ltr"}
     >
@@ -108,7 +81,14 @@ export default async function RootLayout({
           "antialiased overflow-x-hidden",
           body.variable,
         )}
-        style={{ "--font-display-face": DISPLAY_STACK } as React.CSSProperties}
+        style={
+          {
+            "--font-display-face":
+              locale === "ar"
+                ? body.style.fontFamily
+                : displayLatin.style.fontFamily,
+          } as React.CSSProperties
+        }
         suppressHydrationWarning
       >
         <ThemeProvider

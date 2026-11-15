@@ -11,7 +11,8 @@ import { Separator } from "@repo/ui/components/separator"
 import { Skeleton } from "@repo/ui/components/skeleton"
 import { PLACEHOLDER_IMAGE } from "@/lib/product-images"
 import { useAuth } from "@/lib/auth-hooks"
-import { Loader2, ShoppingBag, ShoppingCart, Trash2, Plus, Minus } from "lucide-react"
+import { BanknoteIcon, Loader2, ShoppingBag, ShoppingCart, Trash2, Plus, Minus, TruckIcon } from "lucide-react"
+import { STORE_TERMS } from "@/content/policies"
 import { useLocale, useTranslations } from "next-intl"
 import Image from "next/image"
 import { useCallback, useEffect, useRef, useState, useTransition } from "react"
@@ -416,9 +417,11 @@ function CartSummary({
 }) {
   const t = useTranslations("cart")
   const tOrder = useTranslations("order")
+  const tAssurance = useTranslations("assurance")
   const locale = useLocale()
   const router = useRouter()
   const [isPending, startCheckout] = useTransition()
+  const days = STORE_TERMS.deliveryWorkingDays.toLocaleString(locale === "ar" ? "ar-EG" : "en-US")
 
   const onCheckout = () =>
     startCheckout(async () => {
@@ -455,6 +458,16 @@ function CartSummary({
           tOrder("checkout")
         )}
       </Button>
+      <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[length:var(--text-xs)] text-muted-foreground">
+        <li className="flex items-center gap-1.5">
+          <TruckIcon className="size-3.5 shrink-0" aria-hidden />
+          {tAssurance("shippingShort", { days })}
+        </li>
+        <li className="flex items-center gap-1.5">
+          <BanknoteIcon className="size-3.5 shrink-0" aria-hidden />
+          {tAssurance("shippingDetail")}
+        </li>
+      </ul>
       <Button asChild variant="outline" className="h-10 w-full bg-transparent">
         <Link href="/products" onClick={onCloseSheet}>
           {t("continueShopping")}

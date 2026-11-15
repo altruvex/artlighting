@@ -19,6 +19,8 @@ import ProductGallery from "./product-gallery";
 import ProductGlance from "./product-glance";
 import { ProductReviews } from "./product-reviews";
 import ProductSpecs from "./product-specs";
+import { StarRating, ratingLabel } from "./star-rating";
+import { formatNumber } from "@/lib/numbers";
 
 /**
  * One product page, for every brand.
@@ -62,7 +64,9 @@ export default function ProductDetail({
   const t = useTranslations("pdp");
   const tReviews = useTranslations("reviews");
   const lightingTypeName =
-    product.lightingtype?.translations?.[0]?.name ?? product.lightingtype?.name ?? undefined;
+    product.lightingtype?.translations?.[0]?.name ??
+    product.lightingtype?.name ??
+    undefined;
 
   const describable = {
     family: product.sectionType,
@@ -75,6 +79,13 @@ export default function ProductDetail({
   const fullDescription = useProductDescription(describable, "full");
 
   const colorTemperature = specsByKey(product.specGroups).colorTemperature;
+  const hasAbout = Boolean(
+    fullDescription && fullDescription !== shortDescription,
+  );
+  const hasOverview = hasAbout || Boolean(colorTemperature);
+  const hasSpecs =
+    product.specGroups.some((group) => group.items.length > 0) ||
+    Boolean(product.hNumber);
 
   return (
     // Room at the bottom on a phone for the one-row buy bar that shows while
@@ -83,67 +94,126 @@ export default function ProductDetail({
       <RecordView productId={product.productId} />
 
       <div className={`${SECTION_FRAME} pt-4 lg:pt-6`}>
-        {/* The gallery holds its place while the decisions scroll: on a wide
-            screen a shopper comparing options can still see what they are
-            buying. */}
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-14">
-          <div className="lg:sticky lg:top-24">
-            <ProductGallery images={product.productImages} name={product.productName} />
+        <div className="grid items-start gap-x-10 gap-y-5 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-x-14">
+          <header className="min-w-0 space-y-2 md:col-start-2 md:row-start-1">
+            {lightingTypeName && (
+              <p className="text-sm text-muted-foreground">
+                {lightingTypeName}
+              </p>
+            )}
+            <h1 className="break-words font-[family-name:var(--font-display-face)] text-2xl font-medium leading-snug">
+              <bdi>{product.productName}</bdi>
+            </h1>
+            {shortDescription && (
+              <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                {shortDescription}
+              </p>
+            )}
+            {product.ratingCount > 0 && product.ratingAverage !== null && (
+              <a
+                href="#reviews"
+                className="inline-flex min-h-10 items-center gap-2 text-sm hover:text-primary"
+              >
+                <StarRating value={product.ratingAverage} />
+                <span className="sr-only">
+                  {ratingLabel(
+                    product.ratingAverage,
+                    product.ratingCount,
+                    locale,
+                  )}
+                </span>
+                <span aria-hidden className="text-muted-foreground">
+                  {formatNumber(
+                    product.ratingCount,
+                    locale === "ar" ? "ar" : "en",
+                  )}
+                </span>
+              </a>
+            )}
+          </header>
+          <div className="min-w-0 md:sticky md:top-[calc(var(--store-header-height,8rem)+1rem)] md:col-start-1 md:row-start-1 md:row-span-2">
+            <ProductGallery
+              images={product.productImages}
+              name={product.productName}
+            />
           </div>
-          <BuyBox
-            productName={product.productName}
-            price={product.price}
-            productId={product.productId}
-            discount={product.discount}
-            brand={product.brand}
-            bulbChoices={product.bulbChoices ?? []}
-            lightingTypeName={lightingTypeName}
-            shortDescription={shortDescription}
-            personal={personal}
-            ip={(product.productIp as ProductIP | null) ?? undefined}
-            baseIp={(product.productIp as ProductIP | null) ?? undefined}
-            maxIP={product.maxIP ?? undefined}
-            sectionType={product.sectionType}
-            defaultColorTemp={(product.productColor as ProductColorTemp | null) ?? "warm"}
-            stock={product.quantity}
-            ratingAverage={product.ratingAverage}
-            ratingCount={product.ratingCount}
-            madeToOrder={product.madeToOrder}
-          />
+          <div className="min-w-0 md:col-start-2 md:row-start-2">
+            <BuyBox
+              productName={product.productName}
+              price={product.price}
+              productId={product.productId}
+              discount={product.discount}
+              brand={product.brand}
+              bulbChoices={product.bulbChoices ?? []}
+              personal={personal}
+              ip={(product.productIp as ProductIP | null) ?? undefined}
+              baseIp={(product.productIp as ProductIP | null) ?? undefined}
+              maxIP={product.maxIP ?? undefined}
+              sectionType={product.sectionType}
+              defaultColorTemp={
+                (product.productColor as ProductColorTemp | null) ?? "warm"
+              }
+              stock={product.quantity}
+              madeToOrder={product.madeToOrder}
+            />
+          </div>
         </div>
       </div>
 
-      {product.specGroups.length > 0 && (
-        <section aria-labelledby="glance-heading" className={`${SECTION_FRAME} pt-16 lg:pt-24`}>
-          <SectionHeading id="glance-heading" title={t("glance")} />
-          <ProductGlance groups={product.specGroups} />
-        </section>
-      )}
+      <ProductGlance groups={product.specGroups} title={t("glance")} />
 
-      <div className={`${SECTION_FRAME} grid gap-12 pt-16 lg:grid-cols-12 lg:gap-14 lg:pt-24`}>
-        <div className="space-y-10 lg:col-span-5">
-          {fullDescription && (
-            <section aria-labelledby="about-heading">
-              <SectionHeading id="about-heading" title={t("about")} />
-              <p className="max-w-prose text-pretty leading-relaxed text-muted-foreground">{fullDescription}</p>
+      {(hasOverview || hasSpecs) && (
+        <div
+          className={`${SECTION_FRAME} grid gap-8 pt-10 lg:grid-cols-12 lg:gap-12 lg:pt-14`}
+        >
+          {hasOverview && (
+            <div
+              className={
+                hasSpecs
+                  ? "space-y-8 lg:col-span-5"
+                  : "space-y-8 lg:col-span-12"
+              }
+            >
+              {hasAbout && (
+                <section aria-labelledby="about-heading">
+                  <SectionHeading id="about-heading" title={t("about")} />
+                  <p className="max-w-prose text-pretty leading-relaxed text-muted-foreground">
+                    {fullDescription}
+                  </p>
+                </section>
+              )}
+              <ColorGuide colorTemperature={colorTemperature} />
+            </div>
+          )}
+          {hasSpecs && (
+            <section
+              aria-labelledby="specs-heading"
+              className={hasOverview ? "lg:col-span-7" : "lg:col-span-12"}
+            >
+              <SectionHeading id="specs-heading" title={t("specs")} />
+              <ProductSpecs
+                groups={product.specGroups}
+                hNumber={product.hNumber}
+                locale={locale}
+                armsLabel={t("arms")}
+              />
             </section>
           )}
-          <ColorGuide colorTemperature={colorTemperature} />
         </div>
-        <section aria-labelledby="specs-heading" className="lg:col-span-7">
-          <SectionHeading id="specs-heading" title={t("specs")} />
-          <ProductSpecs
-            groups={product.specGroups}
-            hNumber={product.hNumber}
-            locale={locale}
-            armsLabel={t("arms")}
-          />
-        </section>
-      </div>
+      )}
 
-      <section aria-labelledby="reviews-heading" id="reviews" className={`${SECTION_FRAME} pt-16 lg:pt-24`}>
+      <section
+        aria-labelledby="reviews-heading"
+        id="reviews"
+        className={`${SECTION_FRAME} scroll-mt-[calc(var(--store-header-height,8rem)+1rem)] pt-10 lg:pt-14`}
+      >
         <SectionHeading id="reviews-heading" title={tReviews("title")} />
-        <ProductReviews productId={product.productId} locale={locale} initial={reviews} personal={personal} />
+        <ProductReviews
+          productId={product.productId}
+          locale={locale}
+          initial={reviews}
+          personal={personal}
+        />
       </section>
     </article>
   );

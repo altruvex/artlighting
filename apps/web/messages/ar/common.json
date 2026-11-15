@@ -4,7 +4,7 @@
         "description": "ربما يكون الرابط قديمًا أو نُقلت الصفحة. ابحث في المنتجات، أو ابدأ من إحدى الصفحات بالأسفل.",
         "placeholder": "ابحث باسم المنتج أو الكود",
         "card-title": "جرب هذه البدائل",
-        "home-page": "الصفحة الرئيسيه",
+        "home-page": "الصفحة الرئيسية",
         "all-products": "المنتجات",
         "contact-us": "تواصل مع المعرض",
         "search": "بحث"
@@ -21,9 +21,9 @@
         "description": "لن يستغرق هذا وقتًا طويلاً"
     },
     "search": {
-        "placeholder": "ابحث في المنتجات...",
+        "placeholder": "ابحث باسم المنتج أو الكود…",
         "noResults": "لا توجد نتائج",
-        "showingResults": "عرض النتائج",
+        "showingResults": "عرض {shown} من {total} نتيجة",
         "searching": "جاري البحث...",
         "viewAll": "عرض الكل",
         "submit": "ابحث"
@@ -42,12 +42,17 @@
         "search": "بحث",
         "closeSearch": "إغلاق البحث",
         "browse": "تصفّح حسب النوع",
-        "see-offers": "كل المنتجات المخفّضة حاليًا",
+        "see-offers": "تسوّق العروض",
         "models": "كل الموديلات",
         "account": "حسابي",
         "home": "آرت لايتنج — الرئيسية",
         "logo": "آرت لايتنج",
-        "close": "إغلاق القائمة"
+        "close": "إغلاق القائمة",
+        "brandName": "آرت لايتنج",
+        "brandTagline": "إضاءة للبيت والمشروع",
+        "indoorShort": "داخلية",
+        "outdoorShort": "خارجية",
+        "chandelierShort": "نجف"
     },
     "footer": {
         "brandName": "آرت لايتنج",
@@ -88,7 +93,7 @@
         "description": "استكشف مجموعتنا الرائعة من تجهيزات الإضاءة المصممة لتحويل أي مساحة. اعثر على الإضاءة المثالية لمنزلك أو عملك.",
         "shopAllCollections": "تسوق جميع المجموعات",
         "getExpertAdvice": "احصل على استشارة خبير",
-        "whatsappSupport": "دعم واتساب ٢٤/٧",
+        "whatsappSupport": "تواصل عبر واتساب",
         "address": "٤٩ شارع الشهيد سيد زكريا، شيراتون المطار، النزهة، القاهرة",
         "workingHours": "السبت - الخميس، ٩:٣٠ص - ٥:٣٠م"
     },
@@ -101,12 +106,13 @@
     "assurance": {
         "label": "الشراء من آرت لايتنج",
         "shipping": "توصيل خلال {days} أيام عمل",
-        "shippingShort": "توصيل خلال {days} أيام",
+        "shippingShort": "التوصيل: {days} أيام",
         "shippingDetail": "الدفع عند الاستلام",
         "returns": "استرجاع خلال {days} يومًا",
         "returnsDetail": "العيوب تُستبدل على نفقتنا",
         "certified": "منتجات معتمدة",
-        "certifiedDetail": "باعتماد الاستشاريين"
+        "certifiedDetail": "باعتماد الاستشاريين",
+        "returnsShort": "استرجاع {days} يومًا"
     },
     "promo": {
         "label": "العروض الحالية",
@@ -129,8 +135,8 @@
         "on": {
             "family": "على كل {family}",
             "families": "على كل {families}",
-            "products": "على {count, plural, one{منتج واحد} two{منتجين} few{# منتجات} other{# منتج}}",
-            "categories": "على {count, plural, one{فئة واحدة} two{فئتين} few{# فئات} other{# فئة}}",
+            "products": "على {count, plural, zero{لا منتجات} one{منتج واحد} two{منتجين} few{{formatted} منتجات} many{{formatted} منتجًا} other{{formatted} منتج}}",
+            "categories": "على {count, plural, zero{لا فئات} one{فئة واحدة} two{فئتين} few{{formatted} فئات} many{{formatted} فئة} other{{formatted} فئة}}",
             "cart": "على طلبك كله",
             "cartOver": "على الطلبات فوق {amount}"
         },
@@ -149,12 +155,12 @@
         "title": "شاهدتها مؤخرًا",
         "subtitle": "من زيارتك الأخيرة",
         "clear": "امسح السجل",
-        "cleared": "اتمسح سجل المشاهدة"
+        "cleared": "تم مسح سجل المشاهدة"
     },
     "closingCta": {
         "eyebrow": "المعرض",
         "title": "لست متأكدًا من الإضاءة المناسبة؟",
-        "body": "ابعث صورة المكان أو مقاساته على واتساب، وسيقترح فريق المعرض الإضاءة المناسبة وعدد الوحدات — بدون أي التزام.",
+        "body": "أرسل صورة المكان أو مقاساته على واتساب، وسيساعدك فريق المعرض في اختيار الإضاءة المناسبة وعدد الوحدات.",
         "whatsapp": "راسلنا على واتساب",
         "call": "اتصل بالمعرض",
         "visit": "زور المعرض",

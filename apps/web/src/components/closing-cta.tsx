@@ -1,6 +1,10 @@
 import { SECTION_FRAME } from "@/components/section-heading";
 import { Button } from "@repo/ui/components/button";
-import { SHOWROOM_MAP, SHOWROOM_PHONE, SHOWROOM_WHATSAPP } from "@/lib/showroom";
+import {
+  SHOWROOM_MAP,
+  SHOWROOM_PHONE,
+  SHOWROOM_WHATSAPP,
+} from "@/lib/showroom";
 import { Clock, MapPin, MessageCircle, Phone } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Image from "next/image";
@@ -20,7 +24,10 @@ export async function ClosingCta({ locale }: { locale: string }) {
   const tCta = await getTranslations({ locale, namespace: "cta" });
 
   return (
-    <section aria-labelledby="closing-cta-heading" className={`${SECTION_FRAME} py-12 lg:py-20`}>
+    <section
+      aria-labelledby="closing-cta-heading"
+      className={`${SECTION_FRAME} py-10 lg:py-14`}
+    >
       <div className="relative isolate overflow-hidden rounded-sm border border-border">
         <Image
           src="/misterled-landing/landing-2.png"
@@ -39,26 +46,37 @@ export async function ClosingCta({ locale }: { locale: string }) {
           aria-hidden
           className="absolute inset-0 -z-10 bg-linear-to-t from-background via-background/90 to-background/40 sm:bg-linear-to-r sm:from-background sm:via-background/85 sm:to-background/10 rtl:sm:bg-linear-to-l"
         />
-        <div className="max-w-xl space-y-6 px-6 py-12 sm:px-10 sm:py-16 lg:px-14 lg:py-20">
+        <div className="max-w-xl space-y-6 px-6 py-12 sm:px-10 sm:py-12 lg:px-12 lg:py-14">
           <div className="space-y-3">
             <p className="eyebrow">{t("eyebrow")}</p>
             <h2
               id="closing-cta-heading"
-              className="font-[family-name:var(--font-display-face)] text-[length:var(--text-3xl)] font-medium leading-[1.1] ltr:tracking-tight rtl:leading-[1.3] text-balance"
+              className="font-[family-name:var(--font-display-face)] text-[length:var(--text-2xl)] font-medium leading-[1.1] ltr:tracking-tight rtl:leading-[1.3] text-balance"
             >
               {t("title")}
             </h2>
-            <p className="text-pretty leading-relaxed text-muted-foreground">{t("body")}</p>
+            <p className="text-pretty leading-relaxed text-muted-foreground">
+              {t("body")}
+            </p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg" className="h-12 text-base">
-              <a href={SHOWROOM_WHATSAPP} target="_blank" rel="noopener noreferrer">
+              <a
+                href={SHOWROOM_WHATSAPP}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <MessageCircle className="size-5" aria-hidden />
                 {t("whatsapp")}
               </a>
             </Button>
-            <Button asChild size="lg" variant="outline" className="h-12 bg-background/60 text-base backdrop-blur">
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="h-12 bg-background/60 text-base backdrop-blur"
+            >
               <a href={`tel:${SHOWROOM_PHONE}`}>
                 <Phone className="size-5" aria-hidden />
                 {t("call")}
@@ -68,7 +86,10 @@ export async function ClosingCta({ locale }: { locale: string }) {
 
           <dl className="grid gap-3 border-t border-border/70 pt-5 text-[length:var(--text-sm)] sm:grid-cols-2">
             <div className="flex gap-2.5">
-              <MapPin className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+              <MapPin
+                className="mt-0.5 size-4 shrink-0 text-primary"
+                aria-hidden
+              />
               <div>
                 <dt className="sr-only">{t("visit")}</dt>
                 <dd>
@@ -84,10 +105,15 @@ export async function ClosingCta({ locale }: { locale: string }) {
               </div>
             </div>
             <div className="flex gap-2.5">
-              <Clock className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+              <Clock
+                className="mt-0.5 size-4 shrink-0 text-primary"
+                aria-hidden
+              />
               <div>
                 <dt className="sr-only">{t("hours")}</dt>
-                <dd className="text-muted-foreground">{tCta("workingHours")}</dd>
+                <dd className="text-muted-foreground">
+                  {tCta("workingHours")}
+                </dd>
               </div>
             </div>
           </dl>

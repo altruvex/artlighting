@@ -1,7 +1,5 @@
 import "server-only";
-import { formatSpecValue, specValueParts } from "@repo/catalog";
-import { serializeMoney } from "@repo/money";
-import type { LocalizedSpecGroup } from "@/lib/specs-view";
+export { localizeSpecGroups } from "./spec-localize";
 
 export type { LocalizedSpecGroup, LocalizedSpecItem } from "@/lib/specs-view";
 export { specNumbersByKey, specsByKey } from "@/lib/specs-view";
@@ -18,12 +16,12 @@ export { specNumbersByKey, specsByKey } from "@/lib/specs-view";
  */
 
 /** The Prisma select the spec-reading queries share. */
-export function specGroupSelect(language: string) {
+export function specGroupSelect(_language: string) {
   return {
     orderBy: { position: "asc" as const },
     select: {
       position: true,
-      translations: { where: { language }, select: { name: true }, take: 1 },
+      translations: { select: { language: true, name: true } },
       items: {
         orderBy: { position: "asc" as const },
         select: {
@@ -33,75 +31,24 @@ export function specGroupSelect(language: string) {
           comparator: true,
           measurements: {
             orderBy: { position: "asc" as const },
-            select: { value: true, valueMax: true, conditionValue: true, conditionUnit: true },
+            select: {
+              value: true,
+              valueMax: true,
+              conditionValue: true,
+              conditionUnit: true,
+            },
           },
-          option: { select: { translations: { where: { language }, select: { label: true }, take: 1 } } },
-          translations: { where: { language }, select: { label: true, value: true }, take: 1 },
+          option: {
+            select: {
+              key: true,
+              translations: { select: { language: true, label: true } },
+            },
+          },
+          translations: {
+            select: { language: true, label: true, value: true },
+          },
         },
       },
     },
   };
-}
-
-type Decimalish = { toFixed: (places: number) => string };
-
-interface RawSpecGroup {
-  translations: { name: string }[];
-  items: {
-    key: string | null;
-    kind: string;
-    unit: string | null;
-    comparator: string;
-    measurements: {
-      value: Decimalish;
-      valueMax: Decimalish | null;
-      conditionValue: Decimalish | null;
-      conditionUnit: string | null;
-    }[];
-    option: { translations: { label: string }[] } | null;
-    translations: { label: string; value: string | null }[];
-  }[];
-}
-
-export function localizeSpecGroups(groups: RawSpecGroup[], locale: string): LocalizedSpecGroup[] {
-  return groups
-    .map((group) => ({
-      name: group.translations[0]?.name ?? "",
-      items: group.items
-        .map((item) => {
-          // Built once and handed to both renderers: the joined string for
-          // anything that wants one value, and the parts for the table.
-          // Decimals are serialized here, at the boundary, like every other
-          // number leaving the server (see @repo/money).
-          const displayValue = {
-            kind: item.kind as never,
-            unit: item.unit,
-            comparator: item.comparator as never,
-            measurements: item.measurements.map((measurement) => ({
-              value: serializeMoney(measurement.value as never),
-              valueMax: measurement.valueMax ? serializeMoney(measurement.valueMax as never) : null,
-              conditionValue: measurement.conditionValue
-                ? serializeMoney(measurement.conditionValue as never)
-                : null,
-              conditionUnit: measurement.conditionUnit,
-            })),
-            optionLabel: item.option?.translations[0]?.label ?? null,
-            text: item.translations[0]?.value ?? null,
-          };
-
-          return {
-            key: item.key,
-            label: item.translations[0]?.label ?? "",
-            // The stored number, untouched by locale formatting, for code
-            // that compares rather than shows.
-            numeric: item.measurements[0]
-              ? Number(serializeMoney(item.measurements[0].value as never))
-              : null,
-            value: formatSpecValue(displayValue, locale),
-            parts: specValueParts(displayValue, locale),
-          };
-        })
-        .filter((item) => item.label !== "" && item.value !== "—"),
-    }))
-    .filter((group) => group.name !== "" && group.items.length > 0);
 }

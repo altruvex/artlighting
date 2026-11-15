@@ -17,11 +17,17 @@ export async function Positioning({ locale }: { locale: string }) {
   const t = await getTranslations({ locale, namespace: "home.positioning" });
 
   return (
-    <section aria-labelledby="positioning-heading" className={`${SECTION_FRAME} py-20 lg:py-32`}>
+    <section
+      aria-labelledby="positioning-heading"
+      className={`${SECTION_FRAME} py-12 lg:py-16`}
+    >
       <div className="grid gap-10 lg:grid-cols-12 lg:gap-10">
         <div className="lg:col-span-7">
           <p className="eyebrow">{t("eyebrow")}</p>
-          <h2 id="positioning-heading" className="statement mt-5 max-w-[22ch]">
+          <h2
+            id="positioning-heading"
+            className="mt-4 max-w-xl text-[length:var(--text-2xl)] font-semibold"
+          >
             {pick(POSITIONING.statement, locale)}
           </h2>
         </div>
@@ -37,17 +43,35 @@ export async function Positioning({ locale }: { locale: string }) {
         </div>
       </div>
 
-      <ul className="mt-16 grid border-t border-border sm:grid-cols-2 lg:mt-24">
+      <ul className="mt-8 grid border-t border-border sm:grid-cols-2 lg:mt-10">
         {BRANDS.map((brand, index) => (
-          <li key={brand.id} className={`flex items-center gap-5 py-6 ${index === 1 ? "border-t border-border sm:border-t-0 sm:border-s sm:ps-8" : "sm:pe-8"}`}>
+          <li
+            key={brand.id}
+            className={`flex items-center gap-5 py-6 ${index === 1 ? "border-t border-border sm:border-t-0 sm:border-s sm:ps-8" : "sm:pe-8"}`}
+          >
             <span className="relative size-20 shrink-0 sm:size-24">
-              <Image src={brand.logo.light} alt={brand.name} fill sizes="96px" className="object-contain dark:hidden" />
-              <Image src={brand.logo.dark} alt="" fill sizes="96px" className="hidden object-contain dark:block" />
+              <Image
+                src={brand.logo.light}
+                alt={brand.name}
+                fill
+                sizes="96px"
+                className="object-contain dark:hidden"
+              />
+              <Image
+                src={brand.logo.dark}
+                alt=""
+                fill
+                sizes="96px"
+                className="hidden object-contain dark:block"
+              />
             </span>
             <div className="min-w-0">
-              <p className="font-semibold">{t(brand.sole ? "soleAgent" : "agent")}</p>
+              <p className="font-semibold">
+                {t(brand.sole ? "soleAgent" : "agent")}
+              </p>
               <p className="text-[length:var(--text-sm)] text-muted-foreground">
-                {t(`brand.${brand.id}`)} · {t("since", { year: formatYear(brand.since, locale) })}
+                {t(`brand.${brand.id}`)} ·{" "}
+                {t("since", { year: formatYear(brand.since, locale) })}
               </p>
             </div>
           </li>

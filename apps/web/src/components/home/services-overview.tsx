@@ -1,11 +1,10 @@
 import { Onward } from "@/components/editorial/arrow";
-import { formatIndex } from "@/lib/numbers";
+import { FileText, Headset, Lightbulb, PackageCheck } from "lucide-react";
 import { SECTION_FRAME } from "@/components/section-heading";
 import { SERVICE_COPY } from "@/content/company-copy";
 import { pick } from "@/content/l10n";
 import { Link } from "@/i18n/navigation";
 import { availableServices } from "@/lib/company";
-import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 
 /**
@@ -16,35 +15,44 @@ import { getTranslations } from "next-intl/server";
 export async function ServicesOverview({ locale }: { locale: string }) {
   const t = await getTranslations({ locale, namespace: "home.services" });
   const services = availableServices();
+  const icons = {
+    selection: Lightbulb,
+    projects: PackageCheck,
+    documentation: FileText,
+    aftersales: Headset,
+    studies: FileText,
+  };
 
   return (
-    <section aria-labelledby="services-heading" className={`${SECTION_FRAME} py-20 lg:py-28`}>
-      <div className="grid gap-12 lg:grid-cols-12 lg:gap-10">
+    <section
+      aria-labelledby="services-heading"
+      className={`${SECTION_FRAME} py-12 lg:py-16`}
+    >
+      <div className="grid gap-8 lg:grid-cols-12 lg:gap-10">
         <div className="lg:col-span-4">
           <p className="eyebrow">{t("eyebrow")}</p>
-          <h2 id="services-heading" className="mt-4 text-[length:var(--text-3xl)] font-medium leading-tight ltr:tracking-tight">
+          <h2
+            id="services-heading"
+            className="mt-4 text-[length:var(--text-2xl)] font-medium leading-tight ltr:tracking-tight"
+          >
             {t("title")}
           </h2>
           <p className="lede mt-6">{t("body")}</p>
-          <div className="relative mt-10 hidden aspect-[4/5] overflow-hidden rounded-sm bg-muted lg:block">
-            <Image
-              src="/balcom-landing/landing1.jpg"
-              alt={t("imageAlt")}
-              fill
-              sizes="30vw"
-              className="object-cover object-[78%_50%]"
-            />
-          </div>
         </div>
 
         <ol className="grid content-start gap-x-10 sm:grid-cols-2 lg:col-span-7 lg:col-start-6">
-          {services.map((id, index) => {
+          {services.map((id) => {
             const copy = SERVICE_COPY[id];
+            const Icon = icons[id];
             return (
-              <li key={id} className="border-t border-border pt-6 pb-10">
-                <span className="index-numeral">{formatIndex(index + 1, locale)}</span>
-                <h3 className="mt-3 text-[length:var(--text-xl)] font-medium leading-snug">{pick(copy.title, locale)}</h3>
-                <p className="mt-3 text-pretty text-muted-foreground">{pick(copy.summary, locale)}</p>
+              <li key={id} className="border-t border-border pt-5 pb-7">
+                <Icon className="size-6 text-primary" aria-hidden />
+                <h3 className="mt-3 text-[length:var(--text-lg)] font-medium leading-snug">
+                  {pick(copy.title, locale)}
+                </h3>
+                <p className="mt-3 text-pretty text-muted-foreground">
+                  {pick(copy.summary, locale)}
+                </p>
               </li>
             );
           })}

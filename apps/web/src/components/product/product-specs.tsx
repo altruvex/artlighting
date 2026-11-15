@@ -25,19 +25,29 @@ export default function ProductSpecs({
   armsLabel: string;
 }) {
   const ar = locale === "ar";
-  // A product with no spec groups still states its arm count, which lives
-  // on the product rather than in the specs.
-  const sheet: LocalizedSpecGroup[] =
-    groups.length > 0
-      ? groups
-      : [
-          {
-            name: "",
-            items: hNumber
-              ? [{ key: "hNumber", label: armsLabel, value: String(hNumber), parts: [{ text: hNumber.toLocaleString(ar ? "ar-EG" : "en") }], numeric: hNumber }]
-              : [],
-          },
-        ];
+  // Arm count is a product field, so keep it even when the sheet has groups.
+  const sheet: LocalizedSpecGroup[] = [...groups];
+  if (
+    hNumber &&
+    !groups.some((group) => group.items.some((item) => item.key === "hNumber"))
+  ) {
+    const arms = {
+      key: "hNumber",
+      label: armsLabel,
+      value: String(hNumber),
+      parts: [{ text: hNumber.toLocaleString(ar ? "ar-EG" : "en") }],
+      numeric: hNumber,
+    };
+    const chandelier = sheet.findIndex(
+      (group) => group.name === "Chandelier" || group.name === "النجف",
+    );
+    if (chandelier >= 0)
+      sheet[chandelier] = {
+        ...sheet[chandelier]!,
+        items: [...sheet[chandelier]!.items, arms],
+      };
+    else sheet.push({ name: "", items: [arms] });
+  }
 
   const visible = sheet.filter((group) => group.items.length > 0);
   if (visible.length === 0) return null;
@@ -50,16 +60,26 @@ export default function ProductSpecs({
           aria-label={group.name || undefined}
           className={visible.length === 1 ? "md:col-span-2" : undefined}
         >
-          <div className="h-full border-t border-foreground/70 pt-4">
-            {group.name && <h3 className="eyebrow mb-2">{group.name}</h3>}
-            <dl className={visible.length === 1 ? "grid gap-x-10 md:grid-cols-2" : undefined}>
-              {group.items.map((item) => (
+          <div className="h-full border-t border-border pt-4">
+            {group.name && (
+              <h3 className="mb-2 text-sm font-semibold">{group.name}</h3>
+            )}
+            <dl
+              className={
+                visible.length === 1
+                  ? "grid gap-x-10 md:grid-cols-2"
+                  : undefined
+              }
+            >
+              {group.items.map((item, itemIndex) => (
                 <div
-                  key={item.label}
+                  key={`${item.key ?? item.label}-${itemIndex}`}
                   className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-4 border-b border-border/70 py-2.5 last:border-b-0"
                 >
-                  <dt className="text-[length:var(--text-sm)] text-muted-foreground">{item.label}</dt>
-                  <dd className="text-[length:var(--text-sm)] font-medium">
+                  <dt className="text-[length:var(--text-sm)] text-muted-foreground">
+                    {item.label}
+                  </dt>
+                  <dd className="min-w-0 break-words text-[length:var(--text-sm)] font-medium">
                     <SpecValue item={item} />
                   </dd>
                 </div>
@@ -78,10 +98,15 @@ function SpecValue({ item }: { item: LocalizedSpecGroup["items"][number] }) {
   // screen reader hears which temperature a reading belongs to.
   if (hasConditions) {
     return (
-      <dl className="grid w-fit grid-cols-[auto_1fr] gap-x-3 gap-y-0.5" dir="auto">
+      <dl
+        className="grid w-fit grid-cols-[auto_1fr] gap-x-3 gap-y-0.5"
+        dir="auto"
+      >
         {item.parts.map((part) => (
           <Fragment key={`${part.condition}-${part.text}`}>
-            <dt className="text-[length:var(--text-xs)] tabular-nums text-muted-foreground self-center">{part.condition}</dt>
+            <dt className="text-[length:var(--text-xs)] tabular-nums text-muted-foreground self-center">
+              {part.condition}
+            </dt>
             <dd className="tabular-nums">{part.text}</dd>
           </Fragment>
         ))}
@@ -92,7 +117,10 @@ function SpecValue({ item }: { item: LocalizedSpecGroup["items"][number] }) {
     return (
       <ul className="flex flex-wrap gap-1.5" dir="auto">
         {item.parts.map((part, index) => (
-          <li key={`${index}-${part.text}`} className="rounded-sm border border-border px-2 py-0.5 text-[length:var(--text-xs)] tabular-nums">
+          <li
+            key={`${index}-${part.text}`}
+            className="rounded-sm border border-border px-2 py-0.5 text-[length:var(--text-xs)] tabular-nums"
+          >
             {part.text}
           </li>
         ))}

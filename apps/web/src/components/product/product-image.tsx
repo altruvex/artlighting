@@ -2,6 +2,8 @@
 
 import Image, { type ImageProps } from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { LoaderCircle } from "lucide-react";
+import { useLocale } from "next-intl";
 
 export const PRODUCT_IMAGE_PLACEHOLDER = "/placeholder.svg";
 
@@ -22,7 +24,14 @@ export const PRODUCT_IMAGE_PLACEHOLDER = "/placeholder.svg";
  * thumbnails). A future non-fill caller just gets no skeleton, not a
  * broken layout.
  */
-export function ProductImage({ src, alt, ...props }: ImageProps) {
+export function ProductImage({
+  src,
+  alt,
+  showLoadingIndicator = false,
+  onReady,
+  ...props
+}: ImageProps & { showLoadingIndicator?: boolean; onReady?: () => void }) {
+  const locale = useLocale();
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -33,18 +42,37 @@ export function ProductImage({ src, alt, ...props }: ImageProps) {
   // perfectly loaded photo. This catches that case on mount and whenever
   // the source changes.
   useEffect(() => {
-    if (imgRef.current?.complete) setLoaded(true);
-  }, [resolved]);
+    if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) {
+      setLoaded(true);
+      onReady?.();
+    }
+  }, [resolved, onReady]);
 
   return (
     <>
       {props.fill && (
         <div
-          aria-hidden
-          className={`absolute inset-0 bg-muted transition-opacity duration-[var(--dur-sheet)] ease-[var(--ease-out)] ${
-            loaded ? "pointer-events-none opacity-0" : "animate-pulse opacity-100"
+          aria-hidden={!showLoadingIndicator || loaded}
+          role={showLoadingIndicator && !loaded ? "status" : undefined}
+          className={`pointer-events-none absolute inset-0 z-10 grid place-items-center bg-muted/60 transition-opacity duration-[var(--dur-sheet)] ease-[var(--ease-out)] ${
+            loaded ? "opacity-0" : "opacity-100"
           }`}
-        />
+        >
+          {showLoadingIndicator && !loaded && (
+            <>
+              <LoaderCircle
+                className="size-6 animate-spin text-muted-foreground motion-reduce:animate-none"
+                aria-hidden
+              />
+              <span className="sr-only">
+                {locale === "ar" ? "جارٍ تحميل الصورة" : "Loading image"}
+              </span>
+            </>
+          )}
+          {!showLoadingIndicator && !loaded && (
+            <span className="absolute inset-0 animate-pulse bg-muted motion-reduce:animate-none" />
+          )}
+        </div>
       )}
       <Image
         {...props}
@@ -53,15 +81,20 @@ export function ProductImage({ src, alt, ...props }: ImageProps) {
         alt={alt}
         onLoad={(event) => {
           setLoaded(true);
+          onReady?.();
           props.onLoad?.(event);
         }}
-        onError={() => {
+        onError={(event) => {
           setFailed(true);
-          setLoaded(false);
+          setLoaded(failed);
+          if (failed) onReady?.();
+          props.onError?.(event);
         }}
         // next/image cannot optimise an SVG placeholder, and there is nothing
         // to optimise about it anyway.
-        unoptimized={resolved === PRODUCT_IMAGE_PLACEHOLDER ? true : props.unoptimized}
+        unoptimized={
+          resolved === PRODUCT_IMAGE_PLACEHOLDER ? true : props.unoptimized
+        }
       />
     </>
   );

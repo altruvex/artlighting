@@ -58,7 +58,12 @@
         "soldOut": "Sold out",
         "fewLeft": "{count, plural, one{Only # left} other{Only # left}}",
         "addToCartNamed": "Add {name} to bag",
-        "priceOnRequest": "Price on request"
+        "priceOnRequest": "Price on request",
+        "askForPrice": "Ask for price",
+        "available": "Available to order",
+        "details": "Product details",
+        "quoteMessage": "Hello, I would like the price and ordering details for {name}.",
+        "askForPriceNamed": "Ask for the price of {name} on WhatsApp"
     },
     "product-main-info": {
         "title": "Product Main Info",
@@ -84,14 +89,14 @@
         "join": ", ",
         "end": ".",
         "opening": {
-            "INDOOR": "An indoor {type}",
-            "OUTDOOR": "An outdoor {type}",
-            "CHANDELIER": "A {type}"
+            "INDOOR": "{type} for indoor spaces",
+            "OUTDOOR": "{type} for outdoor spaces",
+            "CHANDELIER": "{type}"
         },
         "openingWithWattage": {
-            "INDOOR": "A {wattage} indoor {type}",
-            "OUTDOOR": "A {wattage} outdoor {type}",
-            "CHANDELIER": "A {wattage} {type}"
+            "INDOOR": "{wattage} {type} for indoor spaces",
+            "OUTDOOR": "{wattage} {type} for outdoor spaces",
+            "CHANDELIER": "{wattage} {type}"
         },
         "clause": {
             "material": "built in {material}",
@@ -216,6 +221,8 @@
         "count": "{count, plural, one{# product} other{# products}}",
         "results": "Products",
         "activeFilters": "Active filters",
+        "categoriesLabel": "Shop by category",
+        "categoryAll": "All",
         "remove": "Remove filter",
         "clearAll": "Clear all",
         "filter": "Filter",
@@ -232,7 +239,7 @@
             "sale": "Offers",
             "family": "Category",
             "brand": "Brand",
-            "price": "Price",
+            "price": "Price (EGP)",
             "type": "Type"
         },
         "brand": {
@@ -257,7 +264,10 @@
         "shopByType": "Shop by type",
         "typeMetaTitle": "{type} in Egypt | Art Lighting",
         "typeMetaDescription": "{purpose} Browse {type} with prices in EGP from Art Lighting's Cairo showroom, with supply for projects across Egypt.",
-        "heading": "Shop LED lighting"
+        "heading": "Shop LED lighting",
+        "previousProducts": "Previous products",
+        "nextProducts": "Next products",
+        "filterDescription": "Choose a category or lighting type, or set a price range to narrow the products."
     },
     "pdp": {
         "glance": "At a glance",
@@ -277,9 +287,16 @@
         "datasheet": "Download the datasheet",
         "ask": "Ask about this product",
         "askMessage": "Hello, I have a question about {name} (product code {code}).",
+        "askWhatsapp": "Questions? Ask about this product on WhatsApp",
         "projectQuote": "Request a project quotation",
         "projectMessage": "Hello, I would like a project quotation for product {code}. Quantity:",
-        "profile": "Company profile (PDF)"
+        "profile": "Company profile (PDF)",
+        "priceLabel": "Price per item",
+        "totalPriceLabel": "Total for {formatted} items",
+        "quantity": "Quantity",
+        "guideWarm": "A warm tone for bedrooms and spaces used for relaxing.",
+        "guideWhite": "A neutral tone for kitchens, offices and everyday use.",
+        "guideCool": "A cool white tone for spaces where you prefer a cooler light."
     },
     "reviews": {
         "title": "Customer reviews",

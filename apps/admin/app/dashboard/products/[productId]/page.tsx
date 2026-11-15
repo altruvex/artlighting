@@ -1,7 +1,13 @@
 import { requireAdmin, AdminAuthError } from "@/lib/auth";
 import { serializeRowMoney } from "@/lib/serialize-money";
 import { applyRate, serializeMoney, subtractMoney } from "@repo/money";
-import { availableFrom, inventorySelect, productDiscountBreakdown } from "@repo/catalog";
+import {
+  availableFrom,
+  inventorySelect,
+  productDiscountBreakdown,
+  familyFromSlug,
+  familySlug,
+} from "@repo/catalog";
 import { can } from "@/lib/permissions";
 import { prisma } from "@repo/database";
 import { notFound } from "next/navigation";
@@ -12,7 +18,8 @@ import type { EditorSpecGroup } from "./spec-editor";
 const SPEC_SCALE = 4;
 
 type Translated = { language: string };
-const inLanguage = <T extends Translated>(rows: T[], language: string) => rows.find((row) => row.language === language);
+const inLanguage = <T extends Translated>(rows: T[], language: string) =>
+  rows.find((row) => row.language === language);
 
 /**
  * One spec group as the editor needs it: both languages side by side, and
@@ -39,13 +46,17 @@ function toEditorSpecGroup(group: {
 }): EditorSpecGroup {
   return {
     id: group.id,
-    name: { en: inLanguage(group.translations, "en")?.name ?? "", ar: inLanguage(group.translations, "ar")?.name ?? "" },
+    name: {
+      en: inLanguage(group.translations, "en")?.name ?? "",
+      ar: inLanguage(group.translations, "ar")?.name ?? "",
+    },
     items: group.items.map((item) => ({
       id: item.id,
       key: item.key,
       kind: item.kind as EditorSpecGroup["items"][number]["kind"],
       unit: item.unit,
-      comparator: item.comparator as EditorSpecGroup["items"][number]["comparator"],
+      comparator:
+        item.comparator as EditorSpecGroup["items"][number]["comparator"],
       optionKey: item.option?.key ?? null,
       label: {
         en: inLanguage(item.translations, "en")?.label ?? "",
@@ -57,8 +68,12 @@ function toEditorSpecGroup(group: {
       },
       measurements: item.measurements.map((m) => ({
         value: serializeMoney(m.value, SPEC_SCALE),
-        valueMax: m.valueMax == null ? null : serializeMoney(m.valueMax, SPEC_SCALE),
-        conditionValue: m.conditionValue == null ? null : serializeMoney(m.conditionValue, SPEC_SCALE),
+        valueMax:
+          m.valueMax == null ? null : serializeMoney(m.valueMax, SPEC_SCALE),
+        conditionValue:
+          m.conditionValue == null
+            ? null
+            : serializeMoney(m.conditionValue, SPEC_SCALE),
         conditionUnit: m.conditionUnit,
       })),
     })),
@@ -77,8 +92,11 @@ function storefrontUrlFor(product: {
   productId: string;
 }) {
   const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://artlighting-eg.com";
-  if (!product.brand || !product.sectionType || !product.spotlightType) return null;
-  return `${base.replace(/\/$/, "")}/category/${product.brand}/${product.sectionType}/${product.spotlightType.toLowerCase()}/${product.productId.toLowerCase()}`;
+  if (!product.brand || !product.sectionType || !product.spotlightType)
+    return null;
+  const family = familyFromSlug(product.sectionType);
+  if (!family) return null;
+  return `${base.replace(/\/$/, "")}/category/${product.brand}/${familySlug(family)}/${product.spotlightType.toLowerCase()}/${product.productId.toLowerCase()}`;
 }
 
 const ProductDetailPage = async ({
@@ -96,46 +114,51 @@ const ProductDetailPage = async ({
 
   const { productId } = await params;
 
-  const [product, categories, priceHistory, specVocabulary] = await Promise.all([
-    prisma.product.findUnique({
-      where: { id: productId },
-      include: {
-        images: { orderBy: { order: "asc" } },
-        variants: { include: { inventory: inventorySelect() } },
-        translations: true,
-        specGroups: {
-          orderBy: { position: "asc" },
-          include: {
-            translations: true,
-            items: {
-              orderBy: { position: "asc" },
-              include: {
-                translations: true,
-                measurements: { orderBy: { position: "asc" } },
-                option: { select: { key: true } },
+  const [product, categories, priceHistory, specVocabulary] = await Promise.all(
+    [
+      prisma.product.findUnique({
+        where: { id: productId },
+        include: {
+          images: { orderBy: { order: "asc" } },
+          variants: { include: { inventory: inventorySelect() } },
+          translations: true,
+          specGroups: {
+            orderBy: { position: "asc" },
+            include: {
+              translations: true,
+              items: {
+                orderBy: { position: "asc" },
+                include: {
+                  translations: true,
+                  measurements: { orderBy: { position: "asc" } },
+                  option: { select: { key: true } },
+                },
               },
             },
           },
         },
-      },
-    }),
-    // Only what the two category selects read.
-    prisma.category.findMany({
-      orderBy: [{ parentId: "asc" }, { order: "asc" }],
-      select: { id: true, name: true, parentId: true },
-    }),
-    prisma.priceHistory.findMany({
-      where: { productId },
-      orderBy: { changedAt: "desc" },
-      take: 10,
-    }),
-    // The shared vocabulary, so the spec editor can tell an existing entry
-    // (already named in Arabic) from a new one that needs an Arabic name.
-    prisma.specOption.findMany({
-      orderBy: { key: "asc" },
-      select: { key: true, translations: { select: { language: true, label: true } } },
-    }),
-  ]);
+      }),
+      // Only what the two category selects read.
+      prisma.category.findMany({
+        orderBy: [{ parentId: "asc" }, { order: "asc" }],
+        select: { id: true, name: true, parentId: true },
+      }),
+      prisma.priceHistory.findMany({
+        where: { productId },
+        orderBy: { changedAt: "desc" },
+        take: 10,
+      }),
+      // The shared vocabulary, so the spec editor can tell an existing entry
+      // (already named in Arabic) from a new one that needs an Arabic name.
+      prisma.specOption.findMany({
+        orderBy: { key: "asc" },
+        select: {
+          key: true,
+          translations: { select: { language: true, label: true } },
+        },
+      }),
+    ],
+  );
 
   if (!product) return notFound();
 
@@ -171,14 +194,23 @@ const ProductDetailPage = async ({
       discountRate={discounts.rate}
       // price − round2(price × rate): the storefront's arithmetic for a card.
       effectivePrice={
-        discounts.rate ? serializeMoney(subtractMoney(product.price, applyRate(product.price, discounts.rate))) : null
+        discounts.rate
+          ? serializeMoney(
+              subtractMoney(
+                product.price,
+                applyRate(product.price, discounts.rate),
+              ),
+            )
+          : null
       }
       priceHistory={priceHistory.map(serializeRowMoney)}
       isOwner={can(admin.role, "price:write")}
       storefrontUrl={storefrontUrlFor(product)}
       specVocabulary={specVocabulary.map((option) => ({
         key: option.key,
-        en: option.translations.find((t) => t.language === "en")?.label ?? option.key,
+        en:
+          option.translations.find((t) => t.language === "en")?.label ??
+          option.key,
         ar: option.translations.find((t) => t.language === "ar")?.label ?? null,
       }))}
     />

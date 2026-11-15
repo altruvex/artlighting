@@ -1,16 +1,36 @@
 "use client";
 
+import { shopLinkRel } from "@/lib/shop-crawl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { familySlug, type ProductFamily } from "@repo/catalog/families";
-import { formatNumber } from "@/lib/numbers";
+import { convertArabicToEnglishNumbers, formatNumber } from "@/lib/numbers";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetDescription,
+  SheetTitle,
+} from "@repo/ui/components/sheet";
 import type { Facet, ShopQuery } from "@/lib/shop.server";
-import { removeParams, setParam, toggleParam, type ShopParams } from "@/lib/shop-url";
+import {
+  removeParams,
+  setParam,
+  toggleParam,
+  type ShopParams,
+} from "@/lib/shop-url";
 import { useScrollEdges } from "@/lib/use-scroll-edges";
 import { cn } from "@/lib/utils";
 import { ShopSort } from "./shop-sort";
 import { SlidersHorizontalIcon, XIcon } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 
 interface Props {
   query: ShopQuery;
@@ -31,6 +51,7 @@ interface Props {
  */
 export function ShopFilters(props: Props) {
   const t = useTranslations("shop");
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const activeCount =
     props.query.families.length +
@@ -52,11 +73,11 @@ export function ShopFilters(props: Props) {
           the sticky header (h-16), full-bleed over the page gutter, so the
           cards scroll beneath it. Two stacked rows cost the first screen its
           first products. */}
-      <div className="sticky top-16 z-30 -mx-4 mb-5 flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-2.5 sm:-mx-6 sm:px-6 lg:hidden">
+      <div className="sticky top-[var(--store-header-height)] z-30 -mx-4 mb-5 flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-2.5 sm:-mx-6 sm:px-6 lg:hidden">
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex h-10 shrink-0 items-center gap-2 rounded-md border border-border bg-card px-4 font-medium transition-colors duration-[var(--dur-hover)] hover:border-primary/60"
+          className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-md border border-input bg-card px-4 font-medium transition-colors duration-[var(--dur-hover)] hover:border-primary/60"
           aria-expanded={open}
           aria-controls="shop-filters"
         >
@@ -73,39 +94,40 @@ export function ShopFilters(props: Props) {
         </div>
       </div>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-50 bg-overlay backdrop-blur-[2px] lg:hidden"
-          onClick={() => setOpen(false)}
-          aria-hidden
-        />
-      )}
-
-      <aside
-        id="shop-filters"
-        aria-label={t("filter")}
-        className={cn(
-          // Phone: a sheet from the inline-end edge. Desktop: a sticky column.
-          // The column itself does not scroll — the body below does, so the
-          // sheet's title stays put and the edge fade does not clip the
-          // sheet's shadow.
-          "fixed inset-y-0 end-0 z-50 flex w-[min(22rem,90vw)] flex-col bg-background p-6 pb-0 shadow-[var(--shadow-e3)] transition-transform duration-[var(--dur-sheet)] ease-[var(--ease-drawer)]",
-          open ? "translate-x-0" : "translate-x-full rtl:-translate-x-full",
-          "lg:sticky lg:top-24 lg:z-auto lg:h-fit lg:max-h-[calc(100dvh-7rem)] lg:w-auto lg:translate-x-0 lg:bg-transparent lg:p-0 lg:shadow-none rtl:lg:translate-x-0",
-        )}
-      >
-        <div className="mb-6 flex shrink-0 items-center justify-between lg:hidden">
-          <p className="text-[length:var(--text-lg)] font-semibold">{t("filter")}</p>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="grid size-10 place-items-center rounded-md transition-colors duration-[var(--dur-hover)] hover:bg-muted"
-            aria-label={t("close")}
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent
+          side={locale === "ar" ? "right" : "left"}
+          showCloseButton={false}
+          className="flex w-[min(22rem,90vw)] flex-col gap-0 p-5"
+        >
+          <SheetHeader className="mb-5 flex-row items-center justify-between p-0">
+            <SheetTitle>{t("filter")}</SheetTitle>
+            <SheetClose
+              className="grid size-11 place-items-center rounded-md hover:bg-muted"
+              aria-label={t("close")}
+            >
+              <XIcon className="size-5" aria-hidden />
+            </SheetClose>
+          </SheetHeader>
+          <SheetDescription className="sr-only">
+            {t("filterDescription")}
+          </SheetDescription>
+          <div
+            id="shop-filters"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(1.25rem,env(safe-area-inset-bottom))]"
           >
-            <XIcon className="size-5" aria-hidden />
-          </button>
-        </div>
-        <div ref={railRef} className="scroll-fade -mx-1 min-h-0 flex-auto overflow-y-auto overscroll-contain px-1 pb-6">
+            <FilterBody {...props} />
+          </div>
+        </SheetContent>
+      </Sheet>
+      <aside
+        aria-label={t("filter")}
+        className="hidden lg:sticky lg:top-[calc(var(--store-header-height)+1rem)] lg:block lg:h-fit lg:max-h-[calc(100dvh-var(--store-header-height)-2rem)]"
+      >
+        <div
+          ref={railRef}
+          className="scroll-fade max-h-[inherit] overflow-y-auto overscroll-contain pe-2 pb-5"
+        >
           <FilterBody {...props} />
         </div>
       </aside>
@@ -117,7 +139,8 @@ function FilterBody({ query, facets, priceBounds, params }: Props) {
   const t = useTranslations("shop");
   const tFamily = useTranslations("family");
   const locale = useLocale();
-  const n = (value: number) => formatNumber(value, locale === "ar" ? "ar" : "en");
+  const n = (value: number) =>
+    formatNumber(value, locale === "ar" ? "ar" : "en");
 
   return (
     <div className="space-y-8">
@@ -135,7 +158,11 @@ function FilterBody({ query, facets, priceBounds, params }: Props) {
         {facets.family.map((facet) => (
           <Option
             key={facet.value}
-            href={toggleParam(params, "family", familySlug(facet.value as ProductFamily))}
+            href={toggleParam(
+              params,
+              "family",
+              familySlug(facet.value as ProductFamily),
+            )}
             selected={query.families.includes(facet.value as ProductFamily)}
             label={tFamily(facet.value)}
             count={facet.count}
@@ -150,7 +177,11 @@ function FilterBody({ query, facets, priceBounds, params }: Props) {
             key={facet.value}
             href={toggleParam(params, "brand", facet.value)}
             selected={query.brands.includes(facet.value)}
-            label={facet.value === "balcom" ? t("brand.balcom") : t("brand.misterLed")}
+            label={
+              facet.value === "balcom"
+                ? t("brand.balcom")
+                : t("brand.misterLed")
+            }
             count={facet.count}
             n={n}
           />
@@ -158,7 +189,12 @@ function FilterBody({ query, facets, priceBounds, params }: Props) {
       </Group>
 
       <Group title={t("group.price")}>
-        <PriceRange query={query} bounds={priceBounds} params={params} />
+        <PriceRange
+          key={`${query.priceMin}:${query.priceMax}`}
+          query={query}
+          bounds={priceBounds}
+          params={params}
+        />
       </Group>
 
       {facets.type.length > 1 && (
@@ -189,7 +225,10 @@ function FilterBody({ query, facets, priceBounds, params }: Props) {
 function TypeList({ children }: { children: ReactNode }) {
   const ref = useScrollEdges<HTMLDivElement>();
   return (
-    <div ref={ref} className="scroll-fade max-h-72 space-y-0.5 overflow-y-auto overscroll-contain pe-1">
+    <div
+      ref={ref}
+      className="scroll-fade max-h-72 space-y-0.5 overflow-y-auto overscroll-contain pe-1"
+    >
       {children}
     </div>
   );
@@ -199,7 +238,10 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   const id = useId();
   return (
     <section aria-labelledby={id}>
-      <h2 id={id} className="mb-3 font-[family-name:var(--font-body)] text-[length:var(--text-xs)] font-semibold text-muted-foreground ltr:uppercase ltr:tracking-wider">
+      <h2
+        id={id}
+        className="mb-3 font-[family-name:var(--font-body)] text-[length:var(--text-xs)] font-semibold text-muted-foreground ltr:uppercase ltr:tracking-wider"
+      >
         {title}
       </h2>
       <div className="space-y-0.5">{children}</div>
@@ -228,28 +270,43 @@ function Option({
         aria-hidden
         className={cn(
           "grid size-4 shrink-0 place-items-center rounded-sm border transition-colors duration-[var(--dur-hover)]",
-          selected ? "border-primary bg-primary text-primary-foreground" : "border-input",
+          selected
+            ? "border-primary bg-primary text-primary-foreground"
+            : "border-input",
         )}
       >
         {selected && (
-          <svg viewBox="0 0 12 12" className="size-2.5" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            viewBox="0 0 12 12"
+            className="size-2.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <path d="M2.5 6.2 5 8.5l4.5-5" />
           </svg>
         )}
       </span>
       <span className="min-w-0 flex-1 truncate">{label}</span>
-      <span className="tabular-nums text-[length:var(--text-xs)] text-muted-foreground">{n(count)}</span>
+      <span className="tabular-nums text-[length:var(--text-xs)] text-muted-foreground">
+        {n(count)}
+      </span>
     </>
   );
   if (empty) {
     return (
-      <span className="flex min-h-10 items-center gap-3 rounded-md px-2 py-1.5 text-muted-foreground/60 lg:min-h-0" aria-disabled="true">
+      <span
+        className="flex min-h-10 items-center gap-3 rounded-md px-2 py-1.5 text-muted-foreground/60 lg:min-h-0"
+        aria-disabled="true"
+      >
         {body}
       </span>
     );
   }
   return (
     <Link
+      prefetch={false}
+      rel={shopLinkRel(href)}
       href={href}
       scroll={false}
       role="checkbox"
@@ -269,9 +326,24 @@ function Option({
  * for this: the prices span 676 to 15,000, and a thumb moved a pixel is
  * forty pounds.
  */
-function PriceRange({ query, bounds, params }: { query: ShopQuery; bounds: Props["priceBounds"]; params: ShopParams }) {
+function PriceRange({
+  query,
+  bounds,
+  params,
+}: {
+  query: ShopQuery;
+  bounds: Props["priceBounds"];
+  params: ShopParams;
+}) {
   const t = useTranslations("shop");
   const router = useRouter();
+  const locale = useLocale();
+  const digits = (value: string | number) =>
+    value === ""
+      ? ""
+      : new Intl.NumberFormat(locale === "ar" ? "ar-EG-u-nu-arab" : "en-US", {
+          useGrouping: false,
+        }).format(Number(value));
   const [min, setMin] = useState(query.priceMin?.toString() ?? "");
   const [max, setMax] = useState(query.priceMax?.toString() ?? "");
   const id = useId();
@@ -291,38 +363,59 @@ function PriceRange({ query, bounds, params }: { query: ShopQuery; bounds: Props
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <div className="flex items-center gap-2">
-        <label htmlFor={`${id}-min`} className="sr-only">
-          {t("priceMin")}
-        </label>
-        <input
-          id={`${id}-min`}
-          inputMode="numeric"
-          dir="ltr"
-          placeholder={String(bounds.min)}
-          value={min}
-          onChange={(event) => setMin(event.target.value.replace(/[^\d]/g, ""))}
-          className="h-10 w-full min-w-0 rounded-md border border-input bg-card px-2.5 tabular-nums lg:h-9"
-        />
-        <span className="text-muted-foreground" aria-hidden>
-          –
-        </span>
-        <label htmlFor={`${id}-max`} className="sr-only">
-          {t("priceMax")}
-        </label>
-        <input
-          id={`${id}-max`}
-          inputMode="numeric"
-          dir="ltr"
-          placeholder={String(bounds.max)}
-          value={max}
-          onChange={(event) => setMax(event.target.value.replace(/[^\d]/g, ""))}
-          className="h-10 w-full min-w-0 rounded-md border border-input bg-card px-2.5 tabular-nums lg:h-9"
-        />
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label
+            htmlFor={`${id}-min`}
+            className="mb-1 block text-xs text-muted-foreground"
+          >
+            {t("priceMin")}
+          </label>
+          <input
+            id={`${id}-min`}
+            inputMode="numeric"
+            dir="ltr"
+            placeholder={digits(bounds.min)}
+            value={digits(min)}
+            onChange={(event) =>
+              setMin(
+                convertArabicToEnglishNumbers(event.target.value).replace(
+                  /[^\d]/g,
+                  "",
+                ),
+              )
+            }
+            className="h-11 w-full min-w-0 rounded-md border border-input bg-card px-2.5 tabular-nums lg:h-9"
+          />
+        </div>
+        <div>
+          <label
+            htmlFor={`${id}-max`}
+            className="mb-1 block text-xs text-muted-foreground"
+          >
+            {t("priceMax")}
+          </label>
+          <input
+            id={`${id}-max`}
+            inputMode="numeric"
+            dir="ltr"
+            placeholder={digits(bounds.max)}
+            value={digits(max)}
+            onChange={(event) =>
+              setMax(
+                convertArabicToEnglishNumbers(event.target.value).replace(
+                  /[^\d]/g,
+                  "",
+                ),
+              )
+            }
+            className="h-11 w-full min-w-0 rounded-md border border-input bg-card px-2.5 tabular-nums lg:h-9"
+          />
+        </div>
       </div>
       <button
         type="submit"
-        className="h-10 w-full rounded-md border border-border text-[length:var(--text-sm)] font-medium transition-[border-color,transform] duration-[var(--dur-press)] ease-[var(--ease-out)] hover:border-primary/60 active:scale-[0.98] lg:h-9"
+        className="min-h-11 w-full rounded-md border border-input text-[length:var(--text-sm)] font-medium transition-[border-color,transform] duration-[var(--dur-press)] ease-[var(--ease-out)] hover:border-primary/60 active:scale-[0.98] lg:h-9"
       >
         {t("applyPrice")}
       </button>

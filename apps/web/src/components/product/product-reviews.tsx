@@ -125,10 +125,13 @@ export function ProductReviews({
     });
   };
 
+  // No reviews at all: one line and the action beside it, not a section.
+  const empty = total === 0 && reviews.length === 0;
+
   return (
-    <div className="grid gap-10 lg:grid-cols-[19rem_minmax(0,1fr)] lg:gap-14">
+    <div className={empty ? undefined : "grid gap-10 lg:grid-cols-[19rem_minmax(0,1fr)] lg:gap-14"}>
       {/* Summary: the figure, the stars, and the shape of the votes behind it. */}
-      <div className="space-y-6">
+      <div className={empty ? "flex flex-wrap items-center gap-x-5 gap-y-3" : "space-y-6"}>
         {total > 0 ? (
           <>
             <div className="flex items-center gap-4">
@@ -164,10 +167,7 @@ export function ProductReviews({
             </ul>
           </>
         ) : (
-          <div className="space-y-1">
-            <p className="font-medium">{t("noReviews")}</p>
-            <p className="text-[length:var(--text-sm)] text-muted-foreground">{t("beFirst")}</p>
-          </div>
+          <p className="font-medium text-muted-foreground">{t("noReviews")}</p>
         )}
 
         {/* Write / edit a review. */}
@@ -183,7 +183,7 @@ export function ProductReviews({
             {mine ? t("editReview") : t("writeReview")}
           </Button>
         ) : (
-          <div className="space-y-4 rounded-md border border-border p-5">
+          <div className="w-full space-y-4 rounded-md border border-border p-5">
             <div className="space-y-2">
               <p className="text-[length:var(--text-sm)] font-medium">{t("yourRating")}</p>
               <StarRatingInput value={rating} onChange={setRating} label={t("yourRating")} />
@@ -235,7 +235,7 @@ export function ProductReviews({
       </div>
 
       {/* The reviews themselves. */}
-      <div>
+      {!empty && <div>
         {reviews.length > 0 && (
           <ul className="divide-y divide-border">
             {reviews.map((review) => (
@@ -268,7 +268,7 @@ export function ProductReviews({
             {t("loadMore")}
           </Button>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

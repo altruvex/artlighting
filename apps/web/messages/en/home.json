@@ -16,36 +16,49 @@
     "home": {
         "hero": {
             "offer": "off — our best offer right now",
-            "title": "LED lighting in Egypt, chosen for the space it has to serve.",
-            "body": "LED spotlights, linear, panel and outdoor lighting, and chandeliers, for homes, hospitals, universities and hotels across Egypt — supplied as the sole agent for Balcom and an agent for Mister LED, with advice on choosing it.",
+            "title": "The right light for every corner.",
+            "body": "Chandeliers, spotlights, indoor and outdoor lighting. Find your fit, check the specifications, and order online or ask our showroom for help.",
             "shop": "Shop all lighting",
             "deals": "See the offers",
-            "eyebrow": "Art Lighting · Cairo · since 2010",
-            "catalogue": "Explore the catalogue",
-            "applications": "Find light for your space",
+            "eyebrow": "Art Lighting · For homes and projects",
+            "catalogue": "Shop all lighting",
+            "applications": "Explore by space",
             "factFounded": "Established in Cairo",
             "factAgentValue": "Balcom",
             "factAgent": "Sole authorised agent in Egypt",
-            "factProducts": "Products in the catalogue",
-            "factBrands": "Brands represented directly"
+            "factProducts": "Products to explore",
+            "factBrands": "Brands represented directly",
+            "imageAlt": "Linear lighting integrated into the ceiling of an interior space",
+            "imageLabel": "Indoor lighting",
+            "imageTitle": "Small details. A brighter space.",
+            "imageLink": "Explore the collection",
+            "help": "Need help choosing?",
+            "helpLink": "Talk to the showroom"
         },
         "categories": {
-            "title": "Product families",
+            "title": "Find your kind of lighting",
             "all": "All products",
             "shop": "Shop",
             "count": "{count, plural, one{# product} other{# products}}",
-            "eyebrow": "The catalogue",
-            "subtitle": "Three families, each with its own purpose — architectural indoor, outdoor and landscape, and decorative."
+            "eyebrow": "Shop by category",
+            "subtitle": "From everyday room lighting to chandeliers and gardens.",
+            "typeTitle": "Shop by lighting type",
+            "typeSubtitle": "Go straight to the fittings you need.",
+            "familyDescription": {
+                "INDOOR": "Spotlights, panels and linear lights",
+                "OUTDOOR": "For gardens, paths and façades",
+                "CHANDELIER": "Chandeliers and decorative lighting"
+            }
         },
         "rails": {
             "sale": "On sale now",
-            "saleSub": "Biggest savings first",
+            "saleSub": "See the original price and what you save",
             "saleLink": "All offers",
-            "featured": "Featured",
-            "featuredSub": "Picked by the showroom",
+            "featured": "Explore across the collection",
+            "featuredSub": "Lighting from different categories",
             "featuredLink": "Shop all",
-            "newest": "New arrivals",
-            "newestLink": "Shop the newest",
+            "newest": "New in the catalogue",
+            "newestLink": "All new arrivals",
             "related": "More from this family",
             "relatedLink": "See all"
         },
@@ -76,15 +89,15 @@
         },
         "applications": {
             "eyebrow": "Applications",
-            "title": "What are you lighting?",
-            "body": "Most people arrive with a space, not a product code. Start from the room or the building — each application explains what the space needs and leads to the fittings that do the job."
+            "title": "A light for every space",
+            "body": "Choose your space to find suitable lighting types and practical advice."
         },
         "services": {
             "eyebrow": "How we work with you",
-            "title": "More than a catalogue",
-            "body": "Whether it is one room or a hospital, the part that matters most happens before the order: choosing the right light for the space.",
+            "title": "From choosing to supplying",
+            "body": "Lighting a room or planning a project? Our showroom can help you choose fittings and review their specifications.",
             "imageAlt": "A spotlight with its beam angle marked",
-            "more": "How we work with homeowners and projects"
+            "more": "Explore our services"
         }
     }
 }

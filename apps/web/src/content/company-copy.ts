@@ -13,8 +13,8 @@ import type { L } from "./l10n";
 
 export const POSITIONING = {
   statement: {
-    en: "Light is part of how a space is built — not something added once the walls are finished.",
-    ar: "الإضاءة جزء من بناء المكان — وليست شيئًا يُضاف بعد انتهاء الحوائط.",
+    en: "Lighting for your home and your next project.",
+    ar: "إضاءة لبيتك، وحلول لمشروعك.",
   },
   body: {
     en: "Art Lighting has worked in the design, supply and distribution of lighting in Egypt since 2010. We are the sole authorised agent for Balcom and an authorised agent for Mister LED, and we supply homes, businesses and large projects — hospitals, universities, hotels and residential compounds — from our showroom in Cairo.",
@@ -107,8 +107,8 @@ export const SERVICE_COPY: Record<ServiceId, { title: L; summary: L; points: L[]
   selection: {
     title: { en: "Help choosing the right light", ar: "المساعدة في اختيار الإضاءة المناسبة" },
     summary: {
-      en: "Send the showroom a photo of the space or its measurements and tell us how it is used. We suggest the fittings that suit it, and how many.",
-      ar: "ابعث للمعرض صورة المكان أو مقاساته وأخبرنا كيف يُستخدم، ونقترح عليك الوحدات المناسبة وعددها.",
+      en: "Send a photo or dimensions of your space. We help you choose the fittings and quantities.",
+      ar: "أرسل صورة المكان أو مقاساته، وسنساعدك في اختيار الوحدات المناسبة وعددها.",
     },
     points: [
       { en: "By WhatsApp, by phone or in person at the showroom", ar: "عبر واتساب أو الهاتف أو في المعرض" },
@@ -146,8 +146,8 @@ export const SERVICE_COPY: Record<ServiceId, { title: L; summary: L; points: L[]
   aftersales: {
     title: { en: "After-sales service", ar: "خدمة ما بعد البيع" },
     summary: {
-      en: "The relationship does not end at delivery: the showroom that supplied a product is the one to contact about it afterwards.",
-      ar: "العلاقة لا تنتهي عند التسليم: المعرض الذي ورّد المنتج هو نفسه جهة التواصل بشأنه بعد ذلك.",
+      en: "Contact the showroom for support with the products we supply.",
+      ar: "تواصل مع المعرض للحصول على المساعدة بخصوص المنتجات التي نوردها.",
     },
     points: [
       { en: "One point of contact for the products we supply", ar: "جهة تواصل واحدة للمنتجات التي نوردها" },

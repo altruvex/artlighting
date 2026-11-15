@@ -1,6 +1,12 @@
+import { MessageCircle } from "lucide-react";
+import { whatsappLink } from "@/lib/contact-links";
 import { familySlug, type ProductFamily } from "@repo/catalog/families";
 import { Link } from "@/i18n/navigation";
-import { formatNumber, formatNumberWithConversion, formatPercent } from "@/lib/numbers";
+import {
+  formatNumber,
+  formatNumberWithConversion,
+  formatPercent,
+} from "@/lib/numbers";
 import { applyRate, money, serializeMoney, subtractMoney } from "@repo/money";
 import { useLocale, useTranslations } from "next-intl";
 import { ProductImage as Image } from "@/components/product/product-image";
@@ -32,6 +38,7 @@ interface Product {
    * by the same generator the product page uses (lib/card-description.ts).
    */
   description?: string;
+  lightingTypeName?: string;
 }
 
 interface ProductCardProps {
@@ -48,28 +55,14 @@ interface ProductCardProps {
 /** Below this, the card says how many are left — scarcity that is real. */
 const LOW_STOCK = 5;
 
-/**
- * One product in a grid.
- *
- * What it replaced carried two badges — a discount, and "fast shipping" on
- * every one of 117 products whatever the product — an arrowed carousel
- * inside every card, a "more details" button beside an icon button, the
- * sale price in the destructive red the site uses for errors, prices in
- * italics, the title in capitals, hard-coded hex greys, and an h2 per card
- * so a listing page had dozens of them.
- *
- * Now the whole card is the link and the one action that is not a link —
- * add to bag — sits above it. The discount is stated as what the shopper
- * keeps ("save 202.80"), not only as a crossed-out number, in the one
- * accent the design uses. A second image fades in on hover where there is
- * one, which is the look a carousel was reaching for at a tenth of the
- * weight.
- */
-export default function ProductCard({ product, eager = false }: ProductCardProps) {
+/** A full-size product photo, clear pricing and one purchase action. */
+export default function ProductCard({
+  product,
+  eager = false,
+}: ProductCardProps) {
   const locale = useLocale();
   const t = useTranslations("product-card");
 
-  const description = product.description;
   // Already the name in this locale (catalogueCards).
   const displayName = product.productName;
 
@@ -77,9 +70,11 @@ export default function ProductCard({ product, eager = false }: ProductCardProps
   const saving = applyRate(product.price, product.discount);
   const pricing = {
     onSale: !madeToOrder && money(product.discount).greaterThan(0),
-    current: formatNumberWithConversion(serializeMoney(subtractMoney(product.price, saving)), locale),
+    current: formatNumberWithConversion(
+      serializeMoney(subtractMoney(product.price, saving)),
+      locale,
+    ),
     list: formatNumberWithConversion(product.price, locale),
-    saving: formatNumberWithConversion(serializeMoney(saving), locale),
     rate: formatPercent(product.discount, locale),
   };
 
@@ -96,11 +91,11 @@ export default function ProductCard({ product, eager = false }: ProductCardProps
   const soldOut = stock === 0;
 
   return (
-    <article className="group relative flex h-full flex-col">
-      <figure className="relative aspect-square overflow-hidden rounded-sm">
+    <article className="group relative flex h-full min-w-0 flex-col">
+      <figure className="relative aspect-square overflow-hidden rounded-md bg-secondary/50">
         {/* Both images scale as one layer. Scaling only the first left the
             two at different sizes mid-fade, so the product ghosted. */}
-        <div className="product-photo absolute inset-0 transform-gpu transition-transform duration-700 ease-[var(--ease-out)] will-change-transform backface-hidden group-hover:scale-[1.03]">
+        <div className="product-photo absolute inset-0 transition-transform duration-200 ease-[var(--ease-out)] motion-safe:group-hover:scale-[1.02]">
           <Image
             src={primary}
             alt={displayName}
@@ -108,8 +103,10 @@ export default function ProductCard({ product, eager = false }: ProductCardProps
             sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 48vw"
             // Next 16: `priority` is deprecated, and `preload` is for a single
             // LCP image — a grid row is several, so eager + high priority.
-            {...(eager ? { loading: "eager", fetchPriority: "high" } as const : {})}
-            className="object-cover"
+            {...(eager
+              ? ({ loading: "eager", fetchPriority: "high" } as const)
+              : {})}
+            className="object-contain"
           />
           {hover && (
             // Only the second image fades, over a first that stays opaque.
@@ -120,7 +117,7 @@ export default function ProductCard({ product, eager = false }: ProductCardProps
               aria-hidden
               fill
               sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 48vw"
-              className="object-cover opacity-0 transition-opacity duration-500 ease-[var(--ease-in-out)] group-hover:opacity-100"
+              className="object-contain opacity-0 transition-opacity duration-200 ease-[var(--ease-out)] group-hover:opacity-100"
             />
           )}
         </div>
@@ -128,16 +125,16 @@ export default function ProductCard({ product, eager = false }: ProductCardProps
         {pricing.onSale && (
           // A quiet label on the photograph, not a sticker: the solid gold
           // chip with a shadow was the loudest thing in every grid row.
-          <span className="absolute start-3 top-3 rounded-sm bg-background/90 px-2 py-0.5 text-[length:var(--text-xs)] font-semibold tabular-nums text-primary backdrop-blur-sm">
+          <span className="absolute start-3 top-3 rounded-sm bg-background px-2 py-0.5 text-[length:var(--text-xs)] font-semibold tabular-nums text-primary">
             {t("off", { rate: pricing.rate })}
           </span>
         )}
-
-        {/* Made to order is quoted from the product page, not added from here. */}
-        {!madeToOrder && <AddToCartButton productId={product.productId} displayName={displayName} soldOut={soldOut} />}
       </figure>
 
       <div className="flex flex-1 flex-col gap-1.5 pt-3">
+        <p className="text-[length:var(--text-xs)] text-muted-foreground">
+          {product.lightingTypeName ?? product.brand}
+        </p>
         <h3 className="font-[family-name:var(--font-display-face)] text-[length:var(--text-base)] font-semibold leading-snug">
           <Link
             href={href}
@@ -147,21 +144,18 @@ export default function ProductCard({ product, eager = false }: ProductCardProps
             // Stretches over the whole card: one target, one tab stop.
             className="after:absolute after:inset-0 after:z-10 after:rounded-sm focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-ring"
           >
-            {displayName}
+            <bdi className="break-words">{displayName}</bdi>
           </Link>
         </h3>
-
-        {description && (
-          <p className="line-clamp-2 text-[length:var(--text-sm)] leading-relaxed text-muted-foreground">
-            {description}
-          </p>
-        )}
 
         {Boolean(product.ratingCount) && (
           <div className="flex items-center gap-1.5">
             <StarRating value={product.ratingAverage ?? 0} size="xs" />
             <span className="text-[length:var(--text-xs)] text-muted-foreground tabular-nums">
-              {formatNumber(product.ratingCount!, locale === "ar" ? "ar" : "en")}
+              {formatNumber(
+                product.ratingCount!,
+                locale === "ar" ? "ar" : "en",
+              )}
             </span>
           </div>
         )}
@@ -172,30 +166,54 @@ export default function ProductCard({ product, eager = false }: ProductCardProps
               // Said as an answer, not left as a gap: the same weight and
               // size as a figure, in the foreground colour — a muted grey
               // read as a price that had failed to load.
-              <span className="text-[length:var(--text-base)] font-semibold text-foreground">{t("priceOnRequest")}</span>
-            ) : (
-              <span data-price className="text-[length:var(--text-lg)] font-semibold tabular-nums">
-                {pricing.current}
+              <span className="text-[length:var(--text-base)] font-semibold text-foreground">
+                {t("priceOnRequest")}
               </span>
+            ) : (
+              <bdi
+                data-price
+                className="text-[length:var(--text-lg)] font-semibold tabular-nums"
+              >
+                {pricing.current}
+              </bdi>
             )}
             {pricing.onSale && (
               <s className="text-[length:var(--text-sm)] tabular-nums text-muted-foreground">
                 <span className="sr-only">{t("was")} </span>
-                {pricing.list}
+                <bdi>{pricing.list}</bdi>
               </s>
             )}
           </div>
-          {pricing.onSale && (
-            <p className="text-[length:var(--text-xs)] font-medium tabular-nums text-primary">
-              {t("save", { amount: pricing.saving })}
+          {!soldOut &&
+          stock !== undefined &&
+          stock !== null &&
+          stock <= LOW_STOCK ? (
+            <p className="text-[length:var(--text-xs)] text-muted-foreground">
+              {t("fewLeft", { count: stock })}
             </p>
-          )}
-          {soldOut ? (
-            <p className="text-[length:var(--text-xs)] text-muted-foreground">{t("soldOut")}</p>
-          ) : stock !== undefined && stock !== null && stock <= LOW_STOCK ? (
-            <p className="text-[length:var(--text-xs)] text-muted-foreground">{t("fewLeft", { count: stock })}</p>
           ) : null}
         </div>
+
+        {madeToOrder ? (
+          <a
+            href={whatsappLink(t("quoteMessage", { name: displayName }))}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t("askForPriceNamed", { name: displayName })}
+            className="relative z-20 mt-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-input bg-background px-2 text-sm font-medium transition-colors duration-150 hover:border-primary hover:text-primary"
+          >
+            <MessageCircle className="size-4 shrink-0" aria-hidden />
+            <span>{t("askForPrice")}</span>
+          </a>
+        ) : (
+          <div className="mt-2">
+            <AddToCartButton
+              productId={product.productId}
+              displayName={displayName}
+              soldOut={soldOut}
+            />
+          </div>
+        )}
       </div>
     </article>
   );

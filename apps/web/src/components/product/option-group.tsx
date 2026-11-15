@@ -25,7 +25,9 @@ export function OptionGroup({
     <div role="radiogroup" aria-label={label} className="space-y-2.5">
       <p className="flex items-baseline justify-between gap-3 text-[length:var(--text-sm)]">
         <span className="font-semibold">{label}</span>
-        {selected && <span className="truncate text-muted-foreground">{selected}</span>}
+        {selected && (
+          <span className="truncate text-muted-foreground">{selected}</span>
+        )}
       </p>
       <div className={cn("grid gap-2", className)}>{children}</div>
     </div>
@@ -41,12 +43,17 @@ export function optionChip(active: boolean) {
     "active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60",
     "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
     active
-      ? "border-primary bg-primary/10 text-foreground shadow-[inset_0_0_0_1px_var(--color-primary)]"
-      : "border-border bg-background text-foreground/85 hover:border-foreground/30 hover:text-foreground",
+      ? "border-primary bg-accent text-foreground"
+      : "border-input bg-background text-foreground hover:border-foreground/30 hover:text-foreground",
   );
 }
 
 /** The small spinner a chip shows while its choice is being saved. */
 export function ChipSpinner() {
-  return <span aria-hidden className="size-3 animate-spin rounded-full border-2 border-current border-b-transparent" />;
+  return (
+    <span
+      aria-hidden
+      className="size-3 animate-spin rounded-full border-2 border-current border-b-transparent"
+    />
+  );
 }

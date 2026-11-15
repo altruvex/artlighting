@@ -26,7 +26,10 @@ export type Brand = "balcom" | "mister-led";
 
 const BRAND = {
   balcom: { name: { en: "Balcom", ar: "بالكوم" }, icon: undefined },
-  "mister-led": { name: { en: "Mister LED", ar: "مستر ليد" }, icon: "/misterled.ico" },
+  "mister-led": {
+    name: { en: "Mister LED", ar: "مستر ليد" },
+    icon: "/misterled.ico",
+  },
 } as const;
 
 /**
@@ -47,14 +50,18 @@ export async function productStaticParams(brand: Brand) {
     .filter((card) => card.brand === brand)
     .slice(0, PRERENDERED_PER_BRAND)
     .map((card) => ({
-      subCategory: familySlug(card.sectionType as Parameters<typeof familySlug>[0]),
+      subCategory: familySlug(
+        card.sectionType as Parameters<typeof familySlug>[0],
+      ),
       lightingType: card.spotlightType.toLowerCase(),
       ProductId: card.productId.toLowerCase(),
     }));
   // A brand with no products yet (a fresh database) would leave the list
   // empty, which fails the build. This placeholder is no family, so the
   // page answers it with notFound().
-  return params.length > 0 ? params : [{ subCategory: "none", lightingType: "none", ProductId: "none" }];
+  return params.length > 0
+    ? params
+    : [{ subCategory: "none", lightingType: "none", ProductId: "none" }];
 }
 
 /** The route's three segments, checked; null for anything that cannot be a product. */
@@ -77,21 +84,38 @@ async function routeOf(params: PagePropsTypes["params"]) {
  * Each brand had its own page.tsx, identical but for the brand string and
  * a title suffix; both now render through this.
  */
-export async function ProductPage({ params, brand }: { params: PagePropsTypes["params"]; brand: Brand }) {
+export async function ProductPage({
+  params,
+  brand,
+}: {
+  params: PagePropsTypes["params"];
+  brand: Brand;
+}) {
   const { locale, route } = await routeOf(params);
   if (!route) notFound();
 
-  const product = await ProductService.getLocalizedProductDetail(route.productId, locale, {
-    sectionType: route.family,
-    spotlightType: route.lightingType,
-    brand,
-    isActive: true,
-  });
+  const product = await ProductService.getLocalizedProductDetail(
+    route.productId,
+    locale,
+    {
+      sectionType: route.family,
+      spotlightType: route.lightingType,
+      brand,
+      isActive: true,
+    },
+  );
   if (!product) notFound();
 
   const [related, t, reviews, tFamily, tShop] = await Promise.all([
     // The same cards the shop and the home page render.
-    relatedCards({ productId: product.productId, family: route.family, lightingTypeSlug: product.spotlightType }, locale),
+    relatedCards(
+      {
+        productId: product.productId,
+        family: route.family,
+        lightingTypeSlug: product.spotlightType,
+      },
+      locale,
+    ),
     getTranslations({ locale, namespace: "home.rails" }),
     // Everyone's view of the reviews; the viewer's own row is marked
     // client-side from `personal`.
@@ -101,8 +125,13 @@ export async function ProductPage({ params, brand }: { params: PagePropsTypes["p
   ]);
 
   const path = `/category/${brand}/${familySlug(route.family)}/${route.lightingType}/${product.productId.toLowerCase()}`;
-  const lightingTypeName = product.lightingtype?.translations?.[0]?.name ?? product.lightingtype?.name ?? route.lightingType;
-  const effectivePrice = serializeMoney(subtractMoney(product.price, applyRate(product.price, product.discount)));
+  const lightingTypeName =
+    product.lightingtype?.translations?.[0]?.name ??
+    product.lightingtype?.name ??
+    route.lightingType;
+  const effectivePrice = serializeMoney(
+    subtractMoney(product.price, applyRate(product.price, product.discount)),
+  );
   const { colorTemperature, cri } = specsByKey(product.specGroups);
   const { maximumWattage } = specNumbersByKey(product.specGroups);
 
@@ -115,7 +144,10 @@ export async function ProductPage({ params, brand }: { params: PagePropsTypes["p
           name: product.productName,
           sku: product.productId.toUpperCase(),
           mpn: product.productId.toUpperCase(),
-          brand: { "@type": "Brand", name: brand === "balcom" ? "Balcom" : "Mister LED" },
+          brand: {
+            "@type": "Brand",
+            name: brand === "balcom" ? "Balcom" : "Mister LED",
+          },
           category: `${tFamily(route.family)} / ${lightingTypeName}`,
           image: product.productImages.slice(0, 4).map(assetUrl),
           url: absoluteUrl(locale, path),
@@ -129,7 +161,10 @@ export async function ProductPage({ params, brand }: { params: PagePropsTypes["p
                   priceCurrency: "EGP",
                   price: effectivePrice,
                   url: absoluteUrl(locale, path),
-                  availability: product.quantity === 0 ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+                  availability:
+                    product.quantity === 0
+                      ? "https://schema.org/OutOfStock"
+                      : "https://schema.org/InStock",
                   itemCondition: "https://schema.org/NewCondition",
                   seller: { "@id": ORGANIZATION_ID },
                 },
@@ -137,23 +172,48 @@ export async function ProductPage({ params, brand }: { params: PagePropsTypes["p
           // The figures a buyer compares fittings by, as data a search or
           // answer engine can quote without parsing the page.
           additionalProperty: [
-            maximumWattage && { "@type": "PropertyValue", name: "Power", value: maximumWattage, unitCode: "WTT" },
-            product.maxIP && { "@type": "PropertyValue", name: "IP rating", value: `IP${product.maxIP}` },
-            colorTemperature && { "@type": "PropertyValue", name: "Colour temperature", value: colorTemperature },
+            maximumWattage && {
+              "@type": "PropertyValue",
+              name: "Power",
+              value: maximumWattage,
+              unitCode: "WTT",
+            },
+            product.maxIP && {
+              "@type": "PropertyValue",
+              name: "IP rating",
+              value: `IP${product.maxIP}`,
+            },
+            colorTemperature && {
+              "@type": "PropertyValue",
+              name: "Colour temperature",
+              value: colorTemperature,
+            },
             cri && { "@type": "PropertyValue", name: "CRI", value: cri },
           ].filter(Boolean),
           ...(product.ratingCount > 0 && product.ratingAverage !== null
-            ? { aggregateRating: { "@type": "AggregateRating", ratingValue: product.ratingAverage.toFixed(1), reviewCount: product.ratingCount } }
+            ? {
+                aggregateRating: {
+                  "@type": "AggregateRating",
+                  ratingValue: product.ratingAverage.toFixed(1),
+                  reviewCount: product.ratingCount,
+                },
+              }
             : {}),
         }}
       />
-      <div className={`${SECTION_FRAME} pt-6`}>
+      <div className={`${SECTION_FRAME} pt-4`}>
         <Breadcrumbs
           locale={locale}
           items={[
             { label: tShop("title"), href: "/products" },
-            { label: tFamily(route.family), href: `/products?family=${familySlug(route.family)}` },
-            { label: lightingTypeName, href: `/products?family=${familySlug(route.family)}&type=${route.lightingType}` },
+            {
+              label: tFamily(route.family),
+              href: `/products?family=${familySlug(route.family)}`,
+            },
+            {
+              label: lightingTypeName,
+              href: `/products?family=${familySlug(route.family)}&type=${route.lightingType}`,
+            },
             { label: product.productId.toUpperCase() },
           ]}
         />
@@ -161,14 +221,10 @@ export async function ProductPage({ params, brand }: { params: PagePropsTypes["p
       {/* The same for every visitor, so the page is fully prerendered; who is
           looking is asked for by the browser (ProductDetail). */}
       {/* Only the fields the client tree renders; the rest stays server-side. */}
-      <ProductDetail product={productView(product)} locale={locale} reviews={reviews} />
-      <ProductContext
+      <ProductDetail
+        product={productView(product)}
         locale={locale}
-        productId={product.productId}
-        productName={product.productName}
-        family={route.family}
-        typeSlug={route.lightingType}
-        specSheetUrl={product.specSheetUrl}
+        reviews={reviews}
       />
       <ProductRail
         id="related"
@@ -177,6 +233,14 @@ export async function ProductPage({ params, brand }: { params: PagePropsTypes["p
         hrefLabel={t("relatedLink")}
         products={related}
         locale={locale}
+      />
+      <ProductContext
+        locale={locale}
+        productId={product.productId}
+        productName={product.productName}
+        family={route.family}
+        typeSlug={route.lightingType}
+        specSheetUrl={product.specSheetUrl}
       />
       <RecentlyViewed locale={locale} exclude={product.productId} />
       <ClosingCta locale={locale} />
@@ -205,7 +269,9 @@ export async function productPageMetadata({
   if (!route || !product) {
     return constructMetadata({
       title: ar ? "المنتج غير موجود" : "Product not found",
-      description: ar ? "لم يتم العثور على المنتج المطلوب." : "The requested product could not be found.",
+      description: ar
+        ? "لم يتم العثور على المنتج المطلوب."
+        : "The requested product could not be found.",
       icons,
     });
   }
@@ -214,8 +280,15 @@ export async function productPageMetadata({
   // per-language strings. Absent when nothing is stored.
   const { colorTemperature, cri } = specsByKey(product.specGroups);
   const wattage = specNumbersByKey(product.specGroups).maximumWattage;
-  const watts = wattage ? (ar ? `${formatNumber(wattage, "ar")} وات ` : `${formatNumber(wattage, "en")}W `) : "";
-  const lightingTypeName = product.lightingtype?.translations?.[0]?.name ?? product.lightingtype?.name ?? "";
+  const watts = wattage
+    ? ar
+      ? `${formatNumber(wattage, "ar")} وات `
+      : `${formatNumber(wattage, "en")}W `
+    : "";
+  const lightingTypeName =
+    product.lightingtype?.translations?.[0]?.name ??
+    product.lightingtype?.name ??
+    "";
   const outdoor = product.maxIP && product.maxIP >= 65;
   const brandName = BRAND[brand].name[ar ? "ar" : "en"];
   // Fittings are searched for as "LED …" / "… ليد"; a chandelier's type
@@ -238,7 +311,9 @@ export async function productPageMetadata({
   // IP65 on an indoor fitting is a wet-room rating, not an outdoor one.
   const ip = product.maxIP
     ? route.family === "OUTDOOR" && outdoor
-      ? ar ? ` حماية IP${product.maxIP} للاستخدام الخارجي.` : ` IP${product.maxIP} rated for outdoor use.`
+      ? ar
+        ? ` حماية IP${product.maxIP} للاستخدام الخارجي.`
+        : ` IP${product.maxIP} rated for outdoor use.`
       : ` IP${product.maxIP}.`
     : "";
   const description = ar

@@ -1,3 +1,4 @@
+import { limitAction } from "@/middleware/ratelimit";
 import { auth } from "@/lib/auth-server";
 import { prisma } from "@repo/database";
 import { NextResponse } from "next/server";
@@ -11,6 +12,9 @@ export async function GET() {
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!(await limitAction("read", userId))) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "Retry-After": "60" } });
   }
 
   try {

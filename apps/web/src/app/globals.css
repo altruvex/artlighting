@@ -4,31 +4,6 @@
 
 @source "../";
 
-@layer base {
-  /* Scrollbars inside the page.
-   *
-   * Product rails, the filter column, the cart drawer, menus, search
-   * results, the order tables — none draws a bar. Each already shows that
-   * it scrolls: a rail lets the next card peek in at the edge, a list is cut
-   * mid-row. A gold 10px bar on every one of them was the loudest thing in
-   * each section. They still scroll by wheel, touch, trackpad and keyboard;
-   * only the drawing is gone. The page itself keeps its bar (shared styles).
-   * The admin keeps inner bars: its wide data tables need them.
-   */
-  *:not(html) {
-    scrollbar-width: none;
-  }
-
-  *:not(html)::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* Radix scroll areas draw their own bar as an element, not natively. */
-  [data-slot="scroll-area-scrollbar"] {
-    display: none;
-  }
-}
-
 /* Registered so the fade can ease in and out instead of snapping. */
 @property --fade-start {
   syntax: "<length>";
@@ -92,11 +67,115 @@
   }
 }
 
-/* The promo bar's figure chip: one pass of light, then a long rest. The
-   pass is the first fifth of the cycle; the element is hidden under
-   prefers-reduced-motion. --sheen-dir is -1 in Arabic, so the light runs
-   with the reading direction. */
-@keyframes promo-sheen {
-  0% { transform: translateX(0); }
-  20%, 100% { transform: translateX(calc(400% * var(--sheen-dir, 1))); }
+/* Storefront type and interaction rules apply to every shopping and editorial page. */
+@layer base {
+  :root {
+    --store-header-height: 6.875rem;
+    --text-3xl: clamp(1.875rem, 1.5rem + 1.7vw, 2.75rem);
+    --text-4xl: clamp(2.125rem, 1.5rem + 2.5vw, 3.5rem);
+    --dur-press: 100ms;
+    --dur-hover: 150ms;
+    --dur-sheet: 250ms;
+  }
+
+  :root:lang(ar) {
+    --text-sm: 1rem;
+    --text-xs: 0.875rem;
+    font-synthesis: none;
+  }
+
+  :lang(ar) :is(h1, h2, h3, h4) {
+    line-height: 1.4;
+  }
+  :lang(ar) :is(em, i) {
+    font-style: normal;
+  }
+  svg.lucide {
+    stroke-width: 1.75;
+  }
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+  input,
+  textarea,
+  select {
+    scroll-margin-top: 10rem;
+  }
+}
+
+@layer components {
+  .store-primary-action {
+    display: inline-flex;
+    min-height: 3rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    border-radius: var(--radius-md);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    padding-inline: 1.25rem;
+    font-weight: 600;
+    transition:
+      background-color 150ms var(--ease-out),
+      transform 100ms var(--ease-out);
+  }
+  .store-primary-action:hover {
+    background: color-mix(in oklch, var(--primary) 90%, var(--foreground));
+  }
+  .store-primary-action:active {
+    transform: scale(0.98);
+  }
+  .rail-control {
+    display: grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    place-items: center;
+    border: 1px solid var(--input);
+    border-radius: var(--radius-md);
+    background: var(--card);
+    cursor: pointer;
+    transition:
+      border-color 150ms var(--ease-out),
+      background-color 150ms var(--ease-out);
+  }
+  .rail-control:hover:enabled {
+    border-color: var(--primary);
+    background: var(--accent);
+  }
+  .rail-control:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  .product-rail {
+    scrollbar-width: thin;
+    scrollbar-color: var(--input) transparent;
+  }
+  .product-rail::-webkit-scrollbar {
+    height: 3px;
+  }
+  .product-rail::-webkit-scrollbar-thumb {
+    background: var(--input);
+    border-radius: 3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .store-primary-action:active {
+    transform: none;
+  }
+}
+
+@media (min-width: 640px) {
+  :root {
+    --store-header-height: 7.875rem;
+  }
+}
+@media (min-width: 1024px) {
+  :root {
+    --store-header-height: 8.375rem;
+  }
 }

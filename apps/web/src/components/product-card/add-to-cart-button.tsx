@@ -4,8 +4,12 @@ import { addToCart } from "@/actions/cart";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { notifyCartChanged } from "@/lib/cart-events";
 import { useAuth } from "@/lib/auth-hooks";
-import { currentReturnPath, savePendingAdd, signInPath } from "@/lib/pending-cart";
-import { cn } from "@/lib/utils";
+import {
+  currentReturnPath,
+  savePendingAdd,
+  signInPath,
+} from "@/lib/pending-cart";
+import { Button } from "@repo/ui/components/button";
 import { Loader2Icon, ShoppingBagIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
@@ -43,7 +47,10 @@ export function AddToCartButton({
       toast(tToast("signInRequired"), {
         id: "pending-add",
         description: tToast("addAfterSignIn"),
-        action: { label: tAuth("signIn"), onClick: () => router.push(signInPath(returnTo)) },
+        action: {
+          label: tAuth("signIn"),
+          onClick: () => router.push(signInPath(returnTo)),
+        },
       });
       return;
     }
@@ -60,27 +67,29 @@ export function AddToCartButton({
   };
 
   return (
-    // Above the stretched link, so it adds to the bag rather than opening
-    // the product. Always visible on touch, where there is no hover to
-    // reveal it.
-    <button
+    // Above the stretched link (z-20), so it adds to the bag rather than
+    // opening the product. Outline at rest, gold on hover: visible, not loud.
+    <Button
       type="button"
+      variant="outline"
       onClick={handleAddToCart}
       disabled={isPending || soldOut}
-      aria-label={t("addToCartNamed", { name: displayName })}
-      className={cn(
-        "absolute bottom-3 end-3 z-20 grid size-10 place-items-center rounded-full bg-background/95 text-foreground shadow-[var(--shadow-e2)] backdrop-blur",
-        "transition-[transform,opacity,background-color] duration-[var(--dur-hover)] ease-[var(--ease-out)]",
-        "hover:bg-primary hover:text-primary-foreground active:scale-95",
-        "md:translate-y-2 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 md:focus-visible:translate-y-0 md:focus-visible:opacity-100",
-        "disabled:cursor-not-allowed disabled:opacity-50",
-      )}
+      aria-label={
+        soldOut ? undefined : t("addToCartNamed", { name: displayName })
+      }
+      className="relative z-20 min-h-11 w-full gap-1.5 px-2 hover:border-primary hover:bg-primary hover:text-primary-foreground"
     >
       {isPending ? (
-        <Loader2Icon className="size-4 animate-spin" aria-hidden />
+        <Loader2Icon
+          className="size-4 animate-spin motion-reduce:animate-none"
+          aria-hidden
+        />
       ) : (
         <ShoppingBagIcon className="size-4" aria-hidden />
       )}
-    </button>
+      <span className="truncate">
+        {soldOut ? t("soldOut") : t("addToCart")}
+      </span>
+    </Button>
   );
 }

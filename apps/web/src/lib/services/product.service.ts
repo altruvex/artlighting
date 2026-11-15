@@ -1,11 +1,25 @@
 import { prisma, type Prisma, type ProductIP } from "@repo/database";
 import { imageUrls, productImageSelect } from "@/lib/product-images";
-import { sellableFrom, inventorySelect, productBulbSelect, productDiscountRates, type ProductFamily } from "@repo/catalog";
+import {
+  sellableFrom,
+  inventorySelect,
+  productBulbSelect,
+  productDiscountRates,
+  type ProductFamily,
+} from "@repo/catalog";
 import { bulbChoices, type BulbChoice } from "@repo/catalog/bulb-pricing";
-import { localizeSpecGroups, specGroupSelect, type LocalizedSpecGroup } from "@/lib/spec-groups";
+import {
+  localizeSpecGroups,
+  specGroupSelect,
+  type LocalizedSpecGroup,
+} from "@/lib/spec-groups";
 import { serializeMoney, serializeRate } from "@repo/money";
 import { toViewConfiguration } from "@/lib/serialize-money";
-import { CATALOGUE_TAG, catalogueCacheLife, productTag } from "@/lib/cache.server";
+import {
+  CATALOGUE_TAG,
+  catalogueCacheLife,
+  productTag,
+} from "@/lib/cache.server";
 import { cacheTag } from "next/cache";
 
 export interface ProductFilters {
@@ -59,7 +73,9 @@ export interface ProductDetailRecord extends LocalizedProductData {
 }
 
 /** The client's share of a record, so the server-only fields stay on the server. */
-export function productView(product: ProductDetailRecord): LocalizedProductData {
+export function productView(
+  product: ProductDetailRecord,
+): LocalizedProductData {
   return {
     productId: product.productId,
     productName: product.productName,
@@ -114,19 +130,34 @@ function productDetailSelect(language: string) {
     // any; see @repo/catalog/bulb-pricing.
     bulbs: productBulbSelect(),
     // The page names the lighting type, in this locale where it can.
-    lightingtype: { select: { name: true, translations: { where: { language }, take: 1, select: { name: true } } } },
+    lightingtype: {
+      select: {
+        name: true,
+        translations: { where: { language }, take: 1, select: { name: true } },
+      },
+    },
     // Stock lives in the inventory ledger. What the storefront needs is
     // what a customer can actually buy, which is on hand minus whatever is
     // already promised to unshipped orders.
-    variants: { where: { isDefault: true }, select: { inventory: inventorySelect() }, take: 1 },
+    variants: {
+      where: { isDefault: true },
+      orderBy: [{ position: "asc" }, { id: "asc" }],
+      select: { inventory: inventorySelect() },
+      take: 1,
+    },
   } satisfies Prisma.ProductSelect;
 }
 
 function loadProductDetail(productId: string, language: string) {
-  return prisma.product.findUnique({ where: { productId }, select: productDetailSelect(language) });
+  return prisma.product.findUnique({
+    where: { productId, deletedAt: null },
+    select: productDetailSelect(language),
+  });
 }
 
-type ProductDetailRow = NonNullable<Awaited<ReturnType<typeof loadProductDetail>>>;
+type ProductDetailRow = NonNullable<
+  Awaited<ReturnType<typeof loadProductDetail>>
+>;
 
 export function transformToLocalizedProduct(
   product: ProductDetailRow,
@@ -138,7 +169,7 @@ export function transformToLocalizedProduct(
    * minimum or a scope. Absent means no promotion applies to that product
    * right now, which is a real answer, not a missing one.
    */
-  discountRates: Record<string, string> = {}
+  discountRates: Record<string, string> = {},
 ): ProductDetailRecord {
   return {
     id: product.id,
@@ -165,7 +196,10 @@ export function transformToLocalizedProduct(
     spotlightType: product.spotlightType,
     quantity: sellableFrom(product, product.variants[0]?.inventory),
     madeToOrder: product.madeToOrder,
-    ratingAverage: product.ratingAverage !== null && product.ratingAverage !== undefined ? Number(product.ratingAverage) : null,
+    ratingAverage:
+      product.ratingAverage !== null && product.ratingAverage !== undefined
+        ? Number(product.ratingAverage)
+        : null,
     ratingCount: product.ratingCount ?? 0,
     isActive: product.isActive ?? true,
     maxIP: product.maxIP ?? null,
@@ -178,7 +212,10 @@ export function transformToLocalizedProduct(
   };
 }
 
-async function cachedProductDetail(productId: string, language: string): Promise<ProductDetailRecord | null> {
+async function cachedProductDetail(
+  productId: string,
+  language: string,
+): Promise<ProductDetailRecord | null> {
   "use cache";
   // Its own tag as well, so an order or a review refreshes this product
   // without dropping every other page built from the catalogue.
@@ -206,14 +243,23 @@ export class ProductService {
   static async getLocalizedProductDetail(
     productId: string,
     language: string,
-    filters?: ProductFilters
+    filters?: ProductFilters,
   ): Promise<ProductDetailRecord | null> {
     const product = await cachedProductDetail(productId, language);
     if (!product) return null;
-    if (filters?.sectionType && product.sectionType !== filters.sectionType) return null;
-    if (filters?.spotlightType && product.spotlightType !== filters.spotlightType) return null;
+    if (filters?.sectionType && product.sectionType !== filters.sectionType)
+      return null;
+    if (
+      filters?.spotlightType &&
+      product.spotlightType !== filters.spotlightType
+    )
+      return null;
     if (filters?.brand && product.brand !== filters.brand) return null;
-    if (filters?.isActive !== undefined && product.isActive !== filters.isActive) return null;
+    if (
+      filters?.isActive !== undefined &&
+      product.isActive !== filters.isActive
+    )
+      return null;
     return product;
   }
 
@@ -231,13 +277,25 @@ export class ProductService {
     let config = await prisma.configuration.findFirst({
       where: userId
         ? { productId: product.productId, userId }
-        : { productId: product.productId, userId: null, guestToken: guestToken ?? null },
+        : {
+            productId: product.productId,
+            userId: null,
+            guestToken: guestToken ?? null,
+          },
       orderBy: { updatedAt: "desc" },
     });
 
     if (!config) {
       const rates = await productDiscountRates(
-        [{ id: product.id, price: product.price, categoryId: product.categoryId, lightingtypeId: product.lightingtypeId, sectionType: product.sectionType }],
+        [
+          {
+            id: product.id,
+            price: product.price,
+            categoryId: product.categoryId,
+            lightingtypeId: product.lightingtypeId,
+            sectionType: product.sectionType,
+          },
+        ],
         prisma,
       );
       config = await prisma.configuration.create({

@@ -3,6 +3,7 @@
 import { familiesMatching } from "@repo/catalog";
 import { catalogueCards, type ShopCard } from "@/lib/shop.server";
 import { MIN_SEARCH_LENGTH, SEARCH_SHOWN } from "./search-limits";
+import { limitAction } from "@/middleware/ratelimit";
 
 /**
  * The header's search-as-you-type.
@@ -35,8 +36,10 @@ export async function searchProducts(
   locale = "en",
 ): Promise<{ hits: SearchHit[]; total: number }> {
   if (typeof searchItem !== "string") return { hits: [], total: 0 };
+  locale = locale === "ar" ? "ar" : "en";
   const needle = searchItem.trim().toLocaleLowerCase(locale).slice(0, 80);
   if (needle.length < MIN_SEARCH_LENGTH) return { hits: [], total: 0 };
+  if (!(await limitAction("search"))) return { hits: [], total: 0 };
   // sectionType is matched against whole families whose slug contains the
   // term, as before.
   const families = new Set<string>(familiesMatching(needle));

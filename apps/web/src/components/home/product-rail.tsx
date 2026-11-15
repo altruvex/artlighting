@@ -1,3 +1,4 @@
+import { RailScroller } from "./rail-scroller";
 import ProductCard from "@/components/product-card/product-card";
 import { SECTION_FRAME, SectionHeading } from "@/components/section-heading";
 import type { ReactNode } from "react";
@@ -36,7 +37,10 @@ export function ProductRail({
   const headingId = `rail-${id ?? title.replace(/\s+/g, "-")}`;
 
   return (
-    <section aria-labelledby={headingId} className="py-12 lg:py-16">
+    <section
+      aria-labelledby={headingId}
+      className="border-t border-border/60 py-10 lg:py-14"
+    >
       <SectionHeading
         id={headingId}
         title={title}
@@ -46,18 +50,16 @@ export function ProductRail({
         action={action}
         className={SECTION_FRAME}
       />
-      <ul
-        className="mx-auto flex max-w-screen-2xl snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-4 px-4 pb-4 sm:gap-6 sm:scroll-px-6 sm:px-6 lg:scroll-px-10 lg:px-10"
-      >
+      <RailScroller locale={locale} label={title}>
         {products.map((product) => (
           <li
             key={product.id}
-            className="w-[70%] shrink-0 snap-start sm:w-[42%] md:w-[30%] lg:w-[22%] xl:w-[18.5%]"
+            className="w-[46%] shrink-0 snap-start sm:w-[calc((100%_-_2.5rem)/3)] lg:w-[calc((100%_-_3.75rem)/4)] xl:w-[calc((100%_-_5rem)/5)]"
           >
             <ProductCard product={product} locale={locale} />
           </li>
         ))}
-      </ul>
+      </RailScroller>
     </section>
   );
 }

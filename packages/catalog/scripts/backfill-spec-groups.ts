@@ -23,15 +23,25 @@
  * Run: pnpm --filter @repo/catalog backfill:specs -- --dry-run
  *      pnpm --filter @repo/catalog backfill:specs -- --apply
  */
-import { assertNotProduction, databaseUrl, hostOf, loadEnv } from "../../database/load-env";
+import {
+  assertNotProduction,
+  databaseUrl,
+  hostOf,
+  loadEnv,
+} from "../../database/load-env";
 import { parseBackfillArgs, reportHeader } from "./backfill-shared";
+import {
+  LEGACY_OPTION_LABELS,
+  legacySpecValue,
+} from "../src/legacy-spec-values";
 
 const options = parseBackfillArgs(process.argv.slice(2));
 loadEnv(new URL("../../database", import.meta.url).pathname);
 assertNotProduction();
 
 const { prisma } = await import("@repo/database");
-const { CHOICE_COLUMNS, optionKeyFor, parseSpecValue } = await import("../src/specs");
+const { CHOICE_COLUMNS, optionKeyFor, parseSpecValue } =
+  await import("../src/specs");
 
 /**
  * The layout lives in src/spec-layout.ts — the admin product editor lays its
@@ -40,7 +50,11 @@ const { CHOICE_COLUMNS, optionKeyFor, parseSpecValue } = await import("../src/sp
  */
 const { SPEC_LAYOUT } = await import("../src/spec-layout");
 
-reportHeader("Backfill: ProductSpecification columns → SpecGroup / SpecItem", options, hostOf(databaseUrl()));
+reportHeader(
+  "Backfill: ProductSpecification columns → SpecGroup / SpecItem",
+  options,
+  hostOf(databaseUrl()),
+);
 
 const alreadyStructured = await prisma.product.count({
   where: { specifications: { some: {} }, specGroups: { some: {} } },
@@ -58,7 +72,12 @@ let itemsWritten = 0;
 let skippedEmptyGroups = 0;
 let written = 0;
 let structured = 0;
-const unparsed: { sku: string; column: string; english: string | null; arabic: string | null }[] = [];
+const unparsed: {
+  sku: string;
+  column: string;
+  english: string | null;
+  arabic: string | null;
+}[] = [];
 
 /**
  * The shared option vocabulary, built as we go: "die_casting_aluminum" is
@@ -67,7 +86,11 @@ const unparsed: { sku: string; column: string; english: string | null; arabic: s
  */
 const optionIdByKey = new Map<string, string>();
 
-async function optionIdFor(key: string, english: string | null, arabic: string | null): Promise<string> {
+async function optionIdFor(
+  key: string,
+  english: string | null,
+  arabic: string | null,
+): Promise<string> {
   const cached = optionIdByKey.get(key);
   if (cached) return cached;
 
@@ -77,11 +100,16 @@ async function optionIdFor(key: string, english: string | null, arabic: string |
     create: { key },
     select: { id: true },
   });
-  for (const [language, label] of [["en", english], ["ar", arabic]] as const) {
+  const labels = LEGACY_OPTION_LABELS[key] ?? { en: english, ar: arabic };
+  for (const [language, label] of [
+    ["en", labels.en],
+    ["ar", labels.ar],
+  ] as const) {
     if (!label) continue;
     await prisma.specOptionTranslation.upsert({
       where: { optionId_language: { optionId: option.id, language } },
-      update: { label },
+      // Preserve vocabulary corrected in the admin; fill missing translations only.
+      update: {},
       create: { optionId: option.id, language, label },
     });
   }
@@ -90,8 +118,14 @@ async function optionIdFor(key: string, english: string | null, arabic: string |
 }
 
 for (const product of products) {
-  const plannedGroups: { id: string; productId: string; position: number }[] = [];
-  const plannedGroupTranslations: { id: string; groupId: string; language: string; name: string }[] = [];
+  const plannedGroups: { id: string; productId: string; position: number }[] =
+    [];
+  const plannedGroupTranslations: {
+    id: string;
+    groupId: string;
+    language: string;
+    name: string;
+  }[] = [];
   const plannedItems: {
     id: string;
     groupId: string;
@@ -111,9 +145,20 @@ for (const product of products) {
     conditionValue: string | null;
     conditionUnit: string | null;
   }[] = [];
-  const plannedItemTranslations: { id: string; itemId: string; language: string; label: string; value: string | null }[] = [];
+  const plannedItemTranslations: {
+    id: string;
+    itemId: string;
+    language: string;
+    label: string;
+    value: string | null;
+  }[] = [];
 
-  const byLanguage = new Map(product.specifications.map((spec) => [spec.language, spec as Record<string, unknown>]));
+  const byLanguage = new Map(
+    product.specifications.map((spec) => [
+      spec.language,
+      spec as Record<string, unknown>,
+    ]),
+  );
   const english = byLanguage.get("en");
   const arabic = byLanguage.get("ar");
 
@@ -121,9 +166,19 @@ for (const product of products) {
     // A group with no value in any language is not written at all: an empty
     // "Chandelier" section on a spotlight's datasheet is worse than none.
     const present = layout.fields.filter((field) => {
+      if (
+        legacySpecValue(product.productId, field.key, {
+          en: null,
+          ar: null,
+        }) === null
+      )
+        return false;
       const en = english?.[field.key];
       const ar = arabic?.[field.key];
-      return (typeof en === "string" && en.trim() !== "") || (typeof ar === "string" && ar.trim() !== "");
+      return (
+        (typeof en === "string" && en.trim() !== "") ||
+        (typeof ar === "string" && ar.trim() !== "")
+      );
     });
     if (present.length === 0) {
       skippedEmptyGroups += 1;
@@ -134,7 +189,9 @@ for (const product of products) {
     itemsWritten += present.length;
 
     if (options.dryRun) {
-      console.log(`  ${product.productId.padEnd(22)} ${layout.en} (${present.length} items): ${present.map((f) => f.key).join(", ")}`);
+      console.log(
+        `  ${product.productId.padEnd(22)} ${layout.en} (${present.length} items): ${present.map((f) => f.key).join(", ")}`,
+      );
     }
 
     // Deterministic ids: the same product and position always produce the
@@ -155,8 +212,19 @@ for (const product of products) {
 
     for (const [itemPosition, field] of present.entries()) {
       const itemId = `si_${groupId}_${itemPosition}`;
-      const rawEn = typeof english?.[field.key] === "string" ? (english[field.key] as string).trim() || null : null;
-      const rawAr = typeof arabic?.[field.key] === "string" ? (arabic[field.key] as string).trim() || null : null;
+      const normalized = legacySpecValue(product.productId, field.key, {
+        en:
+          typeof english?.[field.key] === "string"
+            ? (english[field.key] as string).trim() || null
+            : null,
+        ar:
+          typeof arabic?.[field.key] === "string"
+            ? (arabic[field.key] as string).trim() || null
+            : null,
+      });
+      if (!normalized) continue;
+      const rawEn = normalized.en;
+      const rawAr = normalized.ar;
 
       // The value stops being a sentence and becomes a number, a range or a
       // vocabulary entry. Anything the parser cannot read confidently stays
@@ -164,7 +232,12 @@ for (const product of products) {
       // an unconverted string.
       const parsed = parseSpecValue(field.key, rawEn, rawAr);
       if (parsed.kind === "TEXT") {
-        unparsed.push({ sku: product.productId, column: field.key, english: rawEn, arabic: rawAr });
+        unparsed.push({
+          sku: product.productId,
+          column: field.key,
+          english: rawEn,
+          arabic: rawAr,
+        });
       } else {
         structured += 1;
       }
@@ -189,7 +262,10 @@ for (const product of products) {
         optionId,
       });
 
-      for (const [measurementPosition, measurement] of parsed.measurements.entries()) {
+      for (const [
+        measurementPosition,
+        measurement,
+      ] of parsed.measurements.entries()) {
         plannedMeasurements.push({
           id: `sm_${itemId}_${measurementPosition}`,
           itemId,
@@ -219,21 +295,28 @@ for (const product of products) {
   if (!options.dryRun && plannedGroups.length > 0) {
     await prisma.$transaction([
       prisma.specGroup.createMany({ data: plannedGroups }),
-      prisma.specGroupTranslation.createMany({ data: plannedGroupTranslations }),
+      prisma.specGroupTranslation.createMany({
+        data: plannedGroupTranslations,
+      }),
       prisma.specItem.createMany({ data: plannedItems }),
       prisma.specMeasurement.createMany({ data: plannedMeasurements }),
       prisma.specItemTranslation.createMany({ data: plannedItemTranslations }),
     ]);
     written += 1;
-    if (written % 20 === 0) console.log(`  … ${written}/${products.length} products`);
+    if (written % 20 === 0)
+      console.log(`  … ${written}/${products.length} products`);
   }
 }
 
 console.log("");
 console.log(`  products:                 ${products.length}`);
 console.log(`  skipped, already have groups: ${alreadyStructured}`);
-console.log(`  groups ${options.dryRun ? "to write" : "written"}:${" ".repeat(options.dryRun ? 11 : 12)}${groupsWritten}`);
-console.log(`  items  ${options.dryRun ? "to write" : "written"}:${" ".repeat(options.dryRun ? 11 : 12)}${itemsWritten}`);
+console.log(
+  `  groups ${options.dryRun ? "to write" : "written"}:${" ".repeat(options.dryRun ? 11 : 12)}${groupsWritten}`,
+);
+console.log(
+  `  items  ${options.dryRun ? "to write" : "written"}:${" ".repeat(options.dryRun ? 11 : 12)}${itemsWritten}`,
+);
 console.log(`  empty groups skipped:     ${skippedEmptyGroups}`);
 console.log(`  values parsed into numbers/options: ${structured}`);
 console.log(`  values left as free text: ${unparsed.length}`);
@@ -241,11 +324,14 @@ if (unparsed.length > 0) {
   // Reported, never guessed at: these are the only values that can still
   // disagree between the two languages.
   const byColumn = new Map<string, number>();
-  for (const row of unparsed) byColumn.set(row.column, (byColumn.get(row.column) ?? 0) + 1);
+  for (const row of unparsed)
+    byColumn.set(row.column, (byColumn.get(row.column) ?? 0) + 1);
   console.log("\n  still free text, by column:");
   for (const [column, count] of [...byColumn].sort((a, b) => b[1] - a[1])) {
     const sample = unparsed.find((row) => row.column === column)!;
-    console.log(`    ${column.padEnd(20)} ${String(count).padStart(4)}   e.g. ${sample.sku}: ${JSON.stringify(sample.english ?? sample.arabic)}`);
+    console.log(
+      `    ${column.padEnd(20)} ${String(count).padStart(4)}   e.g. ${sample.sku}: ${JSON.stringify(sample.english ?? sample.arabic)}`,
+    );
   }
 }
 if (!options.dryRun && !options.limit && written > 0) {
@@ -259,8 +345,12 @@ if (!options.dryRun && !options.limit && written > 0) {
     select: { id: true, key: true },
   });
   if (orphaned.length > 0) {
-    await prisma.specOption.deleteMany({ where: { id: { in: orphaned.map((option) => option.id) } } });
-    console.log(`  unused options removed:   ${orphaned.length} (${orphaned.map((o) => o.key).join(", ")})`);
+    await prisma.specOption.deleteMany({
+      where: { id: { in: orphaned.map((option) => option.id) } },
+    });
+    console.log(
+      `  unused options removed:   ${orphaned.length} (${orphaned.map((o) => o.key).join(", ")})`,
+    );
   }
 }
 

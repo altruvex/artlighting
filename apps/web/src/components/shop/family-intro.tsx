@@ -1,3 +1,4 @@
+import { shopLinkRel } from "@/lib/shop-crawl";
 import { Onward } from "@/components/editorial/arrow";
 import { Check } from "lucide-react";
 import { applicationsForType } from "@/content/applications";
@@ -127,6 +128,8 @@ export async function FamilyIntro({
 function TypeChip({ href, active, name, count }: { href: string; active: boolean; name: string; count?: number }) {
   return (
     <Link
+      prefetch={false}
+      rel={shopLinkRel(href)}
       href={href}
       scroll={false}
       aria-current={active ? "true" : undefined}

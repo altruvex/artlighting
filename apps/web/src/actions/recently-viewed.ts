@@ -1,5 +1,6 @@
 "use server";
 
+import { limitAction } from "@/middleware/ratelimit";
 import { RECENTLY_VIEWED_MAX } from "@/lib/recently-viewed";
 import { cardsByProductIds, type ShopCard } from "@/lib/shop.server";
 
@@ -14,5 +15,6 @@ export async function recentlyViewedCards(productIds: unknown, locale: unknown):
   const codes = [...new Set(productIds)]
     .filter((code): code is string => typeof code === "string" && code.length > 0 && code.length <= 120)
     .slice(0, RECENTLY_VIEWED_MAX);
+  if (codes.length === 0 || !(await limitAction("read"))) return [];
   return cardsByProductIds(codes, locale === "ar" ? "ar" : "en");
 }

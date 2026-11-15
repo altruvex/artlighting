@@ -87,7 +87,7 @@ export const LIGHTING_TYPES: LightingType[] = [
   {
     id: "uplight",
     family: "OUTDOOR",
-    name: { en: "Uplights", ar: "الإضاءة الأرضية العلوية" },
+    name: { en: "Uplights", ar: "إضاءة أرضية" },
     search: { en: "LED uplights", ar: "أب لايت أرضي ليد" },
     purpose: {
       en: "Set at ground level and aimed up — to graze walls and columns and lift trees out of the dark.",
@@ -107,7 +107,7 @@ export const LIGHTING_TYPES: LightingType[] = [
   {
     id: "bollard",
     family: "OUTDOOR",
-    name: { en: "Bollards", ar: "البولارد" },
+    name: { en: "Bollards", ar: "إضاءة الممرات" },
     search: { en: "Bollard lights", ar: "بولارد إضاءة حدائق وممرات" },
     purpose: {
       en: "Low posts that light the ground at walking height — paths, entrances and the edges of landscape.",
@@ -127,7 +127,7 @@ export const LIGHTING_TYPES: LightingType[] = [
   {
     id: "flood-light",
     family: "OUTDOOR",
-    name: { en: "Flood lights", ar: "كشافات الفلود" },
+    name: { en: "Flood lights", ar: "كشافات خارجية" },
     search: { en: "LED flood lights", ar: "كشافات فلود لايت ليد" },
     purpose: {
       en: "High output over a wide area — facades, yards, car parks and sports and security lighting.",

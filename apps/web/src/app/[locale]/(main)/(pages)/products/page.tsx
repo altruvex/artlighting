@@ -1,3 +1,4 @@
+import { shopLinkRel } from "@/lib/shop-crawl";
 import { ClosingCta } from "@/components/closing-cta";
 import ProductCard from "@/components/product-card/product-card";
 import { SectionHeading } from "@/components/section-heading";
@@ -8,7 +9,8 @@ import { Link } from "@/i18n/navigation";
 import { getLocaleFromParams } from "@/lib/i18n/utils";
 import { constructMetadata } from "@/lib/metadata";
 import { formatNumber } from "@/lib/numbers";
-import { isOpenEndedQuery, parseShopQuery, searchShop } from "@/lib/shop.server";
+import { parseShopQuery, searchShop } from "@/lib/shop.server";
+import { isCacheableShopQuery, normalizeShopParams } from "@/lib/shop-query";
 import { clearFilters, removeParams, setParam, toggleParam, type ShopParams } from "@/lib/shop-url";
 import { SearchX, XIcon } from "lucide-react";
 import { Breadcrumbs } from "@/components/editorial/page-header";
@@ -18,7 +20,7 @@ import { FAMILY_INTRO, lightingType } from "@/content/lighting-types";
 import { familySlug, type ProductFamily } from "@repo/catalog/families";
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import Loading from "@/app/[locale]/loading";
+import { ShopLoading } from "@/components/page-loading";
 import { cacheTag } from "next/cache";
 import { CARDS_TAG, CATALOGUE_TAG, catalogueCacheLife } from "@/lib/cache.server";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -30,7 +32,9 @@ type Props = {
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const locale = getLocaleFromParams(await params);
-  const query = parseShopQuery(await searchParams);
+  const raw = normalizeShopParams(await searchParams);
+  const query = parseShopQuery(raw);
+  const noIndex = !isCacheableShopQuery(query);
   const t = await getTranslations({ locale, namespace: "shop" });
   // A single family is a page in its own right — its own title, its own
   // canonical. Every other combination of filters canonicalises to it or
@@ -44,6 +48,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     // the family.
     return constructMetadata({
       locale,
+      noIndex,
       path: `/products?family=${familySlug(family)}&type=${type.id}`,
       title: t("typeMetaTitle", { type: pick(type.search, locale) }),
       description: t("typeMetaDescription", {
@@ -56,12 +61,13 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     const intro = FAMILY_INTRO[family];
     return constructMetadata({
       locale,
+      noIndex,
       path: `/products?family=${familySlug(family)}`,
       title: t("familyMetaTitle", { family: pick(intro.title, locale) }),
       description: pick(intro.body, locale).slice(0, 160),
     });
   }
-  return constructMetadata({ locale, path: "/products", title: t("metaTitle"), description: t("metaDescription") });
+  return constructMetadata({ locale, noIndex, path: "/products", title: t("metaTitle"), description: t("metaDescription") });
 }
 
 /** The lighting type a family view is narrowed to, when it is exactly one the catalogue describes. */
@@ -84,7 +90,7 @@ export default function ShopPage({ params, searchParams }: Props) {
   // The URL is read inside the boundary, so a link to the shop can prefetch
   // its shared shell (partialPrefetching); the shelf streams in after.
   return (
-    <Suspense fallback={<Loading />}>
+    <Suspense fallback={<ShopLoading />}>
       <ShopForUrl params={params} searchParams={searchParams} />
     </Suspense>
   );
@@ -92,36 +98,30 @@ export default function ShopPage({ params, searchParams }: Props) {
 
 async function ShopForUrl({ params, searchParams }: Props) {
   const locale = getLocaleFromParams(await params);
-  const raw = shopParamsOnly(await searchParams);
-  // Free text and price bounds can take any value: caching on them would
-  // add a cache entry per visitor's search. Those render per request (over
-  // the cached catalogue); every finite shelf is still cached.
-  if (isOpenEndedQuery(parseShopQuery(raw))) return shopView(locale, raw);
+  const raw = normalizeShopParams(await searchParams);
+  // Cache only the finite landing shelves. Searches and filter combinations
+  // render over the cached catalogue without filling remote storage with
+  // a separate rendered tree for each combination.
+  if (!isCacheableShopQuery(parseShopQuery(raw))) return shopView(locale, raw);
   return <CachedShopView locale={locale} raw={raw} />;
 }
 
 /** Cards whose photos load eagerly: the first row at the widest grid (4 columns). */
 const ABOVE_THE_FOLD = 4;
 
-/** The query keys the shop reads. Anything else (utm_…, fbclid) is not part of the page. */
-const SHOP_KEYS = ["family", "brand", "type", "sale", "min", "max", "sort", "q", "page"] as const;
-
-function shopParamsOnly(raw: ShopParams): ShopParams {
-  const kept: ShopParams = {};
-  for (const key of SHOP_KEYS) if (raw[key] !== undefined) kept[key] = raw[key];
-  return kept;
-}
-
 /**
- * The shop for one finite query, rendered once and cached (`"use cache"`
+ * The shop for one finite query, rendered once and cached (`"use cache: remote"`
  * keys on its arguments). The search params make the page itself per
  * request, but a hundred visitors on the same shelf — the first page, a
- * family, a sort — now share one render instead of each paying for 24
+ * family, a lighting type — now share one render instead of each paying for 24
  * cards and the facets. Tracking parameters are dropped first so they do
  * not split the cache.
  */
 async function CachedShopView({ locale, raw }: { locale: string; raw: ShopParams }) {
-  "use cache";
+  // Runtime URL data is not part of the prerendered shell. Share the
+  // rendered shelf across serverless instances instead of redoing its
+  // cards, translations and facets on every cold instance.
+  "use cache: remote";
   cacheTag(CATALOGUE_TAG, CARDS_TAG);
   await catalogueCacheLife();
   return shopView(locale, raw);
@@ -165,6 +165,24 @@ async function shopView(locale: string, raw: ShopParams) {
     ...(query.q ? [{ label: `“${query.q}”`, href: setParam(raw, "q", null) }] : []),
   ];
 
+  // Quick category pills: only on the bare shop, where the sidebar is the
+  // one other way in.
+  const numberLocale = locale === "ar" ? "ar" : "en";
+  const showCategories = query.families.length === 0 && !query.q;
+  const categories = [
+    { key: "all", label: t("categoryAll"), count: formatNumber(result.total, numberLocale), href: setParam(raw, "family", null), current: true },
+    ...result.facets.family.map((f) => ({
+      key: f.value,
+      label: tFamily(f.value as ProductFamily),
+      count: formatNumber(f.count, numberLocale),
+      href: setParam(raw, "family", f.value.toLowerCase()),
+      current: false,
+    })),
+    ...(result.facets.sale > 0
+      ? [{ key: "sale", label: t("onSale"), count: formatNumber(result.facets.sale, numberLocale), href: setParam(raw, "sale", "1"), current: false }]
+      : []),
+  ];
+
   return (
     <>
       <div className="mx-auto w-full max-w-screen-2xl px-4 pb-12 pt-5 sm:px-6 md:pt-8 lg:px-10 lg:pb-16">
@@ -205,11 +223,39 @@ async function shopView(locale: string, raw: ShopParams) {
           <FamilyIntro family={family} locale={locale} params={raw} typeFacets={result.facets.type} activeTypes={query.types} />
         )}
 
+        {showCategories && (
+          <nav aria-label={t("categoriesLabel")} className="-mx-4 overflow-x-auto px-4 pt-4 sm:-mx-6 sm:px-6 md:pt-5 lg:mx-0 lg:px-0">
+            <ul className="flex w-max items-center gap-2 lg:w-auto lg:flex-wrap">
+              {categories.map((pill) => (
+                <li key={pill.key} className="shrink-0">
+                  <Link
+                    prefetch={false}
+                    rel={shopLinkRel(pill.href)}
+                    href={pill.href}
+                    scroll={false}
+                    aria-current={pill.current ? "page" : undefined}
+                    className={`inline-flex min-h-10 items-center gap-1.5 whitespace-nowrap rounded-full border bg-card px-3.5 text-[length:var(--text-sm)] transition-colors duration-[var(--dur-hover)] ease-[var(--ease-out)] sm:min-h-9 ${
+                      pill.current
+                        ? "border-primary font-medium text-primary"
+                        : "border-border hover:border-primary/60"
+                    }`}
+                  >
+                    {pill.label}
+                    <span className="text-[length:var(--text-xs)] tabular-nums text-muted-foreground">{pill.count}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
+
         {chips.length > 0 && (
           <ul className="flex flex-wrap items-center gap-2 pt-4 md:pt-5" aria-label={t("activeFilters")}>
             {chips.map((chip) => (
               <li key={chip.href + chip.label}>
                 <Link
+                  prefetch={false}
+                  rel={shopLinkRel(chip.href)}
                   href={chip.href}
                   scroll={false}
                   className="group inline-flex min-h-10 items-center gap-1.5 rounded-full border border-border bg-card pe-2.5 ps-3 text-[length:var(--text-sm)] transition-colors duration-[var(--dur-hover)] ease-[var(--ease-out)] hover:border-primary/60 sm:min-h-8"
@@ -222,6 +268,8 @@ async function shopView(locale: string, raw: ShopParams) {
             ))}
             <li>
               <Link
+                prefetch={false}
+                rel={shopLinkRel(clearFilters(raw))}
                 href={clearFilters(raw)}
                 scroll={false}
                 className="inline-flex min-h-10 items-center px-1 text-[length:var(--text-sm)] font-medium text-muted-foreground underline-offset-4 transition-colors duration-[var(--dur-hover)] hover:text-foreground hover:underline sm:min-h-8"
@@ -243,6 +291,8 @@ async function shopView(locale: string, raw: ShopParams) {
                 <p className="max-w-sm text-pretty text-muted-foreground">{t("emptyBody")}</p>
                 <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
                   <Link
+                    prefetch={false}
+                    rel={shopLinkRel(clearFilters(raw))}
                     href={clearFilters(raw)}
                     className="inline-flex min-h-10 items-center rounded-md bg-primary px-5 font-medium text-primary-foreground transition-[background-color,transform] duration-[var(--dur-press)] ease-[var(--ease-out)] hover:bg-primary/90 active:scale-[0.98]"
                   >
@@ -250,6 +300,7 @@ async function shopView(locale: string, raw: ShopParams) {
                   </Link>
                   {/* A way out that is not another filter: the whole catalogue. */}
                   <Link
+                    prefetch={false}
                     href="/products"
                     className="inline-flex min-h-10 items-center rounded-md border border-border bg-card px-5 font-medium transition-[border-color,transform] duration-[var(--dur-press)] ease-[var(--ease-out)] hover:border-primary/60 active:scale-[0.98]"
                   >

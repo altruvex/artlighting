@@ -12,10 +12,10 @@ catalog:
   '@types/react-dom': 19.3.0
   better-auth: 1.7.15
   eslint: 10.14.0
-  eslint-config-next: 16.4.3
+  eslint-config-next: 16.4.5
   eslint-config-prettier: 10.1.8
   eslint-plugin-turbo: 2.11.10
-  next: 16.4.3
+  next: 16.4.5
   next-intl: 4.14.9
   pptxgenjs: 4.0.1
   prisma: 7.10.1
